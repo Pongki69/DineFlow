@@ -10,6 +10,8 @@ The architecture, schema, API plan, setup variables, release/backup guidance, an
 
 ## Local development
 
+For Render Free with Neon PostgreSQL, use the root Dockerfile and follow [deploy/README.md](deploy/README.md). It builds React and Laravel into one web service and documents the required private environment settings.
+
 The layout is `backend/` for Laravel and `frontend/` for React/Vite. Local-only PHP settings, Composer, PostgreSQL binaries/data, and database credentials are kept in ignored files. Start PostgreSQL from the project root with:
 
 For the free portfolio map integration, set `MAP_PROVIDER=geoapify` and `GEOAPIFY_API_KEY` in `backend/.env`. The key is read only by Laravel. The customer map uses OpenStreetMap tiles and includes attribution. Configure restaurant coordinates and weekly hours in **Delivery settings** before accepting delivery orders. Mapbox remains available with `MAP_PROVIDER=mapbox` and `MAPBOX_SERVER_TOKEN`. See [docs/PORTFOLIO_SETUP.md](docs/PORTFOLIO_SETUP.md) for free-service setup and hosting boundaries.

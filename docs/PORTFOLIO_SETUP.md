@@ -22,7 +22,7 @@ Keep `MAIL_MAILER=log` locally. For public password recovery, configure a verifi
 
 ## Hosting choices to prepare separately
 
-A candidate free deployment is a Render web service (Docker for Laravel and built React assets) plus a Neon Free PostgreSQL project. Serve the frontend and API from one origin to simplify Sanctum session cookies. This repository is not yet packaged or configured for that deployment.
+A free deployment option is a Render web service (Docker for Laravel and built React assets) plus a Neon Free PostgreSQL project. The root Dockerfile serves the frontend and API from one origin to simplify Sanctum session cookies. Follow [../deploy/README.md](../deploy/README.md) for the Render form, private environment variables and first-administrator setup. The first container build still needs verification on Render.
 
 Render Free can sleep when idle, and its local filesystem is ephemeral. Use database sessions, avoid relying on uploaded files stored on the web instance, and choose persistent media storage or bundled demo images. Scheduled maintenance and a separate Reverb process need a hosting plan; the existing delivery UI also polls for updates, so it can demonstrate tracking without a persistent WebSocket server. Do not claim scheduled jobs are running until a scheduler has actually been provisioned.
 
