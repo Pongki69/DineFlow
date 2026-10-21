@@ -1,6 +1,6 @@
-# REST API Plan
+# REST API reference and historical plan
 
-All routes are planned under `/api/v1`, return JSON, use Laravel API Resources, and validate input with Form Requests. Use standard HTTP status codes and a consistent error shape with a stable machine-readable `code`, human-readable `message`, and optional field `errors`. Paginate collection endpoints. Use ISO-8601 UTC timestamps and integer minor units plus currency for amounts. Mutating requests that can be retried should accept an idempotency key.
+The first two route tables below are historical proposals, not implemented aliases. Use the later implemented sections and backend/routes/api.php as the source of truth. The established Geoapify, PayMongo, Sanctum and PostgreSQL workflow takes precedence. The original proposal placed routes under `/api/v1`, return JSON, use Laravel API Resources, and validate input with Form Requests. Use standard HTTP status codes and a consistent error shape with a stable machine-readable `code`, human-readable `message`, and optional field `errors`. Paginate collection endpoints. Use ISO-8601 UTC timestamps and integer minor units plus currency for amounts. Mutating requests that can be retried should accept an idempotency key.
 
 ## Public and customer
 
@@ -19,7 +19,7 @@ All routes are planned under `/api/v1`, return JSON, use Laravel API Resources, 
 | GET/POST | `/me/orders`, `/orders/{order}/payments` | Place own order and start eligible payment workflow. |
 | GET | `/me/orders`, `/me/payments` | Own records only. |
 | POST | `/delivery/quote` | Server calculates coverage, route estimate, and fee; no client total accepted. |
-| GET | `/me/deliveries/{delivery}` | Own delivery status with privacy-minimized rider data. |
+| GET | `/my/deliveries/{delivery}` | Own delivery status with privacy-minimized rider data. |
 | POST | `/orders/{order}/payments/checkout` | Owner starts PayMongo hosted checkout for the server-calculated remaining order balance. |
 | POST | `/reservations/{reservation}/deposit/checkout` | Owner starts the configured reservation deposit checkout. |
 | GET | `/payments/{payment}`, `/payments/{payment}/receipt` | Owner retrieves payment state and a printable receipt. |
@@ -63,13 +63,13 @@ Implemented Chunk 4 mapping routes:
 | Method | Endpoint | Purpose / access |
 |---|---|---|
 | GET | `/restaurant/location` | Public restaurant address, coordinates, contact, hours, and navigation link. |
-| GET | `/maps/search?q=` | Authenticated server-side Mapbox address search; provider key never reaches the browser. |
+| GET | `/maps/search?q=` | Authenticated server-side Geoapify address search; provider key never reaches the browser. |
 | GET/POST/PUT/DELETE | `/addresses` | Authenticated customer's own delivery addresses, including pin and instructions. |
 | POST | `/delivery/quote` | Reprices submitted menu selections on the server, checks radius/hours, and returns road distance, travel estimate, fee, and minimum-order status. |
 | GET/PUT | `/admin/delivery-policy` | Settings-authorized delivery area, hours, and fee rules. |
 | PUT | `/admin/restaurant/location` | Settings-authorized restaurant address, coordinates, contact, and hours. |
 
-Delivery order submission repeats route/coverage/hour checks on the server and persists the address text, customer-selected coordinates, recipient/phone, instructions, road distance/time, and final fee as an order snapshot. Mapping requires `MAPBOX_SERVER_TOKEN`; map tiles use OpenStreetMap with attribution. Rider endpoints below are implemented under `/api/v1`; private broadcast authorization is also available at `/broadcasting/auth`.
+Delivery order submission repeats route/coverage/hour checks on the server and persists the address text, customer-selected coordinates, recipient/phone, instructions, road distance/time, and final fee as an order snapshot. Mapping uses `MAP_PROVIDER=geoapify` and requires `GEOAPIFY_API_KEY`; map tiles use OpenStreetMap with attribution. Rider endpoints below are implemented under `/api/v1`; private broadcast authorization is also available at `/api/v1/broadcasting/auth`.
 
 | Method | Endpoint | Purpose / access |
 |---|---|---|
@@ -112,4 +112,16 @@ Reservation transitions, no-show rules, deposits, reassignment availability, ord
 - Use transaction boundaries for reservation allocation, order placement, payment reconciliation, and delivery status updates. Use database uniqueness/exclusion constraints as a final integrity guard.
 - Broadcast only private authorized events. Customers subscribe only to their order/delivery; assigned riders and permitted managers receive narrower channels. Do not include payment secrets or unnecessary personal data.
 
+
+
+## Completion updates
+
+- GET /api/v1/health returns database readiness without connection details (503 when unavailable). /up remains Laravel liveness.
+- GET /api/v1/me returns the authenticated account. PATCH /api/v1/me changes name and optionally password; current password is required for a new password. Role and email changes are not accepted. Other sessions/tokens are revoked after a password change.
+- Actual auth paths are /register, /login, /logout, /forgot-password and /reset-password under /api/v1. CSRF bootstrap is /sanctum/csrf-cookie outside that prefix. Actual catalog paths are /menu/categories and /menu/items, with permission-protected mutations on those paths. Actual service paths include /service/tables, /service/tables/{table}/sessions and /service/dining-sessions/{session}/close. Consult routes/api.php instead of the historical /auth, /staff and /restaurants proposals.
+- Error responses now include a stable code with message and optional validation errors. Existing success envelopes and decimal PHP monetary fields remain compatible with the SPA; provider requests use integer centavos.
+- POST /orders, POST /reservations and POST /reservations/{id}/reschedule accept optional Idempotency-Key headers: 8-128 letters, digits, dots, colons, underscores or hyphens. Identical successful submissions replay for 24 hours, scoped to user and method/path, with Idempotency-Replayed: true. Changed details using the same key return 409; validation failures do not consume keys. A new intended submission needs a new key.
+- Reservations include a stored turnover buffer. PostgreSQL excludes overlapping active intervals even for direct writes; service locking remains enabled. New booking instants are stored in UTC and policy responses include the restaurant timezone.
+- Seating opens a linked session. Rescheduling retains the customer owner. Completing a seated booking/closing its session requires settled bills.
+- Optional private floor-plan invalidations are emitted after commit, contain only floor_id and authorize active authenticated users. Render Free retains polling. Delivery channels retain existing owner/assigned-rider/staff restrictions.
 

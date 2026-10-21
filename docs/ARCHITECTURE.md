@@ -1,111 +1,42 @@
-# DineFlow Architecture Proposal
+# DineFlow architecture
 
-## Current-state inspection
+This describes the implemented application. Earlier proposals for alternate providers, multi-restaurant tenancy, additional frontend frameworks, and renamed endpoints are superseded by the existing workflow.
 
-The workspace began empty during Chunk 0 inspection. Chunks 1–3 have since added the Laravel/React foundation, PostgreSQL-backed menu/order/reservation schema, Sanctum/RBAC, customer and staff flows, and the Three.js floor map. PHP 8.3, Composer dependencies, Node.js 24/npm 11, frontend dependencies, and a user-local PostgreSQL 17 cluster are installed and used for local verification. The workspace is not initialized as a Git repository.
+## Stack and layout
 
-Consequently this document defines a proposed foundation, not a description of a previously existing application. Chunk 1 has since added initial auth/access source and tests; it is not yet installed or executed.
+| Location | Responsibility |
+|---|---|
+| backend/app/Http/Controllers/Api/V1 | Laravel 13 HTTP endpoints, authorization and validated input |
+| backend/app/Services | Catalog pricing, reservations, dispatch, payments, reports, notifications and auditing |
+| backend/app/Models and database/migrations | Eloquent relationships and PostgreSQL constraints |
+| backend/routes/api.php, channels.php, console.php | HTTP routes, private broadcast authorization and scheduled maintenance |
+| frontend/src/App.jsx | React 19 SPA routes and permission-driven workspace navigation |
+| frontend/src/api.js | Sanctum session/CSRF requests, structured errors and submission retry keys |
+| frontend/src/*Operations.jsx and Reservations.jsx | Customer and staff feature screens |
+| frontend/src/FloorScene.jsx | Optional Three.js seating view; booking defaults to accessible 2D |
+| .github/workflows/checks.yml | Backend, PostgreSQL, frontend, browser and Docker checks |
+| deploy/ and Dockerfile | Render deployment serving Vite assets and Laravel from one origin |
 
-## Proposed monorepo layout
+PHP 8.3, Composer, Node 24/npm and PostgreSQL 17 are the established development tools. Composer and npm lockfiles define dependencies. The frontend uses CSS, React Router, Leaflet, Echo, Vitest, Playwright, axe, ESLint and Prettier. Authored CSS uses the existing Tailwind preflight; TanStack Query, PostGIS and a separate API gateway are not required.
 
-```text
-backend/                  Laravel API, authentication, business services
-  app/Http/Controllers/Api/V1/
-  app/Http/Requests/Api/V1/
-  app/Models/
-  app/Policies/
-  app/Services/
-  database/migrations/
-  routes/api.php
-  tests/Feature/Api/V1/
-frontend/                 React + Vite customer/staff applications
-  src/app/                 routing, providers, API client, auth state
-  src/features/            account, menu, booking, ordering, delivery, CMS
-  src/components/          shared design system and accessible primitives
-  src/maps/                geographic maps and indoor 3D floor plan
-  src/tests/
-docs/                     architecture, API, operations, integration notes
-```
+## Providers and deployment
 
-## Proposed dependency list
+- Geoapify provides server-side address search and driving routes. Leaflet displays geographic maps with existing attribution. Keys remain in Laravel configuration.
+- PayMongo hosted checkout and verified webhooks provide online payments in test mode for the portfolio; cash works without merchant credentials.
+- Render runs the Docker web service, including frontend and backend. Neon hosts PostgreSQL through its direct connection string. Neon Data API and Neon Auth are not used.
+- Sanctum uses database sessions and first-party CSRF cookies. Password recovery needs SMTP; in-app notifications work without it.
+- Render Free uses log broadcasting and polling. Optional Reverb/Echo supports private delivery and floor invalidations when configured. No new hosted WebSocket subscription is required.
 
-Pin mutually compatible versions when scaffolding; do not use unbounded `latest` ranges in the committed manifests.
+## Data flow and integrity
 
-| Layer | Dependencies / tools | Use |
-|---|---|---|
-| Backend runtime | PHP version supported by the selected Laravel release, Composer, Laravel, `laravel/sanctum` | API, first-party SPA authentication, queues, scheduling, notifications. |
-| Backend database | PostgreSQL server and PHP `pdo_pgsql` extension | Transactions, constraints, JSON support, optional PostGIS if zone/routing requirements justify it. |
-| Backend realtime | Laravel Reverb or a supported broadcaster, Laravel Echo client | Private authorized updates for operations and delivery tracking. |
-| Backend quality | Laravel Pint; Pest or PHPUnit; static analysis tool selected by team | Formatting, feature/unit testing, type and static checks. |
-| Frontend runtime | Node.js LTS supported by Vite, npm | Reproducible frontend install and development server. |
-| Frontend app | React, React DOM, Vite, React Router | SPA, route groups, development and production bundling. |
-| Frontend UI | Tailwind CSS, accessible component primitives, Lucide React (optional) | Consistent responsive styling and icons. |
-| Frontend data | TanStack Query or equivalent, a schema/form validation library | API caching/mutations and validated form state. |
-| Indoor visualization | Three.js, `@react-three/fiber`, `@react-three/drei` | API-driven indoor restaurant floor plan. |
-| Geographic mapping | Google Maps JS SDK or Mapbox GL JS; alternatively Leaflet plus approved tile/geocoder/router providers | Address selection, restaurant marker, directions, routes, ETA. Select one provider set before implementation. |
-| Frontend quality | ESLint, Prettier, Vitest, React Testing Library, Playwright (critical workflows) | Static checks, component tests, and browser acceptance tests. |
-| External services | PayMongo or Xendit; SMTP/transactional email; object storage; optional WebSocket infrastructure | Payments, recovery/notifications, media, live events. Keep secrets server-side. |
+1. The SPA signs in through Sanctum, receives permitted navigation and calls /api/v1. Permission middleware and ownership checks remain authoritative on the server.
+2. Menu selections are repriced from stored catalog data. Order lines snapshot names, options, prices and destination/fee details. Current API money fields remain decimal PHP values; provider requests use calculated integer centavos.
+3. Availability is advisory. Reservation creation rechecks hours, capacity, publishing, occupancy and overlaps under table locks. PostgreSQL also excludes overlapping active intervals, including each booking's stored turnover buffer. New bookings are stored in UTC after validating restaurant-local hours.
+4. Seating opens a linked dining session and marks the table occupied. Rescheduling preserves customer ownership. Closing a session or completing a seated reservation requires settled bills before the table moves to cleaning.
+5. Payment redirects only return the visitor to the app. Signed, timestamp-checked events establish payment after matching amount, currency and mode. Provider event IDs prevent duplicate capture; pending checkouts and allocations prevent overcollection.
+6. Dispatch assigns a rider; rider-only transitions and consented GPS update delivery records and history. Customer tracking is scoped to the owning order. Floor invalidations contain only a floor identifier, with no guest information.
+7. Operations and reports aggregate stored records according to permissions. Audit records and database notifications preserve business actions.
 
-### Backend responsibilities
+Order creation, reservation creation and rescheduling accept user- and route-scoped Idempotency-Key headers. Successful responses replay for 24 hours; changed payloads using the same key return 409. The SPA retains a key across ambiguous network failures within the current page session.
 
-- Controllers remain thin: authorize, validate through Form Requests, call a service, and return API Resources.
-- Services own multi-step business rules: booking allocation, order pricing, payment reconciliation, dispatch, delivery lifecycle, and audit events.
-- Eloquent models express relationships and ordinary scopes. PostgreSQL constraints provide the final guard for invariants that must survive concurrent requests.
-- Policies and role/permission middleware enforce access on every protected API route. Frontend navigation is only a usability aid and is never the security boundary.
-- Queue jobs handle mail, webhook follow-up, and non-blocking integration work. Broadcast events expose only the minimum data allowed to the intended private channel.
-
-### Frontend responsibilities
-
-- React/Vite is a single SPA with route groups for public/customer pages and authenticated staff workspaces. Feature folders keep screens, API hooks, and view-specific state together.
-- A shared API client handles JSON, CSRF/session bootstrap, validation errors, and expired authentication. Do not store long-lived credentials in local storage for a first-party Sanctum SPA.
-- Tailwind CSS and shared accessible components provide consistent styling. Each core feature must include loading, empty, error, and permission-denied states.
-- Geographic outdoor maps and the indoor 3D seating scene are separate features and data models. 3D is progressively enhanced; reservation selection must also have an accessible 2D/list fallback.
-- Prices, authorization, availability, delivery coverage, and payment status are always derived or verified by the API.
-
-## Proposed database model and relationships
-
-All business records should be scoped by `restaurant_id` where applicable, even if the first deployment serves one restaurant. Use PostgreSQL `bigint` or UUID primary keys consistently; decide before creating the first migration. Store money as integer minor units plus ISO currency code rather than floating-point values. Persist timestamps in UTC and render them in the restaurant timezone.
-
-| Area | Main tables | Relationships / important constraints |
-|---|---|---|
-| Identity and access | `users`, `roles`, `permissions`, `role_user`, `permission_role`, `staff_profiles`, `rider_profiles` | Public signup assigns only Customer. Deactivated users cannot authenticate. Rider profile references one user. Role grants are server-managed and audited. |
-| Restaurant | `restaurants`, `restaurant_settings`, `business_hours`, `audit_logs` | Restaurant owns configuration and business records. Coordinates use validated latitude/longitude or PostGIS geography if the chosen spatial workflows justify it. |
-| Catalog | `menu_categories`, `menu_items`, `menu_item_variants`, `modifier_groups`, `modifiers`, `promotions` | Items belong to a restaurant/category. Snapshot item name, option selections, and unit price onto order lines at checkout. Availability is server-owned. |
-| Indoor floor plan | `floors`, `zones`, `dining_tables`, `floor_plan_objects` | Every table has stable identifier, capacity, active flag, and editable geometry/position metadata. Visual objects reference their floor and optional table. |
-| Reservations and service | `reservations`, `reservation_tables`, `dining_sessions` | Reservation belongs to customer and restaurant; table assignment is explicit. Dining session begins only when seated. Preserve lifecycle history and ownership. |
-| Orders and payments | `orders`, `order_items`, `order_item_modifiers`, `payments`, `payment_events` | Order links to customer and optionally reservation, session, table, and delivery address. Gateway events are idempotent by provider event ID. Payment records are append-only in critical fields. |
-| Delivery | `customer_addresses`, `delivery_zones`, `delivery_fee_rules`, `delivery_assignments`, `delivery_status_history`, `delivery_location_updates` | Assignment links an order, rider, and lifecycle. Customer queries are ownership-scoped; rider queries are assignment-scoped. Keep location history short-lived under an explicit retention policy. |
-| Communications | Laravel `notifications`, queued jobs, broadcast events | Delivery tracking uses authenticated private channels scoped to the customer/order and assigned rider. Never broadcast full address/contact details to a general channel. |
-
-### Reservation concurrency
-
-Represent a booking interval using a PostgreSQL range, including configured dining duration and turnaround buffer. Add a GiST exclusion constraint preventing overlap for a table among blocking reservation statuses; enable `btree_gist` if equality on the table key requires it. Create or update assignments inside a transaction, lock candidate table rows, and return a conflict response if a competing request wins. The frontend's availability result is advisory only.
-
-### Order and payment integrity
-
-Re-read menu items, variants, modifiers, discounts, taxes, and delivery fees in the backend transaction. Persist a price/name snapshot on order lines. Never accept a client-supplied total as authoritative. Verify gateway signatures server-side, make webhook processing idempotent, and reconcile asynchronous payment states before marking an order paid.
-
-## Business service boundaries
-
-- `ReservationAvailabilityService` and `ReservationBookingService`
-- `OrderPricingService` and `OrderPlacementService`
-- `PaymentGateway` interface with PayMongo/Xendit adapters and webhook verification
-- `DeliveryCoverageService`, `DeliveryQuoteService`, and `DeliveryDispatchService`
-- `RiderLocationService` for consent/session validation, rate limits, stale-state handling, and retention
-- `FloorPlanService` for table/floor configuration and safe layout updates
-- `AuditLogService` for sensitive administrator and payment actions
-
-## Integration requirements
-
-- Payments: PayMongo Hosted Checkout v2 is the configured gateway; card, GCash, and QR Ph availability depends on merchant eligibility. Keep secret keys and endpoint webhook secrets server-side; verify signed events and use provider idempotency.
-- Maps: choose Google Maps Platform or Mapbox for address search, routing, and ETAs, or select a supported Leaflet tile/geocoding/routing combination. Configure restricted keys, quotas, attribution, and billing. Never claim an estimated arrival is guaranteed.
-- Realtime: Laravel broadcasting with private authenticated channels. Do not emit rider location outside an active authorized assignment. Stop capture/broadcast at delivery completion/cancellation and delete or age out stored coordinates according to retention policy.
-- Notifications: configure an SMTP or transactional mail provider for password reset, booking, and order messages. Add SMS/push providers only when selected.
-- Media: local storage in development; use private/public object storage policies intentionally for production menu media.
-
-## Development, test, and production environments
-
-- Local: separate frontend and Laravel processes; PostgreSQL local service; `.env` files excluded from Git; seeded non-sensitive development-only data; mail sink and fake payment adapters.
-- Automated checks: Laravel unit/feature tests for authorization, isolation, concurrency, price calculation, webhook idempotency, and lifecycle transitions; React component/API tests for role views, form states, accessibility, and errors; end-to-end checks for reservation/order/delivery critical paths.
-- Production: HTTPS, restricted CORS and Sanctum stateful domains, secure cookies, secrets manager, queued jobs, scheduler, database backups, structured logs, error monitoring, rate limits, storage lifecycle, and documented restore procedure.
-- Do not enable real payment collection or location broadcast until credentials, webhook URLs, private channel authorization, retention rules, and operational monitoring are configured.
+This is a single-restaurant application. Existing schema and response envelopes are retained. See API_PLAN.md for current routes and IMPLEMENTATION_STATUS.md for verification and release limitations.

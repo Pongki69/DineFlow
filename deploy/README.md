@@ -13,7 +13,7 @@
 | Key | Value |
 | --- | --- |
 | APP_KEY | Stable output of `php artisan key:generate --show` (starts with `base64:`). Do not use Render's generic Generate button for this value. |
-| DB_URL | Full Neon PostgreSQL connection string, including `sslmode=require`. The application reads DB_URL, not DATABASE_URL. |
+| DB_URL | Full direct/non-pooled Neon PostgreSQL connection string, including `sslmode=require` (disable connection pooling in Neon Connect). The application reads DB_URL, not DATABASE_URL. |
 | MAP_PROVIDER | geoapify |
 | GEOAPIFY_API_KEY | Your Geoapify key |
 | INITIAL_ADMIN_EMAIL | A private administrator login email |
@@ -30,8 +30,10 @@ After a successful deployment, open /up, register a customer, and log into the a
 
 ## Free-instance boundaries
 
-The scheduler runs while this container is awake. Render can suspend it when idle, so reminder/expiry jobs may run late; this is a portfolio demo, not an always-on restaurant service. Reverb is not started; the existing UI polls for delivery updates. Images uploaded to local storage disappear on restart; use committed demo assets or arrange persistent storage before relying on uploads. Migrations never reset or delete the database.
+The scheduler runs while this container is awake. Render can suspend it when idle, so reminder/expiry jobs may run late; this is a portfolio demo, not an always-on restaurant service. Reverb is not started; the UI polls for delivery and floor availability updates. Images uploaded to local storage disappear on restart; use committed demo assets or arrange persistent storage before relying on uploads. Migrations never reset or delete the database.
 
 Mail stays in logs until configured. For Brevo SMTP, use port 2525 on Render Free (465 and 587 are blocked). Leave PayMongo keys blank for cash-only demos, or supply test keys and a test webhook at /api/v1/webhooks/paymongo. Do not use live payment keys for this public demo.
 
 Docker is not installed on the development machine, so a full container build must be verified by Render's first build. Application tests, the production frontend build, and shell syntax can be checked locally.
+
+Before releasing workflow-completion changes, read docs/OPERATIONS.md under Applying the new reservation migrations. The new overlap constraint requires clean historical allocations and btree_gist. Local checks cover application code and PostgreSQL integrity; the new CI Docker job still needs execution on GitHub.

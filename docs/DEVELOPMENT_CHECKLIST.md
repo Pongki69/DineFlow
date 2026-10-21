@@ -1,6 +1,6 @@
 # DineFlow Development Checklist
 
-This roadmap sequences implementation. Chunks 0–8 are implemented locally; production rollout and full verification remain future work.
+This roadmap sequences implementation. Chunks 0–8 and the workflow-completion changes are implemented locally. See IMPLEMENTATION_STATUS.md for verified scope and the remaining live-service/release steps.
 
 ## Chunk 0 — inspection and architecture
 
@@ -16,7 +16,7 @@ This roadmap sequences implementation. Chunks 0–8 are implemented locally; pro
 - [x] Add permission-driven React navigation and account sign-in, registration, recovery, and staff management screens.
 - [x] Add role-isolation and navigation test cases.
 - [x] Run Laravel and React tests in the configured runtime.
-- [ ] Initialize Git and add CI/format/lint conventions.
+- [x] Initialize Git; add GitHub Actions checks, ESLint, Prettier conventions and PHP Pint formatting.
 
 ## Chunk 2 — restaurant CMS and catalog
 
@@ -31,7 +31,7 @@ This roadmap sequences implementation. Chunks 0–8 are implemented locally; pro
 - [x] Add availability queries, table-locked booking service, cancellation/rescheduling rules, staff occupancy history, and reservation UI.
 - [x] Add React Three Fiber scene driven by API records and accessible 2D fallback.
 - [x] Cover overlapping booking attempts, customer privacy, occupancy updates, and layout publishing with database-backed tests.
-- [ ] Add a PostgreSQL concurrency stress test and WebSocket broadcasting; current interfaces refresh availability/occupancy by polling.
+- [x] Add an eight-worker PostgreSQL concurrency harness, database overlap constraint and private floor invalidations. Render Free retains polling; optional Reverb needs a persistent process.
 
 ## Chunk 4 — delivery operations and maps
 
@@ -57,11 +57,11 @@ This roadmap sequences implementation. Chunks 0–8 are implemented locally; pro
 - [x] Add daily, weekly, monthly, and custom date filters, sales and payment summaries, reservation/no-show totals, delivery performance, occupancy history, and CSV exports.
 - [x] Add a daily/weekly/monthly reservation calendar with authorized lifecycle actions, history lookup, and table reassignment through the reservation service.
 - [x] Add order type, status, payment-state, and date filters; expand menu and business settings administration.
-- [ ] Complete role authorization and browser acceptance coverage.
+- [x] Add API role-isolation coverage and desktop/mobile browser acceptance tests for customer and kitchen workflows; retain manual checks for other operational screens.
 
 ## Hardening and release
 
-- [ ] Complete authorization, concurrency, accessibility, mobile, webhook, and end-to-end acceptance coverage.
+- [x] Add automated authorization, concurrency, signed-webhook, selected WCAG checks and desktop/mobile acceptance coverage. Real provider sandbox testing remains separate.
 - [x] Document local setup, deployment, backup/restore procedures, monitoring, and maintenance.
 - [ ] Configure production secrets, monitoring, backup retention, and execute a recovery exercise.
 
@@ -73,7 +73,22 @@ This roadmap sequences implementation. Chunks 0–8 are implemented locally; pro
 - [x] Add per-user throttles to order/reservation creation, rescheduling, and payment checkout endpoints; retain auth, address lookup, GPS, and webhook throttles.
 - [x] Document local setup, environment configuration, HTTPS deployment, PostgreSQL backups/restores, monitoring, scheduler/queue, maps/payments, and browser GPS limits in `docs/OPERATIONS.md`.
 - [x] Add feature coverage for notification targeting and customer notification privacy.
-- [x] Run Laravel feature suite (20 tests, 68 assertions), React tests (2), PHP syntax checks, route/scheduler checks, and frontend production build.
-- [ ] Complete role authorization, concurrency, accessibility, mobile, webhook sandbox, and browser acceptance coverage.
+- [x] Verify 42 Laravel tests (169 assertions), five frontend unit tests, six desktop/mobile browser cases, lint/format checks and the production build. Verify PostgreSQL concurrency and scratch backup/restore separately.
+- [x] Add automated role authorization, concurrency, accessibility, mobile and signed-webhook/browser coverage.\n- [ ] Complete real PayMongo sandbox transactions and manual hosted acceptance checks for the remaining staff screens.
 - [ ] Configure production secrets, provider accounts, queue/broadcast infrastructure, monitoring, backup retention, and a verified restore exercise.
+
+
+## Workflow completion
+
+- [x] Customer account name and securely verified password changes; revoke other sessions after password change.
+- [x] Replay-safe order/reservation submissions and structured API errors.
+- [x] Database readiness endpoint without secrets.
+- [x] UTC booking instants, restaurant timezone controls and per-booking turnover buffers.
+- [x] Preserve reservation ownership on staff reschedule; link seating to sessions and block unpaid table closure.
+- [x] Fix delivery history persistence and webhook live/test flag validation.
+- [x] Native 3D labels with safe teardown, a device fallback, accessible default 2D booking, readable contrast and labelled mobile navigation.
+- [x] Safe local PostgreSQL recovery rehearsal; no production reset.
+- [ ] Push/review this change, run remote CI/Docker and redeploy it to Render.
+- [ ] Review legacy booking timestamps/overlaps before applying the new constraint to existing data.
+- [ ] Configure and verify production backups, monitoring, SMTP and test merchant credentials as needed.
 

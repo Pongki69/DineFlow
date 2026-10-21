@@ -28,6 +28,7 @@ class AuthController extends Controller
             $user->roles()->sync([$customer->id]);
             $user->customerProfile()->create();
             $audit->record($user, 'account.registered', $user, [], $request);
+
             return $user;
         });
         event(new Registered($user));
@@ -71,6 +72,31 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return response()->json(['user' => $this->userPayload($request->user())]);
+    }
+
+    public function update(Request $request, AuditLogService $audit): JsonResponse
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'current_password' => ['required_with:password', 'current_password:web'],
+            'password' => ['nullable', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()->symbols()],
+        ]);
+        $user->name = $data['name'];
+        if (! empty($data['password'])) {
+            $user->password = $data['password'];
+        }
+        $user->save();
+        if (! empty($data['password'])) {
+            $user->tokens()->delete();
+            DB::table('sessions')->where('user_id', $user->id)->when($request->hasSession(), fn ($query) => $query->where('id', '!=', $request->session()->getId()))->delete();
+            if ($request->hasSession()) {
+                $request->session()->regenerate();
+            }
+        }
+        $audit->record($user, 'account.updated', $user, ['password_changed' => ! empty($data['password'])], $request);
+
+        return response()->json(['user' => $this->userPayload($user)]);
     }
 
     public function forgotPassword(Request $request): JsonResponse

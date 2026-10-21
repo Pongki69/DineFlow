@@ -15,3 +15,5 @@ frontend/.env.local
 backend/.tools/
 backend/php.ini
 .local/
+frontend/playwright-report/
+frontend/test-results/

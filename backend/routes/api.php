@@ -2,20 +2,22 @@
 
 use App\Http\Controllers\Api\V1\AccessDemoController;
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\StaffAccountController;
-use App\Http\Controllers\Api\V1\MenuController;
-use App\Http\Controllers\Api\V1\OrderController;
-use App\Http\Controllers\Api\V1\DiningController;
-use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\DeliveryController;
 use App\Http\Controllers\Api\V1\DeliveryOperationsController;
-use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\DiningController;
+use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\MenuController;
 use App\Http\Controllers\Api\V1\OperationsController;
+use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\ReservationController;
+use App\Http\Controllers\Api\V1\StaffAccountController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/v1/webhooks/paymongo', [PaymentController::class, 'webhook'])->middleware('throttle:120,1');
 
 Route::prefix('v1')->group(function (): void {
+    Route::get('/health', HealthController::class)->middleware('throttle:30,1');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
@@ -43,6 +45,7 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'account.active'])->group(function (): void {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::patch('/me', [AuthController::class, 'update'])->middleware('throttle:10,1');
 
         Route::get('/maps/search', [DeliveryController::class, 'search'])->middleware('throttle:20,1');
         Route::post('/delivery/quote', [DeliveryController::class, 'quote'])->middleware('throttle:30,1');
@@ -60,9 +63,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/rider/assignments', [DeliveryOperationsController::class, 'riderIndex'])->middleware('permission:deliveries.assigned');
         Route::get('/rider/profile', [DeliveryOperationsController::class, 'riderProfile'])->middleware('permission:deliveries.assigned');
         Route::put('/rider/profile', [DeliveryOperationsController::class, 'updateRiderProfile'])->middleware('permission:deliveries.assigned');
-        Route::post('/rider/deliveries/{delivery}/{response}', [DeliveryOperationsController::class, 'respond'])->whereIn('response',['accept','reject'])->middleware('permission:deliveries.assigned');
+        Route::post('/rider/deliveries/{delivery}/{response}', [DeliveryOperationsController::class, 'respond'])->whereIn('response', ['accept', 'reject'])->middleware('permission:deliveries.assigned');
         Route::patch('/rider/deliveries/{delivery}/status', [DeliveryOperationsController::class, 'status'])->middleware('permission:deliveries.assigned');
-        Route::post('/rider/deliveries/{delivery}/locations', [DeliveryOperationsController::class, 'location'])->middleware(['permission:deliveries.assigned','throttle:12,1']);
+        Route::post('/rider/deliveries/{delivery}/locations', [DeliveryOperationsController::class, 'location'])->middleware(['permission:deliveries.assigned', 'throttle:12,1']);
         Route::get('/admin/deliveries', [DeliveryOperationsController::class, 'managerIndex'])->middleware('permission:deliveries.manage');
         Route::post('/admin/deliveries/{delivery}/assign', [DeliveryOperationsController::class, 'assign'])->middleware('permission:deliveries.manage');
         Route::post('/admin/deliveries/{delivery}/cancel', [DeliveryOperationsController::class, 'cancel'])->middleware('permission:deliveries.manage');
@@ -71,7 +74,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/orders/{order}/payments/cash', [PaymentController::class, 'cashOrder'])->middleware('permission:payments.manage');
         Route::post('/dining-sessions/{session}/payments/checkout', [PaymentController::class, 'sessionCheckout'])->middleware('permission:payments.manage');
         Route::post('/dining-sessions/{session}/payments/cash', [PaymentController::class, 'cashSession'])->middleware('permission:payments.manage');
-        Route::post('/reservations/{reservation}/deposit/checkout', [PaymentController::class, 'reservationCheckout'])->middleware(['permission:reservations.view_own','throttle:10,1']);
+        Route::post('/reservations/{reservation}/deposit/checkout', [PaymentController::class, 'reservationCheckout'])->middleware(['permission:reservations.view_own', 'throttle:10,1']);
         Route::post('/reservations/{reservation}/deposit/cash', [PaymentController::class, 'cashReservation'])->middleware('permission:payments.manage');
         Route::get('/payments', [PaymentController::class, 'index']);
         Route::get('/dining-sessions/open-bills', [PaymentController::class, 'openBills'])->middleware('permission:payments.manage');
@@ -95,15 +98,15 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/audit-logs', [StaffAccountController::class, 'auditLogs'])->middleware('permission:audit.view');
 
         Route::get('/orders', [OrderController::class, 'index']);
-        Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:20,1');
+        Route::post('/orders', [OrderController::class, 'store'])->middleware(['throttle:20,1', 'idempotent']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::patch('/orders/{order}/status', [OrderController::class, 'status']);
 
         Route::get('/reservations', [ReservationController::class, 'index']);
-        Route::post('/reservations', [ReservationController::class, 'store'])->middleware('throttle:10,1');
+        Route::post('/reservations', [ReservationController::class, 'store'])->middleware(['throttle:10,1', 'idempotent']);
         Route::get('/reservations/{reservation}', [ReservationController::class, 'show']);
         Route::patch('/reservations/{reservation}/status', [ReservationController::class, 'updateStatus']);
-        Route::post('/reservations/{reservation}/reschedule', [ReservationController::class, 'reschedule'])->middleware('throttle:10,1');
+        Route::post('/reservations/{reservation}/reschedule', [ReservationController::class, 'reschedule'])->middleware(['throttle:10,1', 'idempotent']);
         Route::patch('/service/tables/{table}/occupancy', [ReservationController::class, 'occupancy'])->middleware('permission:tables.occupancy.manage');
         Route::put('/admin/reservation-policy', [ReservationController::class, 'policy'])->middleware('permission:settings.manage');
         Route::get('/admin/reservation-policy', [ReservationController::class, 'showPolicy'])->middleware('permission:settings.manage');

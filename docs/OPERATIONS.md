@@ -14,7 +14,7 @@ Use the root `.env.example` as the environment-variable inventory. Configure at 
 
 PayMongo requires a server-only `PAYMONGO_SECRET_KEY` and matching `PAYMONGO_WEBHOOK_SECRET`. Register `/api/v1/webhooks/paymongo` on the provider and enable the payment and refund event types documented in the backend README. Use sandbox credentials until the merchant and provider configuration are approved. Never place payment secrets in `VITE_*` variables.
 
-Map address search and routing default to Geoapify Free: set `MAP_PROVIDER=geoapify` and the server-side `GEOAPIFY_API_KEY`. Include the provider attribution and monitor free quotas; see [PORTFOLIO_SETUP.md](PORTFOLIO_SETUP.md). The optional Mapbox provider uses `MAP_PROVIDER=mapbox` and `MAPBOX_SERVER_TOKEN`. Configure restaurant coordinates and delivery policy in the administrator workspace.
+Map address search and routing default to Geoapify Free: set `MAP_PROVIDER=geoapify` and the server-side `GEOAPIFY_API_KEY`. Include the provider attribution and monitor free quotas; see [PORTFOLIO_SETUP.md](PORTFOLIO_SETUP.md). Keep the established Geoapify workflow; no alternate provider setup is required. Configure restaurant coordinates and delivery policy in the administrator workspace.
 
 For live broadcasts, configure `BROADCAST_CONNECTION=reverb` and the `REVERB_*` values. Set `REVERB_ALLOWED_ORIGINS` to the deployed frontend origins. Notifications are persisted in Laravel's database notification table and shown in the authenticated workspace. Mail is used for password recovery when a real mail transport is configured; other notification channels can be added when selected and configured.
 
@@ -48,3 +48,21 @@ Validate record counts and application health in the restore environment before 
 Run `php artisan test` from `backend/`; run `npm test` and `npm run build` from `frontend/`. The application's test database is configured separately from production. Review migration status with `php artisan migrate:status`, check `/up`, inspect application and queue logs, and monitor disk/storage growth. Keep dependencies patched and rerun tests and the frontend build after updates.
 
 The web rider dashboard can share GPS only while the page is open and has location permission. Browsers may pause or stop location reporting in the background; reliable locked-screen/background tracking needs a dedicated mobile application or platform-supported background-location capability.
+
+## Verification added with workflow completion
+
+From backend, run `php artisan test`. From frontend, run `npm run lint`, `npm run format:check`, `npm test`, `npm run build`, then `npx playwright install chromium` once and `npm run test:e2e`. Browser tests start isolated API/frontend servers on 8091/5191 and reset only .local/acceptance.sqlite. AcceptanceSeeder refuses to run outside APP_ENV=testing. Its fixture credentials must never be used for the public site.
+
+From backend, `php tests/Postgres/run.php` runs eight concurrent booking attempts, checks the exclusion constraint and verifies pg_dump/pg_restore record counts. It refuses non-loopback PostgreSQL hosts and creates/drops only a randomly named dineflow_test_* database. Supply PG_TEST_ADMIN_PASSWORD (and optionally PG_TEST_ADMIN_USER) for a local PostgreSQL administrator. DINEFLOW_PG_BIN selects PostgreSQL 17 client binaries. This is a local recovery rehearsal, not a backup of Neon.
+
+On this Windows setup, set PHPRC to the full backend/php.ini path and add the installed PHP directory to PATH before running artisan tests so subprocesses use the same extensions. CI runs equivalent checks on Ubuntu 24.04 and also builds Docker; remote CI and Docker execution still need a push because Docker is unavailable locally. The PostgreSQL client setup follows https://www.postgresql.org/download/linux/ubuntu/ .
+
+## Applying the new reservation migrations
+
+Back up the database and inspect active reservations before a release. The migration installs PostgreSQL btree_gist and rejects overlapping active table allocations rather than deleting records. If conflicting historical records exist, resolve them through the restaurant workflow before retrying the migration. The database role needs permission to create this trusted extension, or the database owner must install it first.
+
+Existing reservations receive buffer_minutes=0 because their historical buffer is unknown; new reservations snapshot the configured buffer. New bookings now store UTC instants. Existing data created with a non-UTC restaurant timezone may contain naive local timestamps: review and deliberately correct those records before treating them as UTC. No automatic historical shift is applied, because the original timezone cannot be inferred safely.
+
+The migration links newly seated reservations to dining sessions. Existing open sessions remain valid without a reservation link. Close-session checks reject unsettled order balances and pending checkouts.
+
+Use /api/v1/health for database readiness and /up for Laravel liveness. Log broadcasting plus polling remains the Render Free default; optional Reverb must be provisioned separately if needed. Floor broadcasts contain only floor_id and are emitted after commit. Private authorization is /api/v1/broadcasting/auth.

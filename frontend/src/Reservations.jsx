@@ -1,59 +1,1323 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
-import { api } from './api';
-const FloorScene = lazy(() => import('./FloorScene').then(module => ({ default: module.FloorScene })));
+import { EmptyState, Feedback, Skeleton } from "./components/ui";
+import { usePrompt } from "./components/ConfirmProvider";
+import { bookingTime } from "./bookingTime";
+import { subscribeToFloorChanges } from "./realtime";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { api } from "./api";
+const FloorScene = lazy(() =>
+  import("./FloorScene").then((module) => ({ default: module.FloorScene })),
+);
 
-const tomorrow = () => { const d=new Date();d.setDate(d.getDate()+1);return d.toISOString().slice(0,10); };
-const makeTimeSlots = (policy) => {const [oh,om]=policy.open_time.split(':').map(Number);const [ch,cm]=policy.close_time.split(':').map(Number);const last=ch*60+cm-policy.duration_minutes;return Array.from({length:48},(_,i)=>i*30).filter(m=>m>=oh*60+om&&m<=last).map(m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`);};
+const tomorrow = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
+const makeTimeSlots = (policy) => {
+  const [oh, om] = policy.open_time.split(":").map(Number);
+  const [ch, cm] = policy.close_time.split(":").map(Number);
+  const last = ch * 60 + cm - policy.duration_minutes;
+  return Array.from({ length: 48 }, (_, i) => i * 30)
+    .filter((m) => m >= oh * 60 + om && m <= last)
+    .map(
+      (m) =>
+        `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`,
+    );
+};
 
 export function ReservationBooking({ user }) {
-  const [floors,setFloors]=useState([]); const [floorId,setFloorId]=useState(''); const [date,setDate]=useState(tomorrow()); const [time,setTime]=useState('18:00'); const [guests,setGuests]=useState(2); const [availability,setAvailability]=useState([]); const [policy,setPolicy]=useState({open_time:'10:00',close_time:'22:00',duration_minutes:90,buffer_minutes:30,automatic_table_assignment:true}); const [selected,setSelected]=useState(null); const [autoAssign,setAutoAssign]=useState(false); const [view,setView]=useState('3d'); const [error,setError]=useState(''); const [result,setResult]=useState(null); const [busy,setBusy]=useState(false);
-  const floor=floors.find(f=>String(f.id)===String(floorId));
-  const loadFloors=async()=>{try{const data=await api('/floor-plan/floors');setFloors(data.data||[]);if(!floorId&&data.data?.length)setFloorId(String(data.data[0].id));}catch(e){setError(e.message);}};
-  async function loadAvailability(){if(!date||!time)return;setError('');setSelected(null);try{const query=new URLSearchParams({starts_at:`${date}T${time}:00+08:00`,guest_count:String(guests),...(floorId?{floor_id:floorId}:{})});const data=await api(`/reservations/availability?${query}`);setAvailability(data.data||[]);if(data.policy)setPolicy(data.policy);}catch(e){setError(e.message);setAvailability([]);}}
-  useEffect(()=>{loadFloors();},[]); useEffect(()=>{if(date&&time)loadAvailability();},[date,time,guests,floorId]); useEffect(()=>{const id=setInterval(()=>{loadAvailability();},30000);return()=>clearInterval(id);},[date,time,guests,floorId]);
-  const timeSlots=makeTimeSlots(policy);
-  const selectedTable=availability.find(t=>t.id===selected);
-  async function book(event){event.preventDefault();if(!autoAssign&&!selectedTable?.available){setError('Choose an available table first.');return;}setBusy(true);setError('');try{const fields=new FormData(event.currentTarget);const data=await api('/reservations',{method:'POST',body:JSON.stringify({starts_at:`${date}T${time}:00+08:00`,guest_count:Number(guests),table_id:autoAssign?null:selected,floor_id:Number(floorId),guest_name:fields.get('guest_name'),guest_email:fields.get('guest_email'),guest_phone:fields.get('guest_phone'),notes:fields.get('notes')||null})});setResult({...data.data,deposit_required:data.deposit_required,deposit_amount:data.deposit_amount});setSelected(null);setAutoAssign(false);await loadAvailability();}catch(e){setError(e.message);await loadAvailability();}finally{setBusy(false);}}
-  async function payDeposit(){try{const p=await api(`/reservations/${result.id}/deposit/checkout`,{method:'POST'});window.location.assign(p.data.checkout_url);}catch(e){setError(e.message);}}
-  const objects=floor?.objects||[];
-  return <section className="welcome reservation-page"><span className="eyebrow">YOUR TABLE, YOUR TIME</span><h1>Reserve a table</h1><p>Availability is confirmed by the restaurant system when you book. Select a date, time and party size to see eligible tables.</p>{error&&<div className="error" role="alert">{error}</div>}{result&&<div className="success reservation-confirmation" role="status"><strong>Reservation {result.reference} · {result.status.replaceAll('_',' ')}</strong><span>{result.table?.table_number} · {new Date(result.starts_at).toLocaleString()}</span>{result.deposit_required&&<button onClick={payDeposit}>Pay reservation deposit · ₱{Number(result.deposit_amount).toFixed(2)}</button>}</div>}
-  <div className="reservation-controls"><label>Date<input type="date" min={new Date().toISOString().slice(0,10)} value={date} onChange={e=>setDate(e.target.value)}/></label><label>Time<select value={time} onChange={e=>setTime(e.target.value)}>{timeSlots.map(t=><option key={t}>{t}</option>)}</select></label><label>Guests<input type="number" min="1" max="50" value={guests} onChange={e=>setGuests(e.target.value)}/></label><label>Floor<select value={floorId} onChange={e=>setFloorId(e.target.value)}>{floors.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select></label></div>
-  {floor?<><div className="floor-view-toggle"><button onClick={()=>setView('3d')} aria-pressed={view==='3d'}>3D view</button><button onClick={()=>setView('2d')} aria-pressed={view==='2d'}>Accessible 2D view</button></div>{view==='3d'?<Suspense fallback={<div className="floor-scene scene-loading">Loading interactive 3D floor…</div>}><FloorScene objects={objects} availability={availability} selectedId={selected} onSelect={setSelected}/></Suspense>:<div className="table-choice-grid">{objects.filter(o=>o.object_type==='table').map(o=>{const info=availability.find(a=>a.id===o.table_id);const seated=o.table?.current_session?.opened_at?new Date(o.table.current_session.opened_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):null;const estimate=o.table?.expected_available_at?new Date(o.table.expected_available_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):null;return <button className={`table-choice ${selected===o.table_id?'is-selected':''}`} disabled={!info?.available} key={o.id} onClick={()=>setSelected(o.table_id)}><strong>{o.table?.table_number||o.label}</strong><span>Seats {o.table?.capacity||o.properties?.capacity||'—'}</span><small>{info?.status||o.table?.operational_status||'Unavailable'}</small>{seated&&<small>Seated since {seated}</small>}{estimate&&<small>Estimated availability {estimate} · not guaranteed</small>}{info?.next_schedulable_slot&&<small>Next schedule {new Date(info.next_schedulable_slot).toLocaleString()} · estimate only</small>}{info?.status==='occupied'&&!estimate&&<small>Departure estimate unavailable</small>}</button>;})}</div>}
-  <p className="availability-note">Occupied tables without a recorded expected departure are not offered as available. Estimated departures and next schedulable slots are not guarantees; the server checks availability again when you confirm.</p>
-  <div className="available-table-strip">{availability.map(t=><button disabled={!t.available} className={selected===t.id?'active':''} key={t.id} onClick={()=>{setAutoAssign(false);setSelected(t.id);}}>{t.table_number} · {t.capacity} seats · {t.status}</button>)}</div>
-  {policy.automatic_table_assignment&&<label className="auto-assign-option"><input type="checkbox" checked={autoAssign} onChange={e=>{setAutoAssign(e.target.checked);if(e.target.checked)setSelected(null);}}/> Assign any suitable available table for me</label>}
-  {(selectedTable||autoAssign)&&<form className="reservation-form" onSubmit={book}><h2>{autoAssign?'Confirm your reservation':`Confirm ${selectedTable.table_number}`}</h2><p>{guests} guests · {date} at {time} · {floor.name}{autoAssign?' · table assigned when confirmed':''}</p><label>Name<input name="guest_name" defaultValue={user.name} required maxLength="120"/></label><label>Email<input name="guest_email" defaultValue={user.email} type="email" maxLength="254"/></label><label>Phone<input name="guest_phone" maxLength="32"/></label><label>Notes<textarea name="notes" maxLength="1500"/></label><button disabled={busy}>{busy?'Checking availability…':'Confirm reservation'}</button></form>}
-  </>:<div className="empty-floor"><h2>Floor plan is not published yet</h2><p>A restaurant manager needs to set up and publish the tables before online reservations can open.</p></div>}</section>;
+  const availabilityRequest = useRef(0);
+  const [floors, setFloors] = useState([]);
+  const [floorsLoading, setFloorsLoading] = useState(true);
+  const [floorId, setFloorId] = useState("");
+  const [date, setDate] = useState(tomorrow());
+  const [time, setTime] = useState("18:00");
+  const [guests, setGuests] = useState(2);
+  const [availability, setAvailability] = useState([]);
+  const [policy, setPolicy] = useState({
+    open_time: "10:00",
+    close_time: "22:00",
+    duration_minutes: 90,
+    buffer_minutes: 30,
+    automatic_table_assignment: true,
+  });
+  const [selected, setSelected] = useState(null);
+  const [autoAssign, setAutoAssign] = useState(false);
+  const [view, setView] = useState("2d");
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const floor = floors.find((f) => String(f.id) === String(floorId));
+  const loadFloors = async () => {
+    try {
+      const data = await api("/floor-plan/floors");
+      setFloors(data.data || []);
+      if (!floorId && data.data?.length) setFloorId(String(data.data[0].id));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setFloorsLoading(false);
+    }
+  };
+  async function loadAvailability() {
+    if (!date || !time) return;
+    const request = ++availabilityRequest.current;
+    try {
+      const query = new URLSearchParams({
+        starts_at: bookingTime(date, time, policy.timezone),
+        guest_count: String(guests),
+        ...(floorId ? { floor_id: floorId } : {}),
+      });
+      const data = await api(`/reservations/availability?${query}`);
+      if (request !== availabilityRequest.current) return;
+      const rows = data.data || [];
+      setAvailability(rows);
+      setSelected((id) =>
+        rows.some((row) => row.id === id && row.available) ? id : null,
+      );
+      if (data.policy) setPolicy(data.policy);
+    } catch (e) {
+      if (request !== availabilityRequest.current) return;
+      setError(e.message);
+      setAvailability([]);
+      setSelected(null);
+    }
+  }
+  useEffect(() => {
+    loadFloors();
+  }, []);
+  useEffect(() => {
+    setSelected(null);
+    setAvailability([]);
+    if (date && time) loadAvailability();
+    return () => {
+      availabilityRequest.current++;
+    };
+  }, [date, time, guests, floorId, policy.timezone]);
+  useEffect(() => {
+    const id = setInterval(() => {
+      loadAvailability();
+    }, 30000);
+    return () => clearInterval(id);
+  }, [date, time, guests, floorId, policy.timezone]);
+  useEffect(
+    () =>
+      subscribeToFloorChanges(() => {
+        loadFloors();
+        loadAvailability();
+      }),
+    [date, time, guests, floorId, policy.timezone],
+  );
+  const timeSlots = makeTimeSlots(policy);
+  const selectedTable = availability.find((t) => t.id === selected);
+  async function book(event) {
+    event.preventDefault();
+    if (!autoAssign && !selectedTable?.available) {
+      setError("Choose an available table first.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const fields = new FormData(event.currentTarget);
+      const data = await api("/reservations", {
+        method: "POST",
+        body: JSON.stringify({
+          starts_at: bookingTime(date, time, policy.timezone),
+          guest_count: Number(guests),
+          table_id: autoAssign ? null : selected,
+          floor_id: Number(floorId),
+          guest_name: fields.get("guest_name"),
+          guest_email: fields.get("guest_email"),
+          guest_phone: fields.get("guest_phone"),
+          notes: fields.get("notes") || null,
+        }),
+      });
+      setResult({
+        ...data.data,
+        deposit_required: data.deposit_required,
+        deposit_amount: data.deposit_amount,
+      });
+      setSelected(null);
+      setAutoAssign(false);
+      await loadAvailability();
+    } catch (e) {
+      setError(e.message);
+      await loadAvailability();
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function payDeposit() {
+    try {
+      const p = await api(`/reservations/${result.id}/deposit/checkout`, {
+        method: "POST",
+      });
+      window.location.assign(p.data.checkout_url);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  const objects = floor?.objects || [];
+  return (
+    <section className="welcome reservation-page">
+      <span className="eyebrow">YOUR TABLE, YOUR TIME</span>
+      <h1>Reserve a table</h1>
+      <p>
+        Availability is confirmed by the restaurant system when you book. Select
+        a date, time and party size to see eligible tables.
+      </p>
+      {error && <Feedback>{error}</Feedback>}
+      {result && (
+        <div className="success reservation-confirmation" role="status">
+          <strong>
+            Reservation {result.reference} ·{" "}
+            {result.status.replaceAll("_", " ")}
+          </strong>
+          <span>
+            {result.table?.table_number} ·{" "}
+            {new Date(result.starts_at).toLocaleString()}
+          </span>
+          {result.deposit_required && (
+            <button onClick={payDeposit}>
+              Pay reservation deposit · ₱
+              {Number(result.deposit_amount).toFixed(2)}
+            </button>
+          )}
+        </div>
+      )}
+      <div className="reservation-controls">
+        <label>
+          Date
+          <input
+            type="date"
+            min={new Date().toISOString().slice(0, 10)}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+        <label>
+          Time
+          <select value={time} onChange={(e) => setTime(e.target.value)}>
+            {timeSlots.map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Guests
+          <input
+            type="number"
+            min="1"
+            max="50"
+            value={guests}
+            onChange={(e) => setGuests(e.target.value)}
+          />
+        </label>
+        <label>
+          Floor
+          <select
+            aria-label="Floor"
+            value={floorId}
+            onChange={(e) => setFloorId(e.target.value)}
+          >
+            {floors.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {floorsLoading ? (
+        <Skeleton label="Loading floor plan" />
+      ) : floor ? (
+        <>
+          <div className="floor-view-toggle">
+            <button onClick={() => setView("3d")} aria-pressed={view === "3d"}>
+              3D view
+            </button>
+            <button onClick={() => setView("2d")} aria-pressed={view === "2d"}>
+              Accessible 2D view
+            </button>
+          </div>
+          {view === "3d" ? (
+            <Suspense
+              fallback={
+                <div className="floor-scene scene-loading">
+                  Loading interactive 3D floor…
+                </div>
+              }
+            >
+              <FloorScene
+                objects={objects}
+                availability={availability}
+                selectedId={selected}
+                onSelect={setSelected}
+              />
+            </Suspense>
+          ) : (
+            <div className="table-choice-grid">
+              {objects
+                .filter((o) => o.object_type === "table")
+                .map((o) => {
+                  const info = availability.find((a) => a.id === o.table_id);
+                  const seated = o.table?.current_session?.opened_at
+                    ? new Date(
+                        o.table.current_session.opened_at,
+                      ).toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    : null;
+                  const estimate = o.table?.expected_available_at
+                    ? new Date(
+                        o.table.expected_available_at,
+                      ).toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    : null;
+                  return (
+                    <button
+                      className={`table-choice ${selected === o.table_id ? "is-selected" : ""}`}
+                      aria-pressed={selected === o.table_id}
+                      disabled={!info?.available}
+                      key={o.id}
+                      onClick={() => setSelected(o.table_id)}
+                    >
+                      <strong>{o.table?.table_number || o.label}</strong>
+                      <span>
+                        Seats{" "}
+                        {o.table?.capacity || o.properties?.capacity || "—"}
+                      </span>
+                      <small>
+                        {info?.status ||
+                          o.table?.operational_status ||
+                          "Unavailable"}
+                      </small>
+                      {seated && <small>Seated since {seated}</small>}
+                      {estimate && (
+                        <small>
+                          Estimated availability {estimate} · not guaranteed
+                        </small>
+                      )}
+                      {info?.next_schedulable_slot && (
+                        <small>
+                          Next schedule{" "}
+                          {new Date(
+                            info.next_schedulable_slot,
+                          ).toLocaleString()}{" "}
+                          · estimate only
+                        </small>
+                      )}
+                      {info?.status === "occupied" && !estimate && (
+                        <small>Departure estimate unavailable</small>
+                      )}
+                    </button>
+                  );
+                })}
+            </div>
+          )}
+          <p className="availability-note">
+            Occupied tables without a recorded expected departure are not
+            offered as available. Estimated departures and next schedulable
+            slots are not guarantees; the server checks availability again when
+            you confirm.
+          </p>
+          <div className="available-table-strip">
+            {availability.map((t) => (
+              <button
+                disabled={!t.available}
+                className={selected === t.id ? "active" : ""}
+                key={t.id}
+                onClick={() => {
+                  setAutoAssign(false);
+                  setSelected(t.id);
+                }}
+              >
+                {t.table_number} · {t.capacity} seats · {t.status}
+              </button>
+            ))}
+          </div>
+          {policy.automatic_table_assignment && (
+            <label className="auto-assign-option">
+              <input
+                type="checkbox"
+                checked={autoAssign}
+                onChange={(e) => {
+                  setAutoAssign(e.target.checked);
+                  if (e.target.checked) setSelected(null);
+                }}
+              />{" "}
+              Assign any suitable available table for me
+            </label>
+          )}
+          {(selectedTable || autoAssign) && (
+            <form className="reservation-form" onSubmit={book}>
+              <h2>
+                {autoAssign
+                  ? "Confirm your reservation"
+                  : `Confirm ${selectedTable.table_number}`}
+              </h2>
+              <p>
+                {guests} guests · {date} at {time} · {floor.name}
+                {autoAssign ? " · table assigned when confirmed" : ""}
+              </p>
+              <label>
+                Name
+                <input
+                  name="guest_name"
+                  defaultValue={user.name}
+                  required
+                  maxLength="120"
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  name="guest_email"
+                  defaultValue={user.email}
+                  type="email"
+                  maxLength="254"
+                />
+              </label>
+              <label>
+                Phone
+                <input name="guest_phone" maxLength="32" />
+              </label>
+              <label>
+                Notes
+                <textarea name="notes" maxLength="1500" />
+              </label>
+              <button disabled={busy}>
+                {busy ? "Checking availability…" : "Confirm reservation"}
+              </button>
+            </form>
+          )}
+        </>
+      ) : (
+        <div className="empty-floor">
+          <h2>Floor plan is not published yet</h2>
+          <p>
+            A restaurant manager needs to set up and publish the tables before
+            online reservations can open.
+          </p>
+        </div>
+      )}
+    </section>
+  );
 }
 
-export function MyReservations(){
-  const [items,setItems]=useState([]);const [error,setError]=useState('');
-  async function load(){try{const d=await api('/reservations');setItems(d.data||[]);}catch(e){setError(e.message);}}
-  useEffect(()=>{load();const id=setInterval(load,30000);return()=>clearInterval(id);},[]);
-  async function cancel(item){try{await api(`/reservations/${item.id}/status`,{method:'PATCH',body:JSON.stringify({status:'cancelled'})});await load();}catch(e){setError(e.message);}}
-  async function payDeposit(item){try{const p=await api(`/reservations/${item.id}/deposit/checkout`,{method:'POST'});window.location.assign(p.data.checkout_url);}catch(e){setError(e.message);}}
-  async function reschedule(item){const d=new Date(item.starts_at);const local=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;const entered=prompt('New reservation time (YYYY-MM-DDTHH:mm). The same table will be requested.',local);if(!entered)return;try{await api(`/reservations/${item.id}/reschedule`,{method:'POST',body:JSON.stringify({starts_at:`${entered}:00+08:00`,guest_count:item.guest_count,table_id:item.table_id,floor_id:item.floor_id})});await load();}catch(e){setError(e.message);}}
-  return <section className="welcome"><span className="eyebrow">YOUR BOOKINGS</span><h1>My reservations</h1>{error&&<div className="error">{error}</div>}<div className="staff-list">{items.map(item=><article key={item.id}><div><strong>{item.reference} · {item.status.replaceAll('_',' ')}</strong><small>{item.table?.table_number} · {item.guest_count} guests · {new Date(item.starts_at).toLocaleString()}</small>{item.deposit_required&&<small>Deposit {item.deposit_paid?'paid':`due ₱${Number(item.deposit_amount).toFixed(2)}`}</small>}</div><div>{item.deposit_required&&!item.deposit_paid&&item.status==='pending'&&<button onClick={()=>payDeposit(item)}>Pay deposit</button>}{['pending','confirmed'].includes(item.status)&&<><button onClick={()=>reschedule(item)}>Reschedule</button><button onClick={()=>cancel(item)}>Cancel booking</button></>}</div></article>)}</div></section>;
+export function MyReservations() {
+  const [loading, setLoading] = useState(true);
+  const ask = usePrompt();
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
+  async function load() {
+    setError("");
+    try {
+      const d = await api("/reservations");
+      setItems(d.data || []);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, []);
+  async function cancel(item) {
+    try {
+      await api(`/reservations/${item.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  async function payDeposit(item) {
+    try {
+      const p = await api(`/reservations/${item.id}/deposit/checkout`, {
+        method: "POST",
+      });
+      window.location.assign(p.data.checkout_url);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  async function reschedule(item) {
+    const d = new Date(item.starts_at);
+    const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const entered = await ask(
+      "New reservation time (YYYY-MM-DDTHH:mm). The same table will be requested.",
+      local,
+    );
+    if (!entered) return;
+    try {
+      await api(`/reservations/${item.id}/reschedule`, {
+        method: "POST",
+        body: JSON.stringify({
+          starts_at: new Date(entered).toISOString(),
+          guest_count: item.guest_count,
+          table_id: item.table_id,
+          floor_id: item.floor_id,
+        }),
+      });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  return (
+    <section className="welcome">
+      <span className="eyebrow">YOUR BOOKINGS</span>
+      <h1>My reservations</h1>
+      {loading && <Skeleton label="Loading your content" />}
+      {!loading && !error && items.length === 0 && (
+        <EmptyState
+          title="Your next visit is waiting"
+          description="Choose your table and make a little time for something good."
+        />
+      )}
+      {error && <Feedback onRetry={load}>{error}</Feedback>}
+      <div className="staff-list">
+        {items.map((item) => (
+          <article key={item.id}>
+            <div>
+              <strong>
+                {item.reference} · {item.status.replaceAll("_", " ")}
+              </strong>
+              <small>
+                {item.table?.table_number} · {item.guest_count} guests ·{" "}
+                {new Date(item.starts_at).toLocaleString()}
+              </small>
+              {item.deposit_required && (
+                <small>
+                  Deposit{" "}
+                  {item.deposit_paid
+                    ? "paid"
+                    : `due ₱${Number(item.deposit_amount).toFixed(2)}`}
+                </small>
+              )}
+            </div>
+            <div>
+              {item.deposit_required &&
+                !item.deposit_paid &&
+                item.status === "pending" && (
+                  <button onClick={() => payDeposit(item)}>Pay deposit</button>
+                )}
+              {["pending", "confirmed"].includes(item.status) && (
+                <>
+                  <button onClick={() => reschedule(item)}>Reschedule</button>
+                  <button onClick={() => cancel(item)}>Cancel booking</button>
+                </>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }
 
-export function ReservationDesk({user={permissions:[]}}){const [items,setItems]=useState([]);const [error,setError]=useState('');async function load(){try{const d=await api('/reservations');setItems(d.data||[]);}catch(e){setError(e.message);}}useEffect(()=>{load();const id=setInterval(load,30000);return()=>clearInterval(id);},[]);async function setStatus(item,status){try{await api(`/reservations/${item.id}/status`,{method:'PATCH',body:JSON.stringify({status})});await load();}catch(e){setError(e.message);}}async function receiveDeposit(item){try{await api(`/reservations/${item.id}/deposit/cash`,{method:'POST'});await load();}catch(e){setError(e.message);}}const next={confirmed:['checked_in','no_show','cancelled'],checked_in:['seated'],seated:['completed'],pending:['confirmed','cancelled']};return <section className="welcome"><span className="eyebrow">SERVICE DESK</span><h1>Reservations</h1>{error&&<div className="error">{error}</div>}<div className="staff-list">{items.map(item=><article key={item.id}><div><strong>{item.reference} · {item.guest_name} · {item.status}</strong><small>{item.table?.table_number} · {item.guest_count} guests · {new Date(item.starts_at).toLocaleString()}–{new Date(item.ends_at).toLocaleTimeString()}</small>{item.deposit_required&&<small>Deposit {item.deposit_paid?'paid':`due ₱${Number(item.deposit_amount).toFixed(2)}`}</small>}</div><div>{item.deposit_required&&!item.deposit_paid&&user.permissions?.includes('payments.manage')&&<button onClick={()=>receiveDeposit(item)}>Record cash deposit</button>}{(next[item.status]||[]).map(status=><button key={status} onClick={()=>setStatus(item,status)}>{status.replaceAll('_',' ')}</button>)}</div></article>)}</div></section>;}
+export function ReservationDesk({ user = { permissions: [] } }) {
+  const [loading, setLoading] = useState(true);
 
-export function TableOccupancy(){const [tables,setTables]=useState([]);const [error,setError]=useState('');async function load(){try{const d=await api('/service/tables');setTables(d.data||[]);}catch(e){setError(e.message);}}useEffect(()=>{load();const id=setInterval(load,30000);return()=>clearInterval(id);},[]);async function change(table,status){try{let estimate=null;if(status==='occupied'){const suggested=new Date(Date.now()+90*60000);const local=new Date(suggested.getTime()-suggested.getTimezoneOffset()*60000).toISOString().slice(0,16);const entered=prompt('Estimated table availability (this is not a guarantee)',local);if(!entered)return;estimate=new Date(entered).toISOString();}await api(`/service/tables/${table.id}/occupancy`,{method:'PATCH',body:JSON.stringify({status,expected_available_at:estimate})});await load();}catch(e){setError(e.message);}}return <section className="welcome"><span className="eyebrow">LIVE SERVICE</span><h1>Table occupancy</h1><p>Availability estimates use staff-entered times and reservation schedules. Unknown departure times remain uncertain.</p>{error&&<div className="error">{error}</div>}<div className="staff-list">{tables.map(table=><article key={table.id}><div><strong>{table.table_number} · {table.operational_status}</strong><small>Capacity {table.capacity}{table.expected_available_at?` · Estimated ${new Date(table.expected_available_at).toLocaleTimeString()}`:' · No departure estimate'}</small></div><div><button onClick={()=>change(table,'occupied')}>Occupied</button><button onClick={()=>change(table,'cleaning')}>Cleaning</button><button onClick={()=>change(table,'available')}>Available</button><button onClick={()=>change(table,'unavailable')}>Unavailable</button></div></article>)}</div></section>;}
-
-export function FloorPlanEditor(){const [floors,setFloors]=useState([]);const [floorId,setFloorId]=useState('');const [error,setError]=useState('');const [notice,setNotice]=useState('');const [objects,setObjects]=useState([]);const [preview,setPreview]=useState(false);const floor=floors.find(f=>String(f.id)===String(floorId));
-  async function load(){try{const d=await api('/admin/floor-plan/floors');setFloors(d.data||[]);if(!floorId&&d.data?.length)setFloorId(String(d.data[0].id));}catch(e){setError(e.message);}}
-  useEffect(()=>{load();},[]);useEffect(()=>{setObjects(floor?.objects||[]);},[floorId,floors]);
-  async function addFloor(){const name=prompt('Floor name');if(!name)return;try{const d=await api('/admin/floor-plan/floors',{method:'POST',body:JSON.stringify({name})});await load();setFloorId(String(d.data.id));}catch(e){setError(e.message);}}
-  async function addTable(){if(!floor)return;const table_number=prompt('Table number');if(!table_number)return;const capacity=Number(prompt('Seat capacity','4')||4);try{await api(`/admin/floor-plan/floors/${floor.id}/tables`,{method:'POST',body:JSON.stringify({table_number,capacity,position:{x:0,z:0}})});await load();setNotice('Table added. Drag it to place it on the draft layout.');}catch(e){setError(e.message);}}
-  async function addObject(type){if(!floor)return;setObjects(rows=>[...rows,{_key:`new-${Date.now()}-${Math.random()}`,floor_id:floor.id,object_type:type,label:type,position:{x:0,z:0},rotation:{y:0},dimensions:{width:type==='wall'?4:1.5,depth:type==='wall'?.2:1,height:type==='wall'?1.1:.6},properties:{}}]);}
-  function update(id,changes){setObjects(rows=>rows.map(o=>(o.id??o._key)===id?{...o,...changes}:o));}
-  function drop(event){event.preventDefault();const id=event.dataTransfer.getData('text/plain');const rect=event.currentTarget.getBoundingClientRect();const x=((event.clientX-rect.left)/rect.width-.5)*20;const z=((event.clientY-rect.top)/rect.height-.5)*16;update(id,{position:{x:Number(x.toFixed(2)),z:Number(z.toFixed(2))}});}
-  async function save(){try{const d=await api(`/admin/floor-plan/floors/${floor.id}/layout`,{method:'PUT',body:JSON.stringify({objects:objects.map(o=>({id:o.id||null,table_id:o.table_id||null,object_type:o.object_type,label:o.label,position:o.position,rotation:o.rotation,dimensions:o.dimensions,properties:o.properties}))})});setFloors(rows=>rows.map(f=>f.id===d.data.id?d.data:f));setNotice('Draft saved. Publish when the preview looks right.');}catch(e){setError(e.message);}}
-  async function publish(){try{const d=await api(`/admin/floor-plan/floors/${floor.id}/publish`,{method:'POST'});setFloors(rows=>rows.map(f=>f.id===d.data.id?d.data:f));setNotice('Floor plan published for customers.');}catch(e){setError(e.message);}}
-  async function saveTable(o){try{await api(`/admin/floor-plan/tables/${o.table_id}`,{method:'PUT',body:JSON.stringify({table_number:o.table.table_number,capacity:Number(o.table.capacity),zone:o.table.zone||null,is_active:o.table.is_active??true})});await load();setNotice('Table setup saved.');}catch(e){setError(e.message);}}
-  return <section className="welcome floor-editor"><span className="eyebrow">RESTAURANT LAYOUT</span><h1>3D floor plan editor</h1><p>Drag objects on the 2D editor to position. Rotate and resize selected objects, save the draft, preview, then publish.</p>{error&&<div className="error">{error}</div>}{notice&&<div className="success">{notice}</div>}<div className="floor-editor-toolbar"><select value={floorId} onChange={e=>setFloorId(e.target.value)}>{floors.map(f=><option key={f.id} value={f.id}>{f.name}{f.is_published?' · published':' · draft'}</option>)}</select><button onClick={addFloor}>Add floor</button>{floor&&<><button onClick={addTable}>Add table</button><button onClick={()=>addObject('wall')}>Add wall</button><button onClick={()=>addObject('counter')}>Add counter</button><button onClick={()=>addObject('furniture')}>Add furniture</button><button onClick={()=>addObject('entrance')}>Add entrance</button><button onClick={()=>setPreview(!preview)}>{preview?'Edit layout':'Preview 3D'}</button><button onClick={save}>Save draft</button><button onClick={publish}>Publish layout</button></>}</div>{floor&&!preview&&<div className="editor-board" onDragOver={e=>e.preventDefault()} onDrop={drop}>{objects.map(o=><button draggable key={o.id||o._key} onDragStart={e=>e.dataTransfer.setData('text/plain',String(o.id??o._key))} onClick={()=>setObjects(rows=>rows.map(row=>({...row,_selected:row===o})))} style={{left:`${50+(o.position?.x||0)*4.5}%`,top:`${50+(o.position?.z||0)*5.5}%`,transform:`translate(-50%,-50%) rotate(${o.rotation?.y||0}rad)`,width:`${Math.max(45,(o.dimensions?.width||1.4)*28)}px`,height:`${Math.max(32,(o.dimensions?.depth||1.1)*23)}px`}} className={`editor-object ${o.object_type} ${o._selected?'selected':''}`}>{o.table?.table_number||o.label||o.object_type}</button>)}</div>}{floor&&preview&&<Suspense fallback={<div className="floor-scene scene-loading">Loading preview…</div>}><FloorScene objects={objects}/></Suspense>}{floor&&!preview&&<div className="editor-selection">{objects.filter(o=>o._selected).map(o=><div key={o.id||o._key}><strong>Selected: {o.table?.table_number||o.label||o.object_type}</strong><label>Label<input value={o.label||''} onChange={e=>update(o.id??o._key,{label:e.target.value})}/></label>{o.table_id&&<><label>Table number<input value={o.table?.table_number||''} onChange={e=>update(o.id??o._key,{table:{...o.table,table_number:e.target.value}})}/></label><label>Capacity<input type="number" min="1" max="50" value={o.table?.capacity||2} onChange={e=>update(o.id??o._key,{table:{...o.table,capacity:Number(e.target.value)}})}/></label><label>Zone<input value={o.table?.zone||''} onChange={e=>update(o.id??o._key,{table:{...o.table,zone:e.target.value}})}/></label><button onClick={()=>saveTable(o)}>Save table setup</button></>}<button onClick={()=>update(o.id??o._key,{position:{...o.position,x:(o.position?.x||0)-.5}})}>← Move</button><button onClick={()=>update(o.id??o._key,{position:{...o.position,x:(o.position?.x||0)+.5}})}>Move →</button><button onClick={()=>update(o.id??o._key,{position:{...o.position,z:(o.position?.z||0)-.5}})}>↑ Move</button><button onClick={()=>update(o.id??o._key,{position:{...o.position,z:(o.position?.z||0)+.5}})}>↓ Move</button><button onClick={()=>update(o.id??o._key,{rotation:{y:(o.rotation?.y||0)+Math.PI/12}})}>Rotate 15°</button><button onClick={()=>update(o.id??o._key,{dimensions:{...o.dimensions,width:(o.dimensions?.width||1)+.2}})}>Wider</button><button onClick={()=>update(o.id??o._key,{dimensions:{...o.dimensions,depth:(o.dimensions?.depth||1)+.2}})}>Deeper</button></div>)}</div>}</section>;
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
+  async function load() {
+    setError("");
+    try {
+      const d = await api("/reservations");
+      setItems(d.data || []);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, []);
+  async function setStatus(item, status) {
+    try {
+      await api(`/reservations/${item.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  async function receiveDeposit(item) {
+    try {
+      await api(`/reservations/${item.id}/deposit/cash`, { method: "POST" });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  const next = {
+    confirmed: ["checked_in", "no_show", "cancelled"],
+    checked_in: ["seated"],
+    seated: ["completed"],
+    pending: ["confirmed", "cancelled"],
+  };
+  return (
+    <section className="welcome">
+      <span className="eyebrow">SERVICE DESK</span>
+      <h1>Reservations</h1>
+      {loading && <Skeleton label="Loading your content" />}
+      {!loading && !error && items.length === 0 && (
+        <EmptyState
+          title="No reservations to show"
+          description="New bookings will appear here for your team."
+        />
+      )}
+      {error && <Feedback onRetry={load}>{error}</Feedback>}
+      <div className="staff-list">
+        {items.map((item) => (
+          <article key={item.id}>
+            <div>
+              <strong>
+                {item.reference} · {item.guest_name} · {item.status}
+              </strong>
+              <small>
+                {item.table?.table_number} · {item.guest_count} guests ·{" "}
+                {new Date(item.starts_at).toLocaleString()}–
+                {new Date(item.ends_at).toLocaleTimeString()}
+              </small>
+              {item.deposit_required && (
+                <small>
+                  Deposit{" "}
+                  {item.deposit_paid
+                    ? "paid"
+                    : `due ₱${Number(item.deposit_amount).toFixed(2)}`}
+                </small>
+              )}
+            </div>
+            <div>
+              {item.deposit_required &&
+                !item.deposit_paid &&
+                user.permissions?.includes("payments.manage") && (
+                  <button onClick={() => receiveDeposit(item)}>
+                    Record cash deposit
+                  </button>
+                )}
+              {(next[item.status] || []).map((status) => (
+                <button key={status} onClick={() => setStatus(item, status)}>
+                  {status.replaceAll("_", " ")}
+                </button>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }
 
-export function ReservationSettings(){const [form,setForm]=useState({open_time:'10:00',close_time:'22:00',duration_minutes:90,buffer_minutes:30,booking_window_days:60,grace_minutes:15,cancellation_cutoff_hours:4,automatic_confirmation:true,automatic_table_assignment:true,deposit_required:false,deposit_amount:0});const [error,setError]=useState('');const [notice,setNotice]=useState('');useEffect(()=>{api('/admin/reservation-policy').then(d=>setForm(d.data)).catch(e=>setError(e.message));},[]);async function save(e){e.preventDefault();setError('');setNotice('');const data=Object.fromEntries(new FormData(e.currentTarget));for(const key of ['duration_minutes','buffer_minutes','booking_window_days','grace_minutes','cancellation_cutoff_hours','deposit_amount'])data[key]=Number(data[key]);for(const key of ['automatic_confirmation','automatic_table_assignment','deposit_required'])data[key]=Boolean(data[key]);try{const d=await api('/admin/reservation-policy',{method:'PUT',body:JSON.stringify(data)});setForm(d.data);setNotice('Reservation policy saved.');}catch(ex){setError(ex.message);}}return <section className="welcome"><span className="eyebrow">RESTAURANT POLICY</span><h1>Reservation settings</h1><p>These settings are used by the server to validate booking times and turnover.</p>{error&&<div className="error">{error}</div>}{notice&&<div className="success">{notice}</div>}<form className="staff-form reservation-policy-form" onSubmit={save}><label>Opens<input name="open_time" type="time" defaultValue={form.open_time} key={`open-${form.open_time}`} required/></label><label>Closes<input name="close_time" type="time" defaultValue={form.close_time} key={`close-${form.close_time}`} required/></label><label>Reservation duration (minutes)<input name="duration_minutes" type="number" min="30" max="360" defaultValue={form.duration_minutes} key={`duration-${form.duration_minutes}`}/></label><label>Turnaround buffer (minutes)<input name="buffer_minutes" type="number" min="0" max="240" defaultValue={form.buffer_minutes} key={`buffer-${form.buffer_minutes}`}/></label><label>Booking window (days)<input name="booking_window_days" type="number" min="1" max="365" defaultValue={form.booking_window_days} key={`window-${form.booking_window_days}`}/></label><label>Late arrival grace (minutes)<input name="grace_minutes" type="number" min="0" max="120" defaultValue={form.grace_minutes} key={`grace-${form.grace_minutes}`}/></label><label>Cancellation cutoff (hours)<input name="cancellation_cutoff_hours" type="number" min="0" max="168" defaultValue={form.cancellation_cutoff_hours} key={`cancel-${form.cancellation_cutoff_hours}`}/></label><label className="checkline"><input name="automatic_confirmation" type="checkbox" defaultChecked={form.automatic_confirmation} key={`confirm-${form.automatic_confirmation}`}/>Automatically confirm bookings</label><label className="checkline"><input name="automatic_table_assignment" type="checkbox" defaultChecked={form.automatic_table_assignment} key={`assign-${form.automatic_table_assignment}`}/>Allow automatic table assignment</label><label className="checkline"><input name="deposit_required" type="checkbox" defaultChecked={form.deposit_required} key={`deposit-${form.deposit_required}`}/>Require a reservation deposit</label><label>Deposit per reservation (PHP)<input name="deposit_amount" type="number" min="0" step="0.01" defaultValue={form.deposit_amount} key={`deposit-amount-${form.deposit_amount}`}/></label><button>Save reservation policy</button></form></section>;}
+export function TableOccupancy() {
+  const [loading, setLoading] = useState(true);
+  const ask = usePrompt();
+  const [tables, setTables] = useState([]);
+  const [error, setError] = useState("");
+  async function load() {
+    setError("");
+    try {
+      const d = await api("/service/tables");
+      setTables(d.data || []);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, []);
+  async function change(table, status) {
+    try {
+      let estimate = null;
+      if (status === "occupied") {
+        const suggested = new Date(Date.now() + 90 * 60000);
+        const local = new Date(
+          suggested.getTime() - suggested.getTimezoneOffset() * 60000,
+        )
+          .toISOString()
+          .slice(0, 16);
+        const entered = await ask(
+          "Estimated table availability (this is not a guarantee)",
+          local,
+        );
+        if (!entered) return;
+        estimate = new Date(entered).toISOString();
+      }
+      await api(`/service/tables/${table.id}/occupancy`, {
+        method: "PATCH",
+        body: JSON.stringify({ status, expected_available_at: estimate }),
+      });
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  return (
+    <section className="welcome">
+      <span className="eyebrow">LIVE SERVICE</span>
+      <h1>Table occupancy</h1>
+      <p>
+        Availability estimates use staff-entered times and reservation
+        schedules. Unknown departure times remain uncertain.
+      </p>
+      {loading && <Skeleton label="Loading your content" />}
+      {!loading && !error && tables.length === 0 && (
+        <EmptyState
+          title="Every great service starts with a table"
+          description="Add and publish tables in the floor plan to get started."
+        />
+      )}
+      {error && <Feedback onRetry={load}>{error}</Feedback>}
+      <div className="staff-list">
+        {tables.map((table) => (
+          <article key={table.id}>
+            <div>
+              <strong>
+                {table.table_number} · {table.operational_status}
+              </strong>
+              <small>
+                Capacity {table.capacity}
+                {table.expected_available_at
+                  ? ` · Estimated ${new Date(table.expected_available_at).toLocaleTimeString()}`
+                  : " · No departure estimate"}
+              </small>
+            </div>
+            <div>
+              <button onClick={() => change(table, "occupied")}>
+                Occupied
+              </button>
+              <button onClick={() => change(table, "cleaning")}>
+                Cleaning
+              </button>
+              <button onClick={() => change(table, "available")}>
+                Available
+              </button>
+              <button onClick={() => change(table, "unavailable")}>
+                Unavailable
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
 
+export function FloorPlanEditor() {
+  const [loading, setLoading] = useState(true);
+  const ask = usePrompt();
+  const [floors, setFloors] = useState([]);
+  const [floorId, setFloorId] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [objects, setObjects] = useState([]);
+  const [preview, setPreview] = useState(false);
+  const floor = floors.find((f) => String(f.id) === String(floorId));
+  async function load() {
+    setError("");
+    try {
+      const d = await api("/admin/floor-plan/floors");
+      setFloors(d.data || []);
+      if (!floorId && d.data?.length) setFloorId(String(d.data[0].id));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  useEffect(() => {
+    setObjects(floor?.objects || []);
+  }, [floorId, floors]);
+  async function addFloor() {
+    const name = await ask("Floor name");
+    if (!name) return;
+    try {
+      const d = await api("/admin/floor-plan/floors", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      await load();
+      setFloorId(String(d.data.id));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  async function addTable() {
+    if (!floor) return;
+    const table_number = await ask("Table number");
+    if (!table_number) return;
+    const enteredCapacity = await ask("Seat capacity", "4");
+    if (enteredCapacity === null) return;
+    const capacity = Number(enteredCapacity || 4);
+    try {
+      await api(`/admin/floor-plan/floors/${floor.id}/tables`, {
+        method: "POST",
+        body: JSON.stringify({
+          table_number,
+          capacity,
+          position: { x: 0, z: 0 },
+        }),
+      });
+      await load();
+      setNotice("Table added. Drag it to place it on the draft layout.");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  async function addObject(type) {
+    if (!floor) return;
+    setObjects((rows) => [
+      ...rows,
+      {
+        _key: `new-${Date.now()}-${Math.random()}`,
+        floor_id: floor.id,
+        object_type: type,
+        label: type,
+        position: { x: 0, z: 0 },
+        rotation: { y: 0 },
+        dimensions: {
+          width: type === "wall" ? 4 : 1.5,
+          depth: type === "wall" ? 0.2 : 1,
+          height: type === "wall" ? 1.1 : 0.6,
+        },
+        properties: {},
+      },
+    ]);
+  }
+  function update(id, changes) {
+    setObjects((rows) =>
+      rows.map((o) => ((o.id ?? o._key) === id ? { ...o, ...changes } : o)),
+    );
+  }
+  function drop(event) {
+    event.preventDefault();
+    const id = event.dataTransfer.getData("text/plain");
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 20;
+    const z = ((event.clientY - rect.top) / rect.height - 0.5) * 16;
+    update(id, {
+      position: { x: Number(x.toFixed(2)), z: Number(z.toFixed(2)) },
+    });
+  }
+  async function save() {
+    try {
+      const d = await api(`/admin/floor-plan/floors/${floor.id}/layout`, {
+        method: "PUT",
+        body: JSON.stringify({
+          objects: objects.map((o) => ({
+            id: o.id || null,
+            table_id: o.table_id || null,
+            object_type: o.object_type,
+            label: o.label,
+            position: o.position,
+            rotation: o.rotation,
+            dimensions: o.dimensions,
+            properties: o.properties,
+          })),
+        }),
+      });
+      setFloors((rows) => rows.map((f) => (f.id === d.data.id ? d.data : f)));
+      setNotice("Draft saved. Publish when the preview looks right.");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  async function publish() {
+    try {
+      const d = await api(`/admin/floor-plan/floors/${floor.id}/publish`, {
+        method: "POST",
+      });
+      setFloors((rows) => rows.map((f) => (f.id === d.data.id ? d.data : f)));
+      setNotice("Floor plan published for customers.");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  async function saveTable(o) {
+    try {
+      await api(`/admin/floor-plan/tables/${o.table_id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          table_number: o.table.table_number,
+          capacity: Number(o.table.capacity),
+          zone: o.table.zone || null,
+          is_active: o.table.is_active ?? true,
+        }),
+      });
+      await load();
+      setNotice("Table setup saved.");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  return (
+    <section className="welcome floor-editor">
+      <span className="eyebrow">RESTAURANT LAYOUT</span>
+      <h1>3D floor plan editor</h1>
+      <p>
+        Drag objects on the 2D editor to position. Rotate and resize selected
+        objects, save the draft, preview, then publish.
+      </p>
+      {loading && <Skeleton label="Loading your content" />}
+      {!loading && !error && floors.length === 0 && (
+        <EmptyState
+          title="Create your restaurant layout"
+          description="Add a floor, arrange your tables, then publish when everything is ready."
+        />
+      )}
+      {error && <Feedback onRetry={load}>{error}</Feedback>}
+      {notice && <Feedback tone="success">{notice}</Feedback>}
+      <div className="floor-editor-toolbar">
+        <select
+          aria-label="Floor"
+          value={floorId}
+          onChange={(e) => setFloorId(e.target.value)}
+        >
+          {floors.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+              {f.is_published ? " · published" : " · draft"}
+            </option>
+          ))}
+        </select>
+        <button onClick={addFloor}>Add floor</button>
+        {floor && (
+          <>
+            <button onClick={addTable}>Add table</button>
+            <button onClick={() => addObject("wall")}>Add wall</button>
+            <button onClick={() => addObject("counter")}>Add counter</button>
+            <button onClick={() => addObject("furniture")}>
+              Add furniture
+            </button>
+            <button onClick={() => addObject("entrance")}>Add entrance</button>
+            <button onClick={() => setPreview(!preview)}>
+              {preview ? "Edit layout" : "Preview 3D"}
+            </button>
+            <button onClick={save}>Save draft</button>
+            <button onClick={publish}>Publish layout</button>
+          </>
+        )}
+      </div>
+      {floor && !preview && (
+        <div
+          className="editor-board"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={drop}
+        >
+          {objects.map((o) => (
+            <button
+              draggable
+              key={o.id || o._key}
+              onDragStart={(e) =>
+                e.dataTransfer.setData("text/plain", String(o.id ?? o._key))
+              }
+              onClick={() =>
+                setObjects((rows) =>
+                  rows.map((row) => ({ ...row, _selected: row === o })),
+                )
+              }
+              style={{
+                left: `${50 + (o.position?.x || 0) * 4.5}%`,
+                top: `${50 + (o.position?.z || 0) * 5.5}%`,
+                transform: `translate(-50%,-50%) rotate(${o.rotation?.y || 0}rad)`,
+                width: `${Math.max(45, (o.dimensions?.width || 1.4) * 28)}px`,
+                height: `${Math.max(32, (o.dimensions?.depth || 1.1) * 23)}px`,
+              }}
+              className={`editor-object ${o.object_type} ${o._selected ? "selected" : ""}`}
+            >
+              {o.table?.table_number || o.label || o.object_type}
+            </button>
+          ))}
+        </div>
+      )}
+      {floor && preview && (
+        <Suspense
+          fallback={
+            <div className="floor-scene scene-loading">Loading preview…</div>
+          }
+        >
+          <FloorScene objects={objects} />
+        </Suspense>
+      )}
+      {floor && !preview && (
+        <div className="editor-selection">
+          {objects
+            .filter((o) => o._selected)
+            .map((o) => (
+              <div key={o.id || o._key}>
+                <strong>
+                  Selected: {o.table?.table_number || o.label || o.object_type}
+                </strong>
+                <label>
+                  Label
+                  <input
+                    value={o.label || ""}
+                    onChange={(e) =>
+                      update(o.id ?? o._key, { label: e.target.value })
+                    }
+                  />
+                </label>
+                {o.table_id && (
+                  <>
+                    <label>
+                      Table number
+                      <input
+                        value={o.table?.table_number || ""}
+                        onChange={(e) =>
+                          update(o.id ?? o._key, {
+                            table: { ...o.table, table_number: e.target.value },
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Capacity
+                      <input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={o.table?.capacity || 2}
+                        onChange={(e) =>
+                          update(o.id ?? o._key, {
+                            table: {
+                              ...o.table,
+                              capacity: Number(e.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Zone
+                      <input
+                        value={o.table?.zone || ""}
+                        onChange={(e) =>
+                          update(o.id ?? o._key, {
+                            table: { ...o.table, zone: e.target.value },
+                          })
+                        }
+                      />
+                    </label>
+                    <button onClick={() => saveTable(o)}>
+                      Save table setup
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() =>
+                    update(o.id ?? o._key, {
+                      position: {
+                        ...o.position,
+                        x: (o.position?.x || 0) - 0.5,
+                      },
+                    })
+                  }
+                >
+                  ← Move
+                </button>
+                <button
+                  onClick={() =>
+                    update(o.id ?? o._key, {
+                      position: {
+                        ...o.position,
+                        x: (o.position?.x || 0) + 0.5,
+                      },
+                    })
+                  }
+                >
+                  Move →
+                </button>
+                <button
+                  onClick={() =>
+                    update(o.id ?? o._key, {
+                      position: {
+                        ...o.position,
+                        z: (o.position?.z || 0) - 0.5,
+                      },
+                    })
+                  }
+                >
+                  ↑ Move
+                </button>
+                <button
+                  onClick={() =>
+                    update(o.id ?? o._key, {
+                      position: {
+                        ...o.position,
+                        z: (o.position?.z || 0) + 0.5,
+                      },
+                    })
+                  }
+                >
+                  ↓ Move
+                </button>
+                <button
+                  onClick={() =>
+                    update(o.id ?? o._key, {
+                      rotation: { y: (o.rotation?.y || 0) + Math.PI / 12 },
+                    })
+                  }
+                >
+                  Rotate 15°
+                </button>
+                <button
+                  onClick={() =>
+                    update(o.id ?? o._key, {
+                      dimensions: {
+                        ...o.dimensions,
+                        width: (o.dimensions?.width || 1) + 0.2,
+                      },
+                    })
+                  }
+                >
+                  Wider
+                </button>
+                <button
+                  onClick={() =>
+                    update(o.id ?? o._key, {
+                      dimensions: {
+                        ...o.dimensions,
+                        depth: (o.dimensions?.depth || 1) + 0.2,
+                      },
+                    })
+                  }
+                >
+                  Deeper
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
+    </section>
+  );
+}
 
+export function ReservationSettings() {
+  const [loading, setLoading] = useState(true),
+    [initialError, setInitialError] = useState(""),
+    [attempt, setAttempt] = useState(0);
+
+  const [form, setForm] = useState({
+    open_time: "10:00",
+    close_time: "22:00",
+    duration_minutes: 90,
+    buffer_minutes: 30,
+    booking_window_days: 60,
+    grace_minutes: 15,
+    cancellation_cutoff_hours: 4,
+    automatic_confirmation: true,
+    automatic_table_assignment: true,
+    deposit_required: false,
+    deposit_amount: 0,
+  });
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    setLoading(true);
+    setInitialError("");
+    setError("");
+    api("/admin/reservation-policy")
+      .then((d) => setForm(d.data))
+      .catch((e) => {
+        setError(e.message);
+        setInitialError(e.message);
+      })
+      .finally(() => setLoading(false));
+  }, [attempt]);
+  async function save(e) {
+    e.preventDefault();
+    setError("");
+    setNotice("");
+    const data = Object.fromEntries(new FormData(e.currentTarget));
+    for (const key of [
+      "duration_minutes",
+      "buffer_minutes",
+      "booking_window_days",
+      "grace_minutes",
+      "cancellation_cutoff_hours",
+      "deposit_amount",
+    ])
+      data[key] = Number(data[key]);
+    for (const key of [
+      "automatic_confirmation",
+      "automatic_table_assignment",
+      "deposit_required",
+    ])
+      data[key] = Boolean(data[key]);
+    try {
+      const d = await api("/admin/reservation-policy", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+      setForm(d.data);
+      setNotice("Reservation policy saved.");
+    } catch (ex) {
+      setError(ex.message);
+    }
+  }
+  if (loading || initialError)
+    return (
+      <section className="welcome">
+        <h1>Reservation settings</h1>
+        {loading ? (
+          <Skeleton label="Loading reservation settings" />
+        ) : (
+          <Feedback onRetry={() => setAttempt((value) => value + 1)}>
+            {initialError}
+          </Feedback>
+        )}
+      </section>
+    );
+  return (
+    <section className="welcome">
+      <span className="eyebrow">RESTAURANT POLICY</span>
+      <h1>Reservation settings</h1>
+      <p>
+        These settings are used by the server to validate booking times and
+        turnover.
+      </p>
+      {error && <Feedback>{error}</Feedback>}
+      {notice && <Feedback tone="success">{notice}</Feedback>}
+      <form className="staff-form reservation-policy-form" onSubmit={save}>
+        <label>
+          Opens
+          <input
+            name="open_time"
+            type="time"
+            defaultValue={form.open_time}
+            key={`open-${form.open_time}`}
+            required
+          />
+        </label>
+        <label>
+          Closes
+          <input
+            name="close_time"
+            type="time"
+            defaultValue={form.close_time}
+            key={`close-${form.close_time}`}
+            required
+          />
+        </label>
+        <label>
+          Reservation duration (minutes)
+          <input
+            name="duration_minutes"
+            type="number"
+            min="30"
+            max="360"
+            defaultValue={form.duration_minutes}
+            key={`duration-${form.duration_minutes}`}
+          />
+        </label>
+        <label>
+          Turnaround buffer (minutes)
+          <input
+            name="buffer_minutes"
+            type="number"
+            min="0"
+            max="240"
+            defaultValue={form.buffer_minutes}
+            key={`buffer-${form.buffer_minutes}`}
+          />
+        </label>
+        <label>
+          Booking window (days)
+          <input
+            name="booking_window_days"
+            type="number"
+            min="1"
+            max="365"
+            defaultValue={form.booking_window_days}
+            key={`window-${form.booking_window_days}`}
+          />
+        </label>
+        <label>
+          Late arrival grace (minutes)
+          <input
+            name="grace_minutes"
+            type="number"
+            min="0"
+            max="120"
+            defaultValue={form.grace_minutes}
+            key={`grace-${form.grace_minutes}`}
+          />
+        </label>
+        <label>
+          Cancellation cutoff (hours)
+          <input
+            name="cancellation_cutoff_hours"
+            type="number"
+            min="0"
+            max="168"
+            defaultValue={form.cancellation_cutoff_hours}
+            key={`cancel-${form.cancellation_cutoff_hours}`}
+          />
+        </label>
+        <label className="checkline">
+          <input
+            name="automatic_confirmation"
+            type="checkbox"
+            defaultChecked={form.automatic_confirmation}
+            key={`confirm-${form.automatic_confirmation}`}
+          />
+          Automatically confirm bookings
+        </label>
+        <label className="checkline">
+          <input
+            name="automatic_table_assignment"
+            type="checkbox"
+            defaultChecked={form.automatic_table_assignment}
+            key={`assign-${form.automatic_table_assignment}`}
+          />
+          Allow automatic table assignment
+        </label>
+        <label className="checkline">
+          <input
+            name="deposit_required"
+            type="checkbox"
+            defaultChecked={form.deposit_required}
+            key={`deposit-${form.deposit_required}`}
+          />
+          Require a reservation deposit
+        </label>
+        <label>
+          Deposit per reservation (PHP)
+          <input
+            name="deposit_amount"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue={form.deposit_amount}
+            key={`deposit-amount-${form.deposit_amount}`}
+          />
+        </label>
+        <button>Save reservation policy</button>
+      </form>
+    </section>
+  );
+}

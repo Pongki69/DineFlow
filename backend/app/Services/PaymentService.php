@@ -229,7 +229,7 @@ class PaymentService
         $resourceId = $resource['id'] ?? null;
         if (! $eventId) return 'ignored';
         try {
-            return DB::transaction(function () use ($eventId, $type, $resource, $resourceId): string {
+            return DB::transaction(function () use ($eventId, $type, $resource, $resourceId, $attributes): string {
                 $webhook = PaymentWebhookEvent::firstOrCreate(['provider_event_id' => $eventId], ['provider' => 'paymongo', 'event_type' => $type, 'resource_id' => $resourceId, 'outcome' => 'received']);
                 if (! $webhook->wasRecentlyCreated) return 'duplicate';
                 $outcome = 'ignored';

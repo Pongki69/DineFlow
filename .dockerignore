@@ -18,5 +18,7 @@ backend/storage/app/private/*
 backend/storage/app/public/*
 **/.phpunit.cache
 **/coverage
+frontend/playwright-report
+frontend/test-results
 **/*.dump
 **/*.log
