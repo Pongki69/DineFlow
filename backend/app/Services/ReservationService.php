@@ -34,18 +34,18 @@ class ReservationService
         ], $saved, ['timezone' => $this->timezone()]);
     }
 
-    public function availability(CarbonImmutable $startsAt, int $guestCount, ?int $floorId = null): array
+    public function availability(CarbonImmutable $startsAt, int $guestCount, ?int $floorId = null, bool $includeSmallTables = false): array
     {
         $startsAt = $startsAt->utc();
         $policy = $this->policy();
         $endsAt = $startsAt->addMinutes((int) $policy['duration_minutes']);
         $tables = RestaurantTable::query()->with(['floor:id,name', 'currentSession:id,table_id,guest_count,opened_at'])
-            ->where('is_active', true)->where('capacity', '>=', $guestCount)
+            ->where('is_active', true)->when(! $includeSmallTables, fn ($query) => $query->where('capacity', '>=', $guestCount))
             ->when($floorId, fn ($query) => $query->where('floor_id', $floorId))
             ->whereHas('floor', fn ($query) => $query->where('is_active', true)->where('is_published', true))
             ->orderBy('capacity')->orderBy('table_number')->get();
 
-        return $tables->map(function (RestaurantTable $table) use ($startsAt, $endsAt, $policy): array {
+        return $tables->map(function (RestaurantTable $table) use ($startsAt, $endsAt, $policy, $guestCount): array {
             $buffer = (int) $policy['buffer_minutes'];
             $occupied = in_array($table->operational_status, ['occupied', 'cleaning'], true) || $table->currentSession !== null;
             $operationallyFree = in_array($table->operational_status, ['available'], true)
@@ -54,6 +54,7 @@ class ReservationService
 
             return [
                 'id' => $table->id, 'table_number' => $table->table_number, 'capacity' => $table->capacity,
+                'suitable' => $table->capacity >= $guestCount,
                 'zone' => $table->zone, 'floor_id' => $table->floor_id, 'floor_name' => $table->floor?->name,
                 'operational_status' => $table->operational_status, 'expected_available_at' => $table->expected_available_at,
                 'availability_estimate_confirmed' => false,
@@ -74,33 +75,47 @@ class ReservationService
         $startsAt = $startsAt->utc();
         $endsAt = $startsAt->addMinutes((int) $policy['duration_minutes']);
         $floorId = isset($data['floor_id']) ? (int) $data['floor_id'] : null;
-        $requestedId = isset($data['table_id']) ? (int) $data['table_id'] : null;
+        $requestedIds = array_values(array_unique(array_map('intval', $data['table_ids'] ?? (isset($data['table_id']) ? [$data['table_id']] : []))));
+        $requestedId = $requestedIds[0] ?? null;
 
-        $result = DB::transaction(function () use ($actor, $customer, $data, $startsAt, $endsAt, $policy, $floorId, $requestedId): array {
-            $candidateIds = $requestedId ? [$requestedId] : collect($this->availability($startsAt, (int) $data['guest_count'], $floorId))->where('available', true)->pluck('id')->all();
-            sort($candidateIds);
-            foreach ($candidateIds as $id) {
-                $table = RestaurantTable::query()->whereKey($id)->lockForUpdate()->first();
-                if (! $table || ($floorId && $table->floor_id !== $floorId)) {
-                    continue;
-                }
-                $isAvailable = collect($this->availability($startsAt, (int) $data['guest_count'], $table->floor_id))->firstWhere('id', $table->id)['available'] ?? false;
-                if (! $isAvailable) {
-                    continue;
-                }
-                $reservation = Reservation::create([
-                    'reference' => $this->reference(), 'customer_id' => $customer->id, 'table_id' => $table->id,
-                    'floor_id' => $table->floor_id, 'guest_name' => $data['guest_name'], 'guest_email' => $data['guest_email'] ?? null,
-                    'guest_phone' => $data['guest_phone'] ?? null, 'guest_count' => $data['guest_count'],
-                    'starts_at' => $startsAt, 'ends_at' => $endsAt, 'duration_minutes' => (int) $policy['duration_minutes'], 'buffer_minutes' => (int) $policy['buffer_minutes'],
-                    'status' => ($policy['deposit_required'] ?? false) ? 'pending' : ($policy['automatic_confirmation'] ? 'confirmed' : 'pending'), 'notes' => $data['notes'] ?? null,
-                ]);
-                $reservation->history()->create(['actor_id' => $actor->id, 'from_status' => null, 'to_status' => $reservation->status]);
-                app(AuditLogService::class)->record($actor, 'reservation.created', $reservation, ['table_id' => $table->id], request());
-
-                return ['reservation' => $reservation->load(['table:id,table_number,capacity', 'floor:id,name']), 'assigned_automatically' => ! $requestedId];
+        $result = DB::transaction(function () use ($actor, $customer, $data, $startsAt, $endsAt, $policy, $floorId, $requestedIds, $requestedId): array {
+            $candidateIds = $requestedIds ?: collect($this->availability($startsAt, (int) $data['guest_count'], $floorId))->where('available', true)->where('suitable', true)->pluck('id')->all();
+            if (! $candidateIds) {
+                throw ValidationException::withMessages(['table_id' => 'No suitable table is available at that time. Choose another time or select multiple tables.']);
             }
-            throw ValidationException::withMessages(['table_id' => 'That table or time is no longer available. Choose another table or time.']);
+            $lockedIds = $candidateIds;
+            sort($lockedIds);
+            $lockedTables = collect($lockedIds)->map(fn ($id) => RestaurantTable::query()->whereKey($id)->lockForUpdate()->first())->filter()->keyBy('id');
+            if ($lockedTables->count() !== count($candidateIds)) {
+                throw ValidationException::withMessages(['table_ids' => 'One or more selected tables no longer exist. Refresh and choose again.']);
+            }
+            $tables = collect($candidateIds)->map(fn ($id) => $lockedTables->get($id));
+            $tableFloorIds = $tables->pluck('floor_id')->unique();
+            if ($tableFloorIds->count() !== 1 || ($floorId && (int) $tableFloorIds->first() !== $floorId)) {
+                throw ValidationException::withMessages(['table_ids' => 'Selected tables must all be on the chosen floor.']);
+            }
+            $availability = collect($this->availability($startsAt, (int) $data['guest_count'], (int) $tableFloorIds->first(), true))->keyBy('id');
+            foreach ($candidateIds as $id) {
+                if (! ($availability->get($id)['available'] ?? false)) {
+                    throw ValidationException::withMessages(['table_ids' => 'A selected table is no longer available. Please choose again.']);
+                }
+            }
+            if ($requestedIds && $tables->sum('capacity') < (int) $data['guest_count']) {
+                throw ValidationException::withMessages(['table_ids' => 'The selected tables do not have enough combined seats for your party.']);
+            }
+            $table = $tables->first();
+            $reservation = Reservation::create([
+                'reference' => $this->reference(), 'customer_id' => $customer->id, 'table_id' => $table->id,
+                'floor_id' => $table->floor_id, 'guest_name' => $data['guest_name'], 'guest_email' => $data['guest_email'] ?? null,
+                'guest_phone' => $data['guest_phone'] ?? null, 'guest_count' => $data['guest_count'],
+                'starts_at' => $startsAt, 'ends_at' => $endsAt, 'duration_minutes' => (int) $policy['duration_minutes'], 'buffer_minutes' => (int) $policy['buffer_minutes'],
+                'status' => ($policy['deposit_required'] ?? false) ? 'pending' : ($policy['automatic_confirmation'] ? 'confirmed' : 'pending'), 'notes' => $data['notes'] ?? null,
+            ]);
+            $reservation->tables()->attach($candidateIds);
+            $reservation->history()->create(['actor_id' => $actor->id, 'from_status' => null, 'to_status' => $reservation->status]);
+            app(AuditLogService::class)->record($actor, 'reservation.created', $reservation, ['table_ids' => $candidateIds], request());
+
+            return ['reservation' => $reservation->load(['table:id,table_number,capacity', 'tables:id,table_number,capacity', 'floor:id,name']), 'assigned_automatically' => ! $requestedIds];
         }, 3);
 
         $reservation = $result['reservation'];
@@ -139,23 +154,28 @@ class ReservationService
             }
             $from = $locked->status;
             if (in_array($to, ['seated', 'completed'], true)) {
-                $table = RestaurantTable::whereKey($locked->table_id)->lockForUpdate()->firstOrFail();
-                $session = DiningSession::where('table_id', $table->id)->where('status', 'open')->lockForUpdate()->first();
-                if ($to === 'seated') {
-                    if ($session || ! $table->is_active || in_array($table->operational_status, ['occupied', 'cleaning', 'unavailable'], true)) {
-                        throw ValidationException::withMessages(['table_id' => 'This table must be available before seating the reservation.']);
+                $tableIds = $locked->tables()->pluck('restaurant_tables.id')->all();
+                if (! $tableIds && $locked->table_id) $tableIds = [(int) $locked->table_id];
+                sort($tableIds);
+                $tables = RestaurantTable::whereIn('id', $tableIds)->orderBy('id')->lockForUpdate()->get();
+                foreach ($tables as $table) {
+                    $session = DiningSession::where('table_id', $table->id)->where('status', 'open')->lockForUpdate()->first();
+                    if ($to === 'seated') {
+                        if ($session || ! $table->is_active || in_array($table->operational_status, ['occupied', 'cleaning', 'unavailable'], true)) {
+                            throw ValidationException::withMessages(['table_id' => 'Every table in this reservation must be available before seating the party.']);
+                        }
+                        $session = DiningSession::create(['table_id' => $table->id, 'reservation_id' => $locked->id, 'opened_by' => $actor->id, 'guest_count' => $locked->guest_count, 'status' => 'open', 'opened_at' => now()]);
+                    } elseif ($session) {
+                        if ($session->reservation_id !== $locked->id) {
+                            throw ValidationException::withMessages(['table_id' => 'A different party is using one of the reserved tables.']);
+                        }
+                        $session->ensureBillSettled();
+                        $session->update(['status' => 'closed', 'closed_at' => now(), 'closed_by' => $actor->id]);
                     }
-                    $session = DiningSession::create(['table_id' => $table->id, 'reservation_id' => $locked->id, 'opened_by' => $actor->id, 'guest_count' => $locked->guest_count, 'status' => 'open', 'opened_at' => now()]);
-                } elseif ($session) {
-                    if ($session->reservation_id !== $locked->id) {
-                        throw ValidationException::withMessages(['table_id' => 'A different party is using this table.']);
-                    }
-                    $session->ensureBillSettled();
-                    $session->update(['status' => 'closed', 'closed_at' => now(), 'closed_by' => $actor->id]);
+                    $nextStatus = $to === 'seated' ? 'occupied' : 'cleaning';
+                    TableOccupancyHistory::create(['table_id' => $table->id, 'dining_session_id' => $session?->id, 'actor_id' => $actor->id, 'from_status' => $table->operational_status, 'to_status' => $nextStatus]);
+                    $table->update(['operational_status' => $nextStatus, 'expected_available_at' => $to === 'seated' ? $locked->ends_at : null]);
                 }
-                $nextStatus = $to === 'seated' ? 'occupied' : 'cleaning';
-                TableOccupancyHistory::create(['table_id' => $table->id, 'dining_session_id' => $session?->id, 'actor_id' => $actor->id, 'from_status' => $table->operational_status, 'to_status' => $nextStatus]);
-                $table->update(['operational_status' => $nextStatus, 'expected_available_at' => $to === 'seated' ? $locked->ends_at : null]);
             }
             $locked->status = $to;
             if ($to === 'checked_in') {
@@ -171,7 +191,7 @@ class ReservationService
             $locked->history()->create(['actor_id' => $actor->id, 'from_status' => $from, 'to_status' => $to, 'note' => $note]);
             app(AuditLogService::class)->record($actor, 'reservation.status_changed', $locked, ['from' => $from, 'to' => $to], request());
 
-            return $locked->load(['table:id,table_number,capacity', 'floor:id,name']);
+            return $locked->load(['table:id,table_number,capacity', 'tables:id,table_number,capacity', 'floor:id,name']);
         }, 3);
 
         app(RestaurantNotificationService::class)->send($updated->customer, 'reservation.status_changed', 'Reservation update', 'Reservation '.$updated->reference.' is now '.str_replace('_', ' ', $updated->status).'.', ['reservation_id' => $updated->id, 'reference' => $updated->reference, 'status' => $updated->status]);
@@ -199,10 +219,13 @@ class ReservationService
             $from = $locked->status;
             $locked->update(['status' => 'cancelled', 'cancelled_at' => now()]);
             $locked->history()->create(['actor_id' => $actor->id, 'from_status' => $from, 'to_status' => 'cancelled', 'note' => 'Rescheduled']);
+            $existingTableIds = $locked->tables()->pluck('restaurant_tables.id')->all();
+            if (! $existingTableIds && $locked->table_id) $existingTableIds = [(int) $locked->table_id];
             $result = $this->create($actor, array_replace($data, [
                 'guest_name' => $data['guest_name'] ?? $locked->guest_name, 'guest_email' => $data['guest_email'] ?? $locked->guest_email,
                 'guest_phone' => $data['guest_phone'] ?? $locked->guest_phone, 'guest_count' => $data['guest_count'] ?? $locked->guest_count,
                 'floor_id' => $data['floor_id'] ?? $locked->floor_id,
+                'table_ids' => $data['table_ids'] ?? $existingTableIds,
             ]), $locked->customer ?? $actor);
 
             return $result;
@@ -228,7 +251,9 @@ class ReservationService
 
     private function hasReservationConflict(int $tableId, CarbonImmutable $startsAt, CarbonImmutable $endsAt, int $buffer): bool
     {
-        return Reservation::query()->where('table_id', $tableId)->whereIn('status', ['pending', 'confirmed', 'checked_in', 'seated'])
+        return Reservation::query()->where(function ($query) use ($tableId): void {
+            $query->where('table_id', $tableId)->orWhereHas('tables', fn ($tables) => $tables->where('restaurant_tables.id', $tableId));
+        })->whereIn('status', ['pending', 'confirmed', 'checked_in', 'seated'])
             ->where('starts_at', '<', $endsAt->addMinutes($buffer))
             ->whereRaw($this->bufferedEndExpression().' > ?', [$startsAt->utc()->toDateTimeString()])->exists();
     }

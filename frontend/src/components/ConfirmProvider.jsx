@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Button, Field } from "./ui";
 
 const PromptContext = createContext(null);
+const ConfirmContext = createContext(null);
 
 // Native dialog supplies focus containment, Escape handling and focus restoration.
 export function ConfirmProvider({ children }) {
@@ -19,55 +20,81 @@ export function ConfirmProvider({ children }) {
     resolver.current = null;
     resolve?.(value);
   }
-  function ask(message, defaultValue = "") {
+  function confirm(message, options = {}) {
     resolver.current?.(null);
+    dialog.current?.close();
     return new Promise((resolve) => {
       resolver.current = resolve;
-      setRequest({ message, defaultValue });
+      setRequest({
+        kind: "confirm",
+        message,
+        title: options.title || "Confirm this action",
+        confirmLabel: options.confirmLabel || "Continue",
+        destructive: Boolean(options.destructive),
+      });
+    });
+  }
+  function requestPrompt(message, defaultValue = "") {
+    resolver.current?.(null);
+    dialog.current?.close();
+    return new Promise((resolve) => {
+      resolver.current = resolve;
+      setRequest({ kind: "prompt", message, defaultValue });
     });
   }
   return (
-    <PromptContext.Provider value={ask}>
-      {children}
-      <dialog
-        ref={dialog}
-        className="action-dialog"
-        aria-labelledby="action-dialog-title"
-        onCancel={(event) => {
-          event.preventDefault();
-          finish(null);
-        }}
-      >
-        <form
-          key={request?.message}
-          onSubmit={(event) => {
+    <PromptContext.Provider value={requestPrompt}>
+      <ConfirmContext.Provider value={confirm}>
+        {children}
+        <dialog
+          ref={dialog}
+          className="action-dialog"
+          aria-labelledby="action-dialog-title"
+          aria-describedby={request?.kind === "confirm" ? "action-dialog-description" : undefined}
+          onCancel={(event) => {
             event.preventDefault();
-            finish(new FormData(event.currentTarget).get("value"));
+            finish(null);
           }}
         >
-          <span className="eyebrow">RESTAURANT WORKSPACE</span>
-          <h2 id="action-dialog-title">{request?.message}</h2>
-          <Field
-            label="Your response"
-            name="value"
-            type={
-              /^\d{4}-\d{2}-\d{2}T/.test(String(request?.defaultValue || ""))
-                ? "datetime-local"
-                : "text"
-            }
-            defaultValue={request?.defaultValue}
-            autoFocus
-          />
-          <div className="dialog-actions">
-            <Button variant="secondary" onClick={() => finish(null)}>
-              Cancel
-            </Button>
-            <Button type="submit">Continue</Button>
-          </div>
-        </form>
-      </dialog>
+          <form
+            key={request?.message}
+            onSubmit={(event) => {
+              event.preventDefault();
+              finish(request?.kind === "confirm" ? true : new FormData(event.currentTarget).get("value"));
+            }}
+          >
+            <span className="eyebrow">{request?.kind === "confirm" ? "PLEASE CONFIRM" : "RESTAURANT WORKSPACE"}</span>
+            <h2 id="action-dialog-title">{request?.kind === "confirm" ? request.title : request?.message}</h2>
+            {request?.kind === "confirm" ? <p id="action-dialog-description" className="action-dialog-description">{request.message}</p> : <Field
+              label="Your response"
+              name="value"
+              type={
+                /^\d{4}-\d{2}-\d{2}T/.test(String(request?.defaultValue || ""))
+                  ? "datetime-local"
+                  : "text"
+              }
+              defaultValue={request?.defaultValue}
+              autoFocus
+            />}
+            <div className="dialog-actions">
+              <Button variant="secondary" onClick={() => finish(request?.kind === "confirm" ? false : null)}>
+                Cancel
+              </Button>
+              <Button type="submit" className={request?.destructive ? "dialog-confirm--danger" : ""}>
+                {request?.confirmLabel || "Continue"}
+              </Button>
+            </div>
+          </form>
+        </dialog>
+      </ConfirmContext.Provider>
     </PromptContext.Provider>
   );
+}
+
+export function useConfirm() {
+  const confirm = useContext(ConfirmContext);
+  if (!confirm) throw new Error("useConfirm requires ConfirmProvider");
+  return confirm;
 }
 
 export function usePrompt() {

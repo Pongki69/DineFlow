@@ -39,7 +39,7 @@ class OperationsController extends Controller
         }
         if ($user->hasPermission('reservations.manage')) {
             $data['reservations'] = [
-                'upcoming' => Reservation::with(['table:id,table_number'])->whereIn('status', ['pending', 'confirmed', 'checked_in', 'seated'])->whereBetween('starts_at', [$now, $now->copy()->addDays(7)])->orderBy('starts_at')->limit(8)->get(['id','reference','table_id','guest_name','guest_count','starts_at','status']),
+                'upcoming' => Reservation::with(['table:id,table_number', 'tables:id,table_number'])->whereIn('status', ['pending', 'confirmed', 'checked_in', 'seated'])->whereBetween('starts_at', [$now, $now->copy()->addDays(7)])->orderBy('starts_at')->limit(8)->get(['id','reference','table_id','guest_name','guest_count','starts_at','status']),
                 'cancelled' => Reservation::whereBetween('starts_at', [$from, $to])->where('status', 'cancelled')->count(),
                 'no_show' => Reservation::whereBetween('starts_at', [$from, $to])->where('status', 'no_show')->count(),
                 'today' => Reservation::whereBetween('starts_at', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])->whereNotIn('status', ['cancelled', 'no_show'])->count(),
@@ -121,7 +121,7 @@ class OperationsController extends Controller
             $sets = [
                 'orders' => [Order::whereBetween('created_at', [$from,$to])->with('delivery:id,order_id,status')->orderBy('created_at'), ['Order','Created at','Type','Status','Customer','Total PHP','Payment status','Delivery status'], fn ($r) => [$r->order_number,$r->created_at?->toIso8601String(),$r->order_type,$r->status,$r->customer_name_snapshot,$r->total,$r->payments()->where('status','paid')->exists()?'paid':'unpaid',$r->delivery?->status]],
                 'payments' => [Payment::with(['order:id,order_number','reservation:id,reference','receivedBy:id,name'])->whereBetween('created_at', [$from,$to])->orderBy('created_at'), ['Reference','Created at','Purpose','Method','Status','Amount','Currency','Order','Reservation','Received by'], fn ($r) => [$r->reference_number,$r->created_at?->toIso8601String(),$r->purpose,$r->method,$r->status,$r->amount,$r->currency,$r->order?->order_number,$r->reservation?->reference,$r->receivedBy?->name]],
-                'reservations' => [Reservation::with('table:id,table_number')->whereBetween('starts_at', [$from,$to])->orderBy('starts_at'), ['Reference','Starts at','Status','Guest','Guest count','Table'], fn ($r) => [$r->reference,$r->starts_at?->toIso8601String(),$r->status,$r->guest_name,$r->guest_count,$r->table?->table_number]],
+                'reservations' => [Reservation::with(['table:id,table_number', 'tables:id,table_number'])->whereBetween('starts_at', [$from,$to])->orderBy('starts_at'), ['Reference','Starts at','Status','Guest','Guest count','Tables'], fn ($r) => [$r->reference,$r->starts_at?->toIso8601String(),$r->status,$r->guest_name,$r->guest_count,$r->tables->pluck('table_number')->join(', ') ?: $r->table?->table_number]],
                 'deliveries' => [Delivery::with(['order:id,order_number,created_at','rider:id,name'])->whereHas('order', fn ($q) => $q->whereBetween('created_at', [$from,$to]))->orderBy('created_at'), ['Order','Created at','Status','Rider','Delivered at','Failure reason'], fn ($r) => [$r->order?->order_number,$r->created_at?->toIso8601String(),$r->status,$r->rider?->name,$r->delivered_at?->toIso8601String(),$r->failure_reason]],
             ];
             [$query,$headers,$row] = $sets[$dataset];

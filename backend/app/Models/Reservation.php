@@ -20,6 +20,11 @@ class Reservation extends Model
         return $this->belongsTo(RestaurantTable::class);
     }
 
+    public function tables()
+    {
+        return $this->belongsToMany(RestaurantTable::class, 'reservation_tables', 'reservation_id', 'table_id')->withTimestamps();
+    }
+
     public function floor()
     {
         return $this->belongsTo(RestaurantFloor::class);

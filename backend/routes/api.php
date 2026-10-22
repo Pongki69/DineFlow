@@ -112,11 +112,16 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/reservation-policy', [ReservationController::class, 'showPolicy'])->middleware('permission:settings.manage');
         Route::middleware('permission:floorplan.manage')->prefix('admin/floor-plan')->group(function (): void {
             Route::get('/floors', [ReservationController::class, 'adminFloors']);
+            Route::get('/presets', [ReservationController::class, 'presets']);
+            Route::post('/presets', [ReservationController::class, 'storePreset']);
+            Route::delete('/presets/{preset}', [ReservationController::class, 'deletePreset']);
             Route::post('/floors', [ReservationController::class, 'createFloor']);
+            Route::delete('/floors/{floor}', [ReservationController::class, 'deleteDraftFloor']);
             Route::post('/floors/{floor}/tables', [ReservationController::class, 'createFloorTable']);
             Route::put('/tables/{table}', [ReservationController::class, 'updateFloorTable']);
             Route::put('/floors/{floor}/layout', [ReservationController::class, 'saveLayout']);
             Route::post('/floors/{floor}/publish', [ReservationController::class, 'publish']);
+            Route::delete('/objects/{object}', [ReservationController::class, 'deleteLayoutObject']);
         });
 
         Route::get('/service/tables', [DiningController::class, 'tables'])->middleware('permission:service.tables.view');

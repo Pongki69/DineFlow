@@ -208,7 +208,7 @@ export function OperationsDashboard({ user }) {
                         <td>{dateValue(item.starts_at)}</td>
                         <td>{item.guest_name}</td>
                         <td>{item.guest_count}</td>
-                        <td>{item.table?.table_number || "Unassigned"}</td>
+                        <td>{item.tables?.length ? item.tables.map((table) => table.table_number).join(", ") : item.table?.table_number || "Unassigned"}</td>
                         <td>{label(item.status)}</td>
                       </tr>
                     ))}
@@ -796,7 +796,7 @@ export function ReservationCalendar({ user }) {
                     </strong>
                     <small>
                       {item.reference} · {item.guest_count} guests · Table{" "}
-                      {item.table?.table_number || "unassigned"} ·{" "}
+                      {item.tables?.length ? item.tables.map((table) => table.table_number).join(", ") : item.table?.table_number || "unassigned"} ·{" "}
                       {label(item.status)}
                     </small>
                     {item.guest_phone && <small>{item.guest_phone}</small>}

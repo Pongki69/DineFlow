@@ -1606,6 +1606,19 @@ a {
   background: var(--surface);
   box-shadow: 0 30px 90px #12372340;
 }
+.action-dialog[open] { animation: action-dialog-enter .18s ease-out both; }
+.action-dialog[open]::backdrop { animation: action-backdrop-enter .18s ease-out both; }
+.action-dialog-description { margin: -12px 0 22px; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.action-dialog .dialog-confirm--danger { background: #a83d38; border-color: #a83d38; color: #fff; }
+.action-dialog .dialog-confirm--danger:hover { background: #8e302c; }
+@keyframes action-dialog-enter {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes action-backdrop-enter { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .action-dialog[open], .action-dialog[open]::backdrop { animation-duration: .01ms; }
+}
 .action-dialog h2 {
   font-size: 21px;
   font-weight: 600;
