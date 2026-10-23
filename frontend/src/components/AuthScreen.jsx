@@ -1,13 +1,20 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
   Eye,
   EyeOff,
+  KeyRound,
   UtensilsCrossed,
 } from "lucide-react";
 import { api, csrf } from "../api";
 import { Button, Feedback, Field } from "./ui";
+import {
+  getSavedLogin,
+  offerToSaveLogin,
+  supportsSavedLogins,
+} from "../browserCredentials";
+import "./authPreferences.css";
 
 const titles = {
   login: "Welcome back.",
@@ -25,6 +32,9 @@ const descriptions = {
 };
 
 export function AuthScreen({ onSignedIn }) {
+  const formRef = useRef(null);
+  const [savedLoginsAvailable] = useState(supportsSavedLogins);
+  const [selectingLogin, setSelectingLogin] = useState(false);
   const params = new URLSearchParams(window.location.search);
   const [mode, setMode] = useState(params.has("token") ? "reset" : "login");
   const [error, setError] = useState("");
@@ -41,11 +51,13 @@ export function AuthScreen({ onSignedIn }) {
   }
   async function submit(event) {
     event.preventDefault();
+    if (busy || selectingLogin) return;
     setError("");
     setErrors({});
     setMessage("");
     setBusy(true);
     const values = Object.fromEntries(new FormData(event.currentTarget));
+    if (mode === "login") values.remember = values.remember === "on";
     try {
       await csrf();
       if (mode === "forgot") {
@@ -68,6 +80,11 @@ export function AuthScreen({ onSignedIn }) {
           method: "POST",
           body: JSON.stringify(values),
         });
+        void offerToSaveLogin({
+          email: values.email,
+          password: values.password,
+          name: result.user.name,
+        });
         onSignedIn(result.user);
       }
     } catch (failure) {
@@ -76,6 +93,18 @@ export function AuthScreen({ onSignedIn }) {
     } finally {
       setBusy(false);
     }
+  }
+  async function useSavedLogin() {
+    setSelectingLogin(true);
+    const credential = await getSavedLogin();
+    setSelectingLogin(false);
+    if (!credential || !formRef.current) return;
+    formRef.current.elements.namedItem("email").value = credential.id;
+    formRef.current.elements.namedItem("password").value = credential.password;
+    setError("");
+    setErrors({});
+    setMessage("Saved login filled. Select Sign in to continue.");
+    formRef.current.querySelector('button[type="submit"]')?.focus();
   }
   const action = {
     login: "Sign in",
@@ -133,7 +162,10 @@ export function AuthScreen({ onSignedIn }) {
           <h1>{titles[mode]}</h1>
           <p className="auth-intro">{descriptions[mode]}</p>
           <form
+            ref={formRef}
             key={mode}
+            autoComplete="on"
+            aria-label={mode === "login" ? "Sign in" : "Account access"}
             onSubmit={submit}
             className="auth-form"
             aria-busy={busy}
@@ -201,20 +233,57 @@ export function AuthScreen({ onSignedIn }) {
               />
             )}
             {mode === "login" && (
-              <button
-                className="text-button recovery-link"
-                type="button"
-                onClick={() => changeMode("forgot")}
-              >
-                Forgot password?
-              </button>
+              <div className="auth-login-preferences">
+                <label className="auth-remember-choice">
+                  <input
+                    type="checkbox"
+                    name="remember"
+                    aria-describedby="remember-device-hint"
+                  />
+                  Remember me
+                </label>
+                <button
+                  className="text-button"
+                  type="button"
+                  disabled={busy || selectingLogin}
+                  onClick={() => changeMode("forgot")}
+                >
+                  Forgot password?
+                </button>
+                <small id="remember-device-hint">
+                  Stay signed in for up to 30 days on this browser. Use on your
+                  own device.
+                </small>
+              </div>
             )}
             {error && <Feedback>{error}</Feedback>}
             {message && <Feedback tone="success">{message}</Feedback>}
-            <Button type="submit" busy={busy} className="auth-submit">
+            <Button
+              type="submit"
+              busy={busy}
+              disabled={selectingLogin}
+              className="auth-submit"
+            >
               {busy ? "Please wait…" : action}
               {!busy && <ArrowRight size={18} aria-hidden="true" />}
             </Button>
+            {mode === "login" && savedLoginsAvailable && (
+              <Button
+                variant="secondary"
+                busy={selectingLogin}
+                disabled={busy}
+                onClick={useSavedLogin}
+              >
+                <KeyRound size={18} aria-hidden="true" />
+                Use a saved login
+              </Button>
+            )}
+            {mode === "login" && (
+              <p className="auth-password-manager-hint">
+                Your browser’s password manager can save and autofill your
+                login. Manage saved passwords in your browser settings.
+              </p>
+            )}
           </form>
           <div className="auth-switch">
             {mode === "login" ? (
@@ -222,6 +291,7 @@ export function AuthScreen({ onSignedIn }) {
                 <span>New to the table?</span>
                 <button
                   className="text-button"
+                  disabled={busy || selectingLogin}
                   onClick={() => changeMode("register")}
                 >
                   Create customer account
@@ -230,6 +300,7 @@ export function AuthScreen({ onSignedIn }) {
             ) : (
               <button
                 className="text-button"
+                disabled={busy || selectingLogin}
                 onClick={() => changeMode("login")}
               >
                 Back to sign in

@@ -1,0 +1,38 @@
+.auth-login-preferences {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.auth-remember-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.auth-remember-choice input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.auth-login-preferences small,
+.auth-password-manager-hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.auth-login-preferences small {
+  flex-basis: 100%;
+}
+
+.auth-password-manager-hint {
+  margin: 0;
+}

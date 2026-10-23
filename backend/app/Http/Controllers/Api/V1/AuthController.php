@@ -13,6 +13,7 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -48,7 +49,12 @@ class AuthController extends Controller
             return response()->json(['message' => 'The provided credentials are incorrect.'], 422);
         }
 
-        Auth::guard('web')->login($user, $request->boolean('remember'));
+        $guard = Auth::guard('web');
+        $guard->setRememberDuration(60 * 24 * 30);
+        if (! $request->boolean('remember')) {
+            Cookie::queue(Cookie::forget($guard->getRecallerName()));
+        }
+        $guard->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
         return response()->json(['user' => $this->userPayload($user)]);
