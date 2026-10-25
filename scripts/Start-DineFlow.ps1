@@ -49,7 +49,7 @@ try {
     $node = (Get-Command node.exe -ErrorAction Stop).Source
     $env:PATH = "$(Split-Path $php -Parent);$env:PATH"
     if (Test-Path (Join-Path $backend 'php.ini')) { $env:PHPRC = Join-Path $backend 'php.ini' }
-    & $php -r 'exit(extension_loaded("gd") ? 0 : 1);'
+    & $php (Join-Path $PSScriptRoot 'Check-DeliveryRequirements.php')
     if ($LASTEXITCODE -ne 0) { throw 'PHP GD is required for delivery photos. Enable extension=gd in your PHP configuration, then restart this launcher.' }
     $config = Join-Path $backend '.env'
     $apiUrl = [uri](Read-Setting $config 'APP_URL' 'http://localhost:8081')
