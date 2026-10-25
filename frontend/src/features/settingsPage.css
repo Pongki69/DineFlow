@@ -1,0 +1,221 @@
+.app-content:has(> .workspace-settings) {
+  max-width: none;
+  width: 100%;
+  padding-inline: clamp(16px, 1.5vw, 28px);
+}
+.app-content > .workspace-settings {
+  max-width: none;
+  margin-inline: 0;
+  --settings-body: var(--text-body);
+  --settings-meta: var(--text-sm);
+  font-size: var(--settings-body);
+}
+.workspace-settings > .page-heading {
+  margin-bottom: 28px;
+}
+.workspace-settings .workspace-settings-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 360px);
+  gap: 24px;
+}
+.workspace-settings .workspace-card {
+  border-radius: 16px;
+  padding: 26px;
+  margin-bottom: 24px;
+}
+.workspace-settings .workspace-card h2 {
+  font-size: clamp(19px, 1.1rem + 0.2vw, 23px);
+  line-height: 1.4;
+  color: var(--ink);
+  gap: 10px;
+}
+.workspace-settings .workspace-card h2 > svg {
+  color: var(--primary, #245440);
+}
+.workspace-settings .workspace-card p {
+  font-size: var(--settings-meta);
+  line-height: 1.7;
+  margin: 8px 0 18px;
+  color: var(--muted);
+}
+.workspace-settings .workspace-card-heading {
+  margin-bottom: 24px;
+}
+.workspace-settings .workspace-card-heading p {
+  margin: 6px 0 0;
+}
+.workspace-settings .workspace-start-page {
+  font-size: var(--settings-meta);
+  max-width: 560px;
+  margin: 0 0 24px;
+  gap: 8px;
+}
+.workspace-settings
+  :is(
+    .workspace-start-page select,
+    .workspace-form input,
+    .workspace-form select
+  ) {
+  font: inherit;
+  font-size: var(--settings-body);
+  min-height: 48px;
+  border-color: #c0ccc5;
+  border-radius: 10px;
+  color: var(--ink);
+}
+.workspace-settings .workspace-toggle {
+  min-height: 88px;
+  gap: 24px;
+  padding: 18px 0;
+}
+.workspace-settings .workspace-toggle strong {
+  font-size: var(--settings-body);
+  font-weight: 600;
+}
+.workspace-settings :is(.workspace-toggle small, .workspace-start-page small) {
+  font-size: var(--settings-meta);
+  color: var(--muted);
+  margin-top: 4px;
+}
+.app-content .workspace-settings .workspace-toggle input[type="checkbox"] {
+  appearance: none;
+  width: 42px;
+  height: 24px;
+  border: 1px solid #b8c3bd;
+  border-radius: 20px;
+  background: #e5eae6;
+  position: relative;
+  margin: 0;
+  cursor: pointer;
+}
+.app-content
+  .workspace-settings
+  .workspace-toggle
+  input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  top: 3px;
+  left: 3px;
+  box-shadow: 0 1px 3px #23352b30;
+}
+.app-content
+  .workspace-settings
+  .workspace-toggle
+  input[type="checkbox"]:checked {
+  background: var(--primary, #245440);
+  border-color: var(--primary, #245440);
+}
+.app-content
+  .workspace-settings
+  .workspace-toggle
+  input[type="checkbox"]:checked::before {
+  left: 21px;
+}
+.workspace-settings .workspace-form-actions {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin-top: 16px;
+}
+.app-content .workspace-settings .ui-button--primary {
+  background: var(--primary, #245440);
+  border-color: var(--primary, #245440);
+  color: #fff;
+  min-height: 44px;
+  padding-inline: 20px;
+}
+.app-content .workspace-settings .ui-button--primary:hover {
+  background: var(--primary-hover, #193f30);
+  border-color: var(--primary-hover, #193f30);
+}
+.workspace-account-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 16px;
+  min-width: 0;
+}
+.workspace-account-avatar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #edf2e8;
+  color: var(--primary, #245440);
+  font-size: 22px;
+}
+.workspace-account-identity > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.workspace-account-identity strong {
+  font-size: var(--settings-body);
+  font-weight: 650;
+}
+.workspace-settings .workspace-account-identity p {
+  margin: 4px 0 0;
+}
+.workspace-settings .workspace-role {
+  font-size: var(--text-xs);
+  margin-bottom: 8px;
+}
+.workspace-settings .workspace-location-note {
+  margin: 20px 0 0;
+  padding: 16px;
+  background: #f5f7f3;
+  border-radius: 10px;
+}
+.workspace-settings .workspace-form {
+  gap: 22px;
+}
+.workspace-settings .workspace-form label {
+  font-size: var(--settings-meta);
+  gap: 10px;
+}
+.workspace-settings .workspace-security {
+  margin-top: 0;
+  border-radius: 16px;
+  padding: 12px 26px;
+}
+.workspace-settings .workspace-security > summary {
+  font-size: var(--settings-body);
+  min-height: 54px;
+}
+@media (max-width: 1000px) {
+  .workspace-settings .workspace-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+@media (max-width: 600px) {
+  .workspace-settings .workspace-card {
+    padding: 20px;
+  }
+  .workspace-settings .workspace-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace-settings .workspace-toggle {
+    gap: 16px;
+  }
+  .workspace-settings .workspace-security {
+    padding-inline: 20px;
+  }
+  .workspace-settings .workspace-form-actions .ui-button {
+    width: 100%;
+  }
+}
+@media (forced-colors: active) {
+  .app-content .workspace-settings .workspace-toggle input[type="checkbox"] {
+    appearance: auto;
+  }
+  .app-content
+    .workspace-settings
+    .workspace-toggle
+    input[type="checkbox"]::before {
+    display: none;
+  }
+}

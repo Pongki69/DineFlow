@@ -1,0 +1,18 @@
+.rider-vehicle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #dce6d5;
+  border-radius: 8px;
+  background: #f1f6ec;
+  color: #36533d;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  margin-block: 6px;
+}
+.rider-vehicle-badge svg {
+  flex-shrink: 0;
+}

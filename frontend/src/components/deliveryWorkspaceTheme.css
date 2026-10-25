@@ -1,0 +1,113 @@
+/* One palette for dashboard, offers, delivery work, records, reviews and settings. */
+.app-shell[data-workspace="delivery"] {
+  color: var(--ink);
+  background: var(--canvas);
+}
+.app-shell[data-workspace="delivery"] :is(.app-sidebar, .app-topbar) {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.app-shell[data-workspace="delivery"]
+  .app-content
+  :is(
+    .workspace-card,
+    .rider-metrics article,
+    .rider-dashboard-links,
+    .rider-next-delivery,
+    .rider-history-panel,
+    .rider-route-planner,
+    .rider-delivery-card,
+    .rider-dispatch-panel,
+    .review-profile-header,
+    .review-summary-card,
+    .review-card
+  ) {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.app-shell[data-workspace="delivery"] .rider-content .dispatch-offer-card {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.app-shell[data-workspace="delivery"] .rider-content .dispatch-countdown {
+  color: var(--ink);
+  background: var(--neutral-soft);
+}
+.app-shell[data-workspace="delivery"] .rider-content .offers-empty-icon {
+  color: var(--muted);
+  background: var(--neutral-soft);
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  .offers-empty-paused
+  .offers-empty-icon {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  .rider-route-stop-select:hover {
+  background: var(--neutral-soft);
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  .rider-route-stop-select[aria-pressed="true"] {
+  background: var(--primary-soft);
+  border-color: var(--primary-border);
+}
+.app-shell[data-workspace="delivery"]
+  .rider-route-stop-select[aria-pressed="true"]
+  .rider-route-stop-number {
+  color: #fff;
+  background: var(--primary);
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  .rider-route-return-control {
+  color: var(--ink);
+  background: var(--neutral-soft);
+  border-color: var(--border);
+}
+.app-shell[data-workspace="delivery"] .rider-route-return-control label {
+  color: var(--ink);
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  :is(.rider-card-stop-icon.pickup, .rider-next-place-icon.pickup) {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  .rider-workspace
+  .rider-actions
+  .tracking-on {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary-border);
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  :is(.rider-page-link, .rider-card-navigation, .rider-profile-link) {
+  color: var(--primary);
+}
+.app-shell[data-workspace="delivery"] .rider-content .ui-button--secondary {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--border);
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  .ui-button--secondary:hover {
+  background: var(--neutral-soft);
+  border-color: #9eaea3;
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  .rider-workspace
+  .rider-actions
+  .danger-button {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: #edc7c1;
+}

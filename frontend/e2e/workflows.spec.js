@@ -44,7 +44,8 @@ test("sign-in is accessible and customers can place a pickup order and edit thei
   await expect(
     page.getByText("Demo Noodle Bowl", { exact: false }).first(),
   ).toBeVisible();
-  await navigate(page, "My account");
+  await navigate(page, "Settings");
+  await page.locator(".workspace-security > summary").click();
   await page
     .getByLabel("Name", { exact: true })
     .fill("Updated Portfolio Customer");

@@ -8,9 +8,32 @@ import { AuthScreen } from "./components/AuthScreen";
 import { ConfirmProvider } from "./components/ConfirmProvider";
 import { EmptyState, Feedback, Skeleton } from "./components/ui";
 import { MenuBrowser } from "./features/Menu";
+import { RiderDispatchPanel } from "./components/RiderDispatchPanel";
+import "./features/workspaceSettings.css";
+const WorkspaceSettings = screen(
+  () => import("./features/WorkspaceSettings"),
+  "WorkspaceSettings",
+);
+const RiderOverview = screen(
+  () => import("./features/RiderWorkspace"),
+  "RiderOverview",
+);
+const RiderHistory = screen(
+  () => import("./features/RiderWorkspace"),
+  "RiderHistory",
+);
+const RiderOrderDetails = screen(
+  () => import("./features/RiderOrderDetails"),
+  "RiderOrderDetails",
+);
+const RiderReviews = screen(
+  () => import("./features/RiderReviews"),
+  "RiderReviews",
+);
 
-const screen = (loader, name) =>
-  lazy(() => loader().then((module) => ({ default: module[name] })));
+function screen(loader, name) {
+  return lazy(() => loader().then((module) => ({ default: module[name] })));
+}
 const OrdersView = screen(() => import("./features/Orders"), "OrdersView");
 const MenuAdmin = screen(() => import("./features/CatalogAdmin"), "MenuAdmin");
 const StaffAccounts = screen(
@@ -51,9 +74,9 @@ const DispatchDashboard = screen(
   () => import("./DeliveryOperations"),
   "DispatchDashboard",
 );
-const RiderDashboard = screen(
+const RiderDeliveries = screen(
   () => import("./DeliveryOperations"),
-  "RiderDashboard",
+  "RiderDeliveries",
 );
 const CustomerDeliveryTracking = screen(
   () => import("./DeliveryOperations"),
@@ -117,7 +140,8 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
   const location = useLocation();
   const screens = {
     "/account": <Account user={user} onUpdated={onUserUpdated} />,
-    "/menu": <MenuBrowser />,
+    "/settings": <WorkspaceSettings user={user} onUpdated={onUserUpdated} />,
+    "/menu": <MenuBrowser key={user.id} user={user} />,
     "/my-orders": <OrdersView />,
     "/orders": <OrdersView staff user={user} />,
     "/kitchen": <OrdersView kitchen staff user={user} />,
@@ -135,7 +159,11 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
     "/payments": <PaymentDashboard user={user} />,
     "/admin/delivery": <DeliverySettings />,
     "/admin/deliveries": <DispatchDashboard />,
-    "/rider": <RiderDashboard />,
+    "/rider": <RiderOverview user={user} />,
+    "/rider/deliveries": <RiderDeliveries />,
+    "/rider/history": <RiderHistory />,
+    "/rider/reviews": <RiderReviews own />,
+    "/rider/offers": null,
     "/dashboard": <OperationsDashboard user={user} />,
     "/reports": <ReportsDashboard user={user} />,
     "/cashier/summary": <CashierSummary />,
@@ -148,12 +176,42 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
   return (
     <AppShell user={user} onSignOut={onSignOut}>
       {signOutError && <Feedback>{signOutError}</Feedback>}
+      {user.roles.includes("rider") &&
+        user.permissions.includes("deliveries.assigned") && (
+          <div className="rider-availability">
+            {location.pathname === "/rider/offers" && (
+              <header className="page-heading">
+                <div>
+                  <span className="eyebrow">RIDER WORKSPACE</span>
+                  <h1>Delivery offers</h1>
+                </div>
+              </header>
+            )}
+            <RiderDispatchPanel
+              headerOnly
+              compact={location.pathname !== "/rider/offers"}
+              onAccepted={() =>
+                window.dispatchEvent(new Event("rider-deliveries-updated"))
+              }
+            />
+          </div>
+        )}
       <ScreenBoundary key={location.pathname}>
         <Suspense fallback={<Skeleton label="Loading your page" />}>
           <Routes>
             <Route
               path="/"
-              element={<Navigate to={links[0]?.[2] || "/account"} replace />}
+              element={
+                <Navigate
+                  to={
+                    user.preferences?.home_page === "/account" ||
+                    links.some(([, , to]) => to === user.preferences?.home_page)
+                      ? user.preferences.home_page
+                      : links[0]?.[2] || "/account"
+                  }
+                  replace
+                />
+              }
             />
             {links
               .filter(([, , to]) => to !== "/account")
@@ -163,8 +221,16 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
             <Route path="/account" element={screens["/account"]} />
             <Route
               path="/delivery/:deliveryId/tracking"
-              element={<CustomerDeliveryTracking />}
+              element={<CustomerDeliveryTracking user={user} />}
             />
+            {user.roles.includes("rider") &&
+              user.permissions.includes("deliveries.assigned") && (
+                <Route
+                  path="/rider/deliveries/:deliveryId"
+                  element={<RiderOrderDetails />}
+                />
+              )}
+            <Route path="/riders/:riderId" element={<RiderReviews />} />
             <Route path="/payment-return" element={<PaymentReturn />} />
             <Route
               path="/payments/:paymentId/receipt"

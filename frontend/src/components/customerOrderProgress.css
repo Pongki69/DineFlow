@@ -1,0 +1,566 @@
+.customer-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+  align-items: stretch;
+}
+.customer-progress-grid > .customer-progress-card {
+  display: flex;
+  flex-direction: column;
+}
+.customer-progress-grid .customer-progress-disclosure {
+  margin-top: auto;
+}
+.customer-progress-grid .customer-progress-current:last-of-type {
+  margin-bottom: 12px;
+}
+.customer-progress-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: white;
+}
+.customer-progress-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #28523d;
+}
+.customer-progress-card h2 {
+  margin: 0;
+  font-size: var(--text-body);
+}
+.customer-progress-current {
+  margin: 12px 0 6px;
+  font-weight: 650;
+  font-size: var(--text-body);
+  color: #233f2e;
+  line-height: 1.6;
+}
+.customer-progress-note {
+  margin: 6px 0 10px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+.customer-progress-steps {
+  display: grid;
+  gap: 0;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.customer-progress-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+  padding-bottom: 13px;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--muted);
+}
+.customer-progress-steps li:last-child {
+  padding-bottom: 0;
+}
+.customer-progress-steps li::before {
+  position: absolute;
+  content: "";
+  top: 25px;
+  bottom: 1px;
+  left: 12px;
+  width: 1px;
+  background: #c7d3c4;
+}
+.customer-progress-steps li:last-child::before {
+  display: none;
+}
+.customer-progress-steps li[aria-current="step"] {
+  color: #234d37;
+  font-weight: 650;
+}
+.customer-progress-dot {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  border: 1px solid #9bad9b;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+.reached .customer-progress-dot {
+  background: var(--primary, #245440);
+  color: white;
+  border-color: var(--primary, #245440);
+}
+.customer-progress-steps small {
+  display: block;
+  font-size: var(--text-caption);
+  font-weight: 400;
+  color: var(--muted);
+}
+.customer-order-timeline {
+  margin: 14px 0;
+}
+.customer-order-timeline ol {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.customer-order-timeline li {
+  display: grid;
+  gap: 5px;
+  padding-left: 14px;
+  border-left: 3px solid #adc3a8;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+.customer-order-timeline time,
+.customer-event-source {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+.customer-tracking-attention {
+  padding: 14px;
+  border: 1px solid #e2c795;
+  border-radius: 10px;
+  color: #614719;
+  background: #fff9ed;
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+.customer-tracking-map {
+  margin: 16px 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: white;
+}
+.customer-tracking-map .tracking-map {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  height: 480px;
+}
+.customer-tracking-map h2 {
+  padding: 20px 20px 0;
+  font-size: 19px;
+}
+.customer-tracking-map .customer-progress-note {
+  padding: 0 20px;
+}
+.tracking-map-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  color: #415d4a;
+  font-size: var(--text-xs);
+}
+.customer-location-pin {
+  border: 0;
+  background: transparent;
+}
+.customer-location-pin span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #365e4b;
+  color: white;
+  font: 700 12px/1 sans-serif;
+  box-shadow: 0 2px 6px #10291f60;
+}
+.customer-location-pin.destination span {
+  background: #795e27;
+}
+.customer-tracking .map-help a {
+  text-decoration: underline;
+}
+.customer-order-track-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #edf3e9;
+  color: #245440;
+  font-size: var(--text-sm);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.customer-tracking {
+  max-width: 1100px;
+  margin-inline: auto;
+}
+.customer-tracking > h1 {
+  font-size: clamp(22px, 2.5vw, 30px);
+  overflow-wrap: anywhere;
+  margin-bottom: 14px;
+}
+.customer-tracking .track-status {
+  padding: 10px 14px;
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+.customer-progress-disclosure {
+  margin-top: 12px;
+  border-top: 1px solid #e5eadf;
+  padding-top: 4px;
+}
+.customer-progress-disclosure summary,
+.customer-order-timeline summary,
+.customer-completed-map summary {
+  cursor: pointer;
+  color: #2c503b;
+  min-height: 44px;
+  align-content: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.7;
+}
+.customer-progress-disclosure summary::marker,
+.customer-order-timeline summary::marker,
+.customer-completed-map summary::marker {
+  color: #567052;
+}
+.customer-progress-disclosure summary:focus-visible,
+.customer-order-timeline summary:focus-visible,
+.customer-completed-map summary:focus-visible {
+  outline: 2px solid var(--primary, #245440);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.customer-order-timeline {
+  padding-block: 8px;
+}
+.customer-order-timeline summary span,
+.customer-completed-map summary span {
+  font-size: var(--text-body);
+}
+.customer-order-timeline summary small,
+.customer-completed-map summary small {
+  display: inline-block;
+  margin-left: 12px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+.customer-order-timeline[open] {
+  padding-bottom: 18px;
+}
+.customer-order-timeline[open] ol {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 14px;
+  border-top: 1px solid #e5eadf;
+  margin-top: 8px;
+}
+.customer-completed-map {
+  margin: 14px 0;
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+}
+.customer-completed-addresses {
+  border-top: 1px solid #e5eadf;
+  padding-top: 12px;
+}
+.customer-completed-addresses p {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.7;
+}
+.customer-completed-addresses strong {
+  display: block;
+  color: var(--ink);
+}
+.customer-completed-addresses .tracking-map {
+  height: 480px;
+  margin: 12px 0;
+}
+.customer-tracking > .rider-dispatch-panel {
+  margin-block: 14px;
+  padding: 18px;
+}
+.customer-tracking > .rider-dispatch-panel h2 {
+  font-size: var(--text-body);
+  margin-top: 0;
+}
+.delivery-arrival-times {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+.customer-tracking-map > .delivery-arrival-times {
+  margin-inline: 20px;
+}
+.delivery-arrival-times > div {
+  border: 1px solid #e1e7db;
+  border-radius: 10px;
+  background: #f5f8f1;
+  padding: 12px 14px;
+}
+.delivery-arrival-times dt {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.delivery-arrival-times dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.delivery-arrival-times dd span {
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+.delivery-path-key {
+  padding: 0 2px 8px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.8;
+}
+.customer-tracking-map > .delivery-path-key {
+  padding-inline: 20px;
+}
+.delivery-path-key p {
+  margin: 7px 0;
+}
+.delivery-path-swatch {
+  display: inline-block;
+  vertical-align: middle;
+  width: 26px;
+  border-top: 4px solid #286648;
+  margin-right: 8px;
+}
+.delivery-path-swatch.suggested {
+  border-top: 3px dashed #795e27;
+}
+.customer-tracking .leaflet-tooltip {
+  border-radius: 7px;
+  color: var(--ink);
+  border-color: #d5dfcf;
+  padding: 7px 9px;
+  font-size: var(--text-xs);
+  box-shadow: 0 2px 8px #263e2a20;
+}
+.customer-tracking .tracking-disclosure-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  list-style: none;
+  padding-block: 10px;
+}
+.customer-tracking .tracking-disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+.customer-tracking .tracking-disclosure-action {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.customer-tracking .tracking-disclosure-action small {
+  margin: 0;
+  display: inline;
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+.tracking-disclosure-action svg {
+  transition: transform 0.15s;
+}
+details[open] > .tracking-disclosure-summary .tracking-disclosure-action svg {
+  transform: rotate(180deg);
+}
+.customer-tracking .track-status {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  gap: 14px;
+  justify-content: flex-start;
+  color: var(--muted);
+}
+.tracking-update-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: #31533e;
+}
+.tracking-update-chip > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3a7750;
+}
+.tracking-address-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin: 8px 0 16px;
+}
+.tracking-address-pair p {
+  margin: 0;
+}
+.delivery-route-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.delivery-route-chips p {
+  border: 1px solid #e0e7dc;
+  background: #f4f7ef;
+  border-radius: 30px;
+  padding: 4px 10px;
+  margin: 4px 0;
+  color: #3e5b45;
+}
+.delivery-route-info {
+  margin-top: 5px;
+}
+.delivery-route-info summary {
+  min-height: 36px;
+  cursor: pointer;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.delivery-route-info p {
+  max-width: 620px;
+}
+.customer-tracking .delivery-arrival-times {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.customer-tracking .delivery-arrival-times > div {
+  padding: 10px 12px;
+}
+.customer-tracking .delivery-arrival-times dt {
+  font-size: var(--text-caption);
+}
+.tracking-card-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+}
+.tracking-card-actions label {
+  margin: 0;
+  max-width: 180px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.tracking-card-actions select {
+  margin-top: 5px;
+  min-height: 44px;
+}
+.tracking-card-actions button,
+.tracking-card-heading button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 9px;
+  white-space: nowrap;
+}
+.tracking-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.tracking-card-heading h2 {
+  margin: 0;
+  font-size: var(--text-body);
+}
+.customer-tracking > .delivery-proof {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+.customer-tracking > a[href="/my-orders"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  margin-top: 8px;
+  border: 1px solid #cbd9c5;
+  border-radius: 9px;
+  color: var(--primary, #245440);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+@media (max-width: 500px) {
+  .tracking-address-pair {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .tracking-card-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tracking-card-heading button {
+    align-self: flex-end;
+  }
+  .tracking-card-actions {
+    flex-wrap: wrap;
+  }
+  .customer-tracking .delivery-arrival-times > div {
+    padding: 8px;
+  }
+  .customer-tracking .delivery-arrival-times dd {
+    font-size: var(--text-sm);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tracking-disclosure-action svg {
+    transition: none;
+  }
+}
+@media (max-width: 699px) {
+  .customer-progress-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .customer-progress-card {
+    padding: 18px;
+  }
+  .customer-tracking-map .tracking-map {
+    height: 360px;
+  }
+  .customer-completed-addresses .tracking-map {
+    height: 360px;
+  }
+  .customer-order-timeline[open] ol {
+    grid-template-columns: 1fr;
+  }
+  .customer-order-timeline summary small,
+  .customer-completed-map summary small {
+    display: block;
+    margin-left: 18px;
+  }
+}
+@media (max-width: 420px) {
+  .delivery-arrival-times {
+    grid-template-columns: 1fr;
+  }
+}

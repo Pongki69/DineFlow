@@ -14,6 +14,7 @@ import {
   MapPin,
   Menu,
   Settings2,
+  Star,
   ShoppingBag,
   Table2,
   Truck,
@@ -23,7 +24,14 @@ import {
   X,
 } from "lucide-react";
 import { api } from "../api";
-import { visibleNavigation } from "../navigation";
+import "../features/riderWorkspace.css";
+import "./workspaceStructure.css";
+import "./deliveryWorkspaceTheme.css";
+import {
+  visibleNavigation,
+  navigationGroup,
+  navigationContext,
+} from "../navigation";
 import { Notifications } from "./Notifications";
 import { brandTheme } from "./brandTheme";
 
@@ -42,27 +50,26 @@ const icons = {
   "/kitchen": ChefHat,
   "/service": Table2,
   "/admin/deliveries": Truck,
-  "/rider": Truck,
+  "/rider": LayoutDashboard,
+  "/rider/deliveries": Truck,
+  "/rider/offers": MapPin,
+  "/rider/history": FileClock,
+  "/rider/reviews": Star,
+  "/settings": Settings2,
   "/payments": CreditCard,
   "/cashier/summary": CreditCard,
   "/reports": ChartNoAxesCombined,
   "/admin/users": UsersRound,
   "/admin/audit": FileClock,
 };
-function groupFor(path, customer) {
-  return customer
-    ? "Your experience"
-    : path.includes("settings") ||
-        ["/admin/delivery", "/admin/users", "/admin/audit"].includes(path)
-      ? "Management"
-      : "Restaurant workspace";
-}
-
 function Navigation({ user, branding, onNavigate, onSignOut }) {
+  const location = useLocation();
   const links = visibleNavigation(user.permissions, user.roles);
+  const context = navigationContext(location.pathname, links);
   const customer = user.roles.includes("customer");
+  const rider = user.roles.includes("rider");
   const groups = [
-    ...new Set(links.map(([, , path]) => groupFor(path, customer))),
+    ...new Set(links.map(([, , path]) => navigationGroup(path, user.roles))),
   ];
   return (
     <>
@@ -79,20 +86,36 @@ function Navigation({ user, branding, onNavigate, onSignOut }) {
           {branding.name}
           <b className="wordmark-dot">.</b>
           <small>
-            {customer ? "YOUR NEXT GOOD MOMENT" : "RESTAURANT WORKSPACE"}
+            {customer
+              ? "YOUR NEXT GOOD MOMENT"
+              : rider
+                ? "DELIVERY WORKSPACE"
+                : "RESTAURANT WORKSPACE"}
           </small>
         </span>
       </Link>
       <nav aria-label="Main navigation">
         {groups.map((group) => (
-          <div className="nav-group" key={group}>
+          <section className="nav-group" key={group} aria-label={group}>
             <span className="nav-group-label">{group}</span>
             {links
-              .filter(([, , path]) => groupFor(path, customer) === group)
+              .filter(
+                ([, , path]) => navigationGroup(path, user.roles) === group,
+              )
               .map(([label, , path]) => {
                 const Icon = icons[path] || Settings2;
                 return (
-                  <NavLink key={path} to={path} onClick={onNavigate}>
+                  <NavLink
+                    key={path}
+                    to={path}
+                    end
+                    onClick={onNavigate}
+                    className={({ isActive }) =>
+                      isActive || context.parent?.path === path
+                        ? "active"
+                        : undefined
+                    }
+                  >
                     <Icon size={19} strokeWidth={1.7} aria-hidden="true" />
                     <span>{label}</span>
                     <ChevronRight
@@ -103,7 +126,7 @@ function Navigation({ user, branding, onNavigate, onSignOut }) {
                   </NavLink>
                 );
               })}
-          </div>
+          </section>
         ))}
       </nav>
       <div className="sidebar-footer">
@@ -143,8 +166,8 @@ export function AppShell({ user, onSignOut, children }) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const links = visibleNavigation(user.permissions, user.roles);
-  const current =
-    links.find(([, , to]) => to === location.pathname)?.[0] || "Your workspace";
+  const context = navigationContext(location.pathname, links);
+  const current = context.title;
   useEffect(() => {
     api("/restaurant/branding")
       .then((result) => setBranding(result.data))
@@ -183,7 +206,26 @@ export function AppShell({ user, onSignOut, children }) {
     return () => media.removeEventListener("change", resize);
   }, []);
   return (
-    <div className="app-shell" style={brandTheme(branding.brand_color)}>
+    <div
+      className="app-shell"
+      data-page={
+        location.pathname === "/rider"
+          ? "rider-dashboard"
+          : location.pathname === "/rider/deliveries"
+            ? "rider-deliveries"
+            : undefined
+      }
+      data-workspace={
+        user.roles.includes("rider")
+          ? "delivery"
+          : user.roles.includes("customer")
+            ? "customer"
+            : "restaurant"
+      }
+      data-density={user.preferences?.compact_view ? "compact" : "comfortable"}
+      data-motion={user.preferences?.reduced_motion ? "reduced" : "system"}
+      style={brandTheme(branding.brand_color)}
+    >
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
@@ -231,17 +273,36 @@ export function AppShell({ user, onSignOut, children }) {
             >
               <Menu size={23} aria-hidden="true" />
             </button>
-            <span className="topbar-brand">{branding.name}</span>
+            <Link className="topbar-brand" to="/">
+              {branding.name}
+            </Link>
             <ChevronRight size={14} aria-hidden="true" />
-            <span>{current}</span>
+            <nav className="workspace-breadcrumb" aria-label="Breadcrumb">
+              {context.parent && (
+                <>
+                  <Link to={context.parent.path}>{context.parent.title}</Link>
+                  <ChevronRight size={14} aria-hidden="true" />
+                </>
+              )}
+              <span aria-current="page">{current}</span>
+            </nav>
           </div>
           <div className="topbar-actions">
-            <span className="workspace-label">
-              {user.roles.includes("customer")
-                ? "Customer experience"
-                : "Restaurant workspace"}
-            </span>
-            <Notifications />
+            {user.roles.includes("rider") &&
+            user.permissions.includes("deliveries.assigned") ? (
+              <div id="rider-presence-slot" />
+            ) : (
+              <span className="workspace-label">
+                {user.roles.includes("customer")
+                  ? "Customer experience"
+                  : user.roles.includes("rider")
+                    ? "Rider workspace"
+                    : "Restaurant workspace"}
+              </span>
+            )}
+            <Notifications
+              showBadge={user.preferences?.show_notification_badge !== false}
+            />
             <Link
               to="/account"
               className="avatar avatar-link"
@@ -253,7 +314,7 @@ export function AppShell({ user, onSignOut, children }) {
         </header>
         <main
           id="main-content"
-          className="app-content"
+          className={`app-content${location.pathname === "/rider" || location.pathname.startsWith("/rider/") ? " rider-content" : ""}`}
           ref={content}
           tabIndex={-1}
         >

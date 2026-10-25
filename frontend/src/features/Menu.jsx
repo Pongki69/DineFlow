@@ -1,3 +1,8 @@
+import { AutoTextarea } from "../components/AutoTextarea";
+import { DishPortion } from "../components/DishPortion";
+import { loadMenuItems } from "../menuCatalog";
+import { readSavedCart, saveCart } from "../savedCart";
+import { DineInBooking } from "../components/DineInBooking";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -10,6 +15,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { api } from "../api";
+import { Link } from "react-router-dom";
 import {
   Button,
   EmptyState,
@@ -21,7 +27,7 @@ import {
 
 const DeliveryMapSelector = lazy(() =>
   import("../DeliveryMap").then((module) => ({
-    default: module.DeliveryMapSelector,
+    default: module.DeliveryDestination,
   })),
 );
 const money = (value) =>
@@ -56,7 +62,12 @@ function MenuCard({ item, onAdd }) {
         className={`dish-image ${item.image_url ? "" : "dish-image--illustrated"}`}
       >
         {item.image_url ? (
-          <img src={item.image_url} alt="" loading="lazy" />
+          <img
+            src={item.image_url}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
         ) : (
           <UtensilsCrossed size={48} strokeWidth={1} aria-hidden="true" />
         )}
@@ -69,6 +80,7 @@ function MenuCard({ item, onAdd }) {
           {item.category?.name || "FROM OUR KITCHEN"}
         </span>
         <h2>{item.name}</h2>
+        <DishPortion item={item} />
         {item.description && <p>{item.description}</p>}
         <strong className="dish-price">{money(item.base_price)}</strong>
         <form
@@ -116,12 +128,12 @@ function MenuCard({ item, onAdd }) {
   );
 }
 
-export function MenuBrowser() {
+export function MenuBrowser({ user }) {
   const [items, setItems] = useState([]),
     [categories, setCategories] = useState([]),
     [category, setCategory] = useState(""),
     [query, setQuery] = useState("");
-  const [cart, setCart] = useState([]),
+  const [cart, setCart] = useState(() => readSavedCart(user?.id)),
     [orderType, setOrderType] = useState("pickup"),
     [delivery, setDelivery] = useState({});
   const [loading, setLoading] = useState(true),
@@ -129,7 +141,12 @@ export function MenuBrowser() {
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [retry, setRetry] = useState(0);
+  const [dineInReady, setDineInReady] = useState(false);
+  const [placedDelivery, setPlacedDelivery] = useState(null);
   const summary = useRef(null);
+  useEffect(() => {
+    saveCart(user?.id, cart);
+  }, [user?.id, cart]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -137,14 +154,14 @@ export function MenuBrowser() {
     const timer = setTimeout(
       async () => {
         try {
-          const params = new URLSearchParams({
+          const params = {
             available_only: "1",
             ...(category ? { category } : {}),
             ...(query ? { q: query } : {}),
-          });
+          };
           const [groups, result] = await Promise.all([
             api("/menu/categories", { signal: controller.signal }),
-            api(`/menu/items?${params}`, { signal: controller.signal }),
+            loadMenuItems(params, { signal: controller.signal }),
           ]);
           if (!controller.signal.aborted) {
             setCategories(groups.data || []);
@@ -211,6 +228,7 @@ export function MenuBrowser() {
     setBusy(true);
     setError("");
     setNotice("");
+    setPlacedDelivery(null);
     try {
       if (
         orderType === "delivery" &&
@@ -237,6 +255,7 @@ export function MenuBrowser() {
       setNotice(
         `Order ${result.data.order_number} placed · ${money(result.data.total)}`,
       );
+      setPlacedDelivery(result.data.delivery?.id || null);
       setCart([]);
       setDelivery({});
       form.reset();
@@ -294,6 +313,14 @@ export function MenuBrowser() {
         </div>
       </div>
       {notice && <Feedback tone="success">{notice}</Feedback>}
+      {placedDelivery && (
+        <Link
+          className="ui-button ui-button--secondary"
+          to={`/delivery/${placedDelivery}/tracking`}
+        >
+          Track order & rider
+        </Link>
+      )}
       <div className="menu-layout">
         <div className="menu-catalog">
           <div className="menu-toolbar">
@@ -369,7 +396,7 @@ export function MenuBrowser() {
           )}
         </div>
         <aside
-          className="order-summary"
+          className={`order-summary${cart.length ? " has-items" : ""}`}
           ref={summary}
           tabIndex={-1}
           aria-label="Your order"
@@ -387,104 +414,107 @@ export function MenuBrowser() {
               description="Add something delicious from the menu to get started."
             />
           ) : (
-            <>
-              <div className="summary-lines">
-                {cart.map((line) => (
-                  <div className="summary-line" key={line.key}>
-                    <div>
-                      <strong>{line.item.name}</strong>
-                      {line.variant_id && (
-                        <small>
-                          {
-                            line.item.variants?.find(
-                              (variant) =>
-                                variant.id === Number(line.variant_id),
-                            )?.name
+            <form onSubmit={submit} className="summary-checkout">
+              <div
+                className="summary-scroll"
+                tabIndex={0}
+                aria-label="Order items and options"
+              >
+                <div className="summary-lines">
+                  {cart.map((line) => (
+                    <div className="summary-line" key={line.key}>
+                      <div>
+                        <strong>{line.item.name}</strong>
+                        {line.variant_id && (
+                          <small>
+                            {
+                              line.item.variants?.find(
+                                (variant) =>
+                                  variant.id === Number(line.variant_id),
+                              )?.name
+                            }
+                          </small>
+                        )}
+                        {line.special_instructions && (
+                          <small>{line.special_instructions}</small>
+                        )}
+                        <span>{money(linePrice(line) * line.quantity)}</span>
+                      </div>
+                      <div className="quantity-control">
+                        <button
+                          type="button"
+                          aria-label={`Decrease ${line.item.name} quantity`}
+                          onClick={() => quantity(line.key, -1)}
+                        >
+                          <Minus size={14} aria-hidden="true" />
+                        </button>
+                        <span aria-label={`Quantity: ${line.quantity}`}>
+                          {line.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={`Increase ${line.item.name} quantity`}
+                          onClick={() => quantity(line.key, 1)}
+                        >
+                          <Plus size={14} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${line.item.name}`}
+                          onClick={() =>
+                            setCart((current) =>
+                              current.filter((row) => row.key !== line.key),
+                            )
                           }
-                        </small>
-                      )}
-                      {line.special_instructions && (
-                        <small>{line.special_instructions}</small>
-                      )}
-                      <span>{money(linePrice(line) * line.quantity)}</span>
+                        >
+                          <Trash2 size={14} aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="quantity-control">
-                      <button
-                        type="button"
-                        aria-label={`Decrease ${line.item.name} quantity`}
-                        onClick={() => quantity(line.key, -1)}
-                      >
-                        <Minus size={14} aria-hidden="true" />
-                      </button>
-                      <span aria-label={`Quantity: ${line.quantity}`}>
-                        {line.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`Increase ${line.item.name} quantity`}
-                        onClick={() => quantity(line.key, 1)}
-                      >
-                        <Plus size={14} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${line.item.name}`}
-                        onClick={() =>
-                          setCart((current) =>
-                            current.filter((row) => row.key !== line.key),
-                          )
-                        }
-                      >
-                        <Trash2 size={14} aria-hidden="true" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <form onSubmit={submit} className="summary-form">
-                <Field
-                  label="Order type"
-                  name="order_type"
-                  value={orderType}
-                  onChange={(event) => setOrderType(event.target.value)}
-                >
-                  <select>
-                    <option value="pickup">Pickup</option>
-                    <option value="delivery">Delivery</option>
-                    <option value="dine_in">Dine in</option>
-                  </select>
-                </Field>
-                {orderType === "dine_in" && (
+                  ))}
+                </div>
+                <div className="summary-form">
                   <Field
-                    label="Table QR code"
-                    name="table_code"
-                    required
-                    hint="Find this on the QR code at your table."
-                  />
-                )}
-                {orderType === "delivery" && (
-                  <Suspense
-                    fallback={
-                      <Skeleton cards={1} label="Loading delivery map" />
-                    }
+                    label="Order type"
+                    name="order_type"
+                    value={orderType}
+                    onChange={(event) => setOrderType(event.target.value)}
                   >
-                    <DeliveryMapSelector
-                      items={cart.map(({ item, key, ...line }) => line)}
-                      value={delivery}
-                      onChange={setDelivery}
-                      onQuote={(quote) =>
-                        setDelivery((current) => ({ ...current, quote }))
+                    <select>
+                      <option value="pickup">Pickup</option>
+                      <option value="delivery">Delivery</option>
+                      <option value="dine_in">Dine in</option>
+                    </select>
+                  </Field>
+                  {orderType === "dine_in" && (
+                    <DineInBooking onReadyChange={setDineInReady} />
+                  )}
+                  {orderType === "delivery" && (
+                    <Suspense
+                      fallback={
+                        <Skeleton cards={1} label="Loading delivery map" />
                       }
-                    />
-                  </Suspense>
-                )}
-                <Field
-                  label="Order notes (optional)"
-                  name="customer_notes"
-                  maxLength={2000}
-                >
-                  <textarea rows={2} />
-                </Field>
+                    >
+                      <DeliveryMapSelector
+                        items={cart.map(({ item, key, ...line }) => line)}
+                        value={delivery}
+                        onChange={setDelivery}
+                        onQuote={(quote) =>
+                          setDelivery((current) => ({ ...current, quote }))
+                        }
+                      />
+                    </Suspense>
+                  )}
+                  <Field
+                    label="Order notes (optional)"
+                    name="customer_notes"
+                    maxLength={2000}
+                  >
+                    <AutoTextarea rows={2} />
+                  </Field>
+                </div>
+              </div>
+              <div className="summary-footer">
                 <div className="summary-total">
                   <span>Estimated subtotal</span>
                   <strong>{money(subtotal)}</strong>
@@ -498,16 +528,20 @@ export function MenuBrowser() {
                   type="submit"
                   busy={busy}
                   disabled={
-                    orderType === "delivery" &&
-                    (delivery.latitude == null ||
-                      !delivery.quote?.meets_minimum)
+                    (orderType === "dine_in" && !dineInReady) ||
+                    (orderType === "delivery" &&
+                      (delivery.latitude == null ||
+                        !delivery.formatted_address?.trim() ||
+                        !delivery.recipient_name?.trim() ||
+                        !delivery.phone?.trim() ||
+                        !delivery.quote?.meets_minimum))
                   }
                 >
                   {busy ? "Placing your order…" : "Place order"}
                   <ArrowRight size={17} aria-hidden="true" />
                 </Button>
-              </form>
-            </>
+              </div>
+            </form>
           )}
         </aside>
       </div>

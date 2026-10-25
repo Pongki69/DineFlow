@@ -1,3 +1,4 @@
+import { AutoTextarea } from "./components/AutoTextarea";
 import { EmptyState, Feedback, Skeleton } from "./components/ui";
 import { usePrompt } from "./components/ConfirmProvider";
 import { useConfirm } from "./components/ConfirmProvider";
@@ -38,21 +39,29 @@ const parseCalendarDate = (value) => {
   return new Date(year, month - 1, day, 12);
 };
 
-const formatBookingDate = (value) => parseCalendarDate(value).toLocaleDateString("en-US", {
-  month: "long", day: "numeric", year: "numeric",
-});
+const formatBookingDate = (value) =>
+  parseCalendarDate(value).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 
 function ReservationDatePicker({ value, min, onChange }) {
   const [open, setOpen] = useState(false);
   const selectedDate = parseCalendarDate(value);
   const minDate = parseCalendarDate(min);
-  const [visibleMonth, setVisibleMonth] = useState(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1, 12));
+  const [visibleMonth, setVisibleMonth] = useState(
+    () => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1, 12),
+  );
   const year = visibleMonth.getFullYear();
   const month = visibleMonth.getMonth();
   const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const minMonth = new Date(minDate.getFullYear(), minDate.getMonth(), 1, 12);
-  const monthLabel = visibleMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const monthLabel = visibleMonth.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 
   function chooseDay(day) {
     const chosen = new Date(year, month, day, 12);
@@ -63,25 +72,71 @@ function ReservationDatePicker({ value, min, onChange }) {
 
   return (
     <div className="reservation-date-picker">
-      <button type="button" className="reservation-date-trigger" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
-        <span>{formatBookingDate(value)}</span><span aria-hidden="true">▾</span>
+      <button
+        type="button"
+        className="reservation-date-trigger"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span>{formatBookingDate(value)}</span>
+        <span aria-hidden="true">▾</span>
       </button>
       {open && (
-        <div className="reservation-date-popover" role="dialog" aria-label="Choose reservation date">
+        <div
+          className="reservation-date-popover"
+          role="dialog"
+          aria-label="Choose reservation date"
+        >
           <div className="reservation-calendar-heading">
-            <button type="button" aria-label="Previous month" disabled={visibleMonth <= minMonth} onClick={() => setVisibleMonth(new Date(year, month - 1, 1, 12))}>‹</button>
+            <button
+              type="button"
+              aria-label="Previous month"
+              disabled={visibleMonth <= minMonth}
+              onClick={() => setVisibleMonth(new Date(year, month - 1, 1, 12))}
+            >
+              ‹
+            </button>
             <strong>{monthLabel}</strong>
-            <button type="button" aria-label="Next month" onClick={() => setVisibleMonth(new Date(year, month + 1, 1, 12))}>›</button>
+            <button
+              type="button"
+              aria-label="Next month"
+              onClick={() => setVisibleMonth(new Date(year, month + 1, 1, 12))}
+            >
+              ›
+            </button>
           </div>
-          <div className="reservation-calendar-grid" role="grid" aria-label={monthLabel}>
-            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => <span key={day} className="weekday" role="columnheader">{day}</span>)}
-            {Array.from({ length: firstWeekday }, (_, index) => <span key={`blank-${index}`} aria-hidden="true" />)}
+          <div
+            className="reservation-calendar-grid"
+            role="grid"
+            aria-label={monthLabel}
+          >
+            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+              <span key={day} className="weekday" role="columnheader">
+                {day}
+              </span>
+            ))}
+            {Array.from({ length: firstWeekday }, (_, index) => (
+              <span key={`blank-${index}`} aria-hidden="true" />
+            ))}
             {Array.from({ length: daysInMonth }, (_, index) => {
               const day = index + 1;
               const date = new Date(year, month, day, 12);
               const isoDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const isSelected = isoDate === value;
-              return <button key={day} type="button" role="gridcell" aria-pressed={isSelected} className={isSelected ? "is-selected" : ""} disabled={date < minDate} onClick={() => chooseDay(day)}>{day}</button>;
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  role="gridcell"
+                  aria-pressed={isSelected}
+                  className={isSelected ? "is-selected" : ""}
+                  disabled={date < minDate}
+                  onClick={() => chooseDay(day)}
+                >
+                  {day}
+                </button>
+              );
             })}
           </div>
         </div>
@@ -90,7 +145,12 @@ function ReservationDatePicker({ value, min, onChange }) {
   );
 }
 
-function ReservationFloorPlan2D({ objects, availability, selectedId, onSelect }) {
+function ReservationFloorPlan2D({
+  objects,
+  availability,
+  selectedId,
+  onSelect,
+}) {
   const boardRef = useRef(null);
   const panGesture = useRef(null);
   const suppressClick = useRef(false);
@@ -101,35 +161,74 @@ function ReservationFloorPlan2D({ objects, availability, selectedId, onSelect })
     const board = boardRef.current;
     if (!board) return undefined;
     const observer = new ResizeObserver(([entry]) => {
-      if (entry) setBoardSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+      if (entry)
+        setBoardSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
     });
     observer.observe(board);
     return () => observer.disconnect();
   }, []);
-  const unitPx = Math.max(1, Math.min(boardSize.width * 0.9 / 20, boardSize.height * 0.9 / 16)) * zoom;
+  const unitPx =
+    Math.max(
+      1,
+      Math.min((boardSize.width * 0.9) / 20, (boardSize.height * 0.9) / 16),
+    ) * zoom;
   const byId = new Map(availability.map((row) => [String(row.id), row]));
-  const selectedIds = Array.isArray(selectedId) ? selectedId : selectedId == null ? [] : [selectedId];
+  const selectedIds = Array.isArray(selectedId)
+    ? selectedId
+    : selectedId == null
+      ? []
+      : [selectedId];
   const focusTableId = selectedIds.at(-1);
   useEffect(() => {
     if (focusTableId == null) return;
-    const selectedObject = objects.find((object) => String(object.table_id) === String(focusTableId));
-    if (selectedObject) setPan({ x: -(Number(selectedObject.position?.x) || 0) * unitPx, y: -(Number(selectedObject.position?.z) || 0) * unitPx });
+    const selectedObject = objects.find(
+      (object) => String(object.table_id) === String(focusTableId),
+    );
+    if (selectedObject)
+      setPan({
+        x: -(Number(selectedObject.position?.x) || 0) * unitPx,
+        y: -(Number(selectedObject.position?.z) || 0) * unitPx,
+      });
   }, [focusTableId, objects, unitPx]);
   useEffect(() => {
     const board = boardRef.current;
     if (!board) return undefined;
     const handleWheel = (event) => {
-      if (event.target instanceof HTMLElement && event.target.closest(".editor-map-controls")) return;
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.closest(".editor-map-controls")
+      )
+        return;
       event.preventDefault();
-      setZoom((current) => Math.min(2.2, Math.max(0.55, Number((current * (event.deltaY < 0 ? 1.1 : 0.9)).toFixed(2)))));
+      setZoom((current) =>
+        Math.min(
+          2.2,
+          Math.max(
+            0.55,
+            Number((current * (event.deltaY < 0 ? 1.1 : 0.9)).toFixed(2)),
+          ),
+        ),
+      );
     };
     board.addEventListener("wheel", handleWheel, { passive: false });
     return () => board.removeEventListener("wheel", handleWheel);
   }, []);
   function startPan(event) {
-    if (event.button !== 0 || event.target.closest("button.editor-object.table, .editor-map-controls")) return;
+    if (
+      event.button !== 0 ||
+      event.target.closest("button.editor-object.table, .editor-map-controls")
+    )
+      return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    panGesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY, pan: { ...pan } };
+    panGesture.current = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      pan: { ...pan },
+    };
   }
   function movePan(event) {
     const gesture = panGesture.current;
@@ -151,8 +250,16 @@ function ReservationFloorPlan2D({ objects, availability, selectedId, onSelect })
       onPointerUp={endPan}
       onPointerCancel={endPan}
       onClick={(event) => {
-        if (suppressClick.current) { suppressClick.current = false; return; }
-        if (!event.target.closest("button.editor-object.table, .editor-map-controls")) onSelect(null);
+        if (suppressClick.current) {
+          suppressClick.current = false;
+          return;
+        }
+        if (
+          !event.target.closest(
+            "button.editor-object.table, .editor-map-controls",
+          )
+        )
+          onSelect(null);
       }}
       style={{
         "--floor-grid-x": `${unitPx}px`,
@@ -167,10 +274,16 @@ function ReservationFloorPlan2D({ objects, availability, selectedId, onSelect })
         const isTable = object.object_type === "table";
         const info = isTable ? byId.get(String(object.table_id)) : null;
         const available = Boolean(info?.available);
-        const isSelected = isTable && selectedIds.some((id) => String(id) === String(object.table_id));
+        const isSelected =
+          isTable &&
+          selectedIds.some((id) => String(id) === String(object.table_id));
         const status = info?.status || (isTable ? "unavailable" : "available");
-        const width = object.dimensions?.width ?? (object.properties?.table_shape === "long" ? 2.4 : 1.45);
-        const depth = object.dimensions?.depth ?? (object.properties?.table_shape === "long" ? 1.15 : 1.45);
+        const width =
+          object.dimensions?.width ??
+          (object.properties?.table_shape === "long" ? 2.4 : 1.45);
+        const depth =
+          object.dimensions?.depth ??
+          (object.properties?.table_shape === "long" ? 1.15 : 1.45);
         const style = {
           left: `calc(50% + ${(Number(object.position?.x) || 0) * unitPx}px + ${pan.x}px)`,
           top: `calc(50% + ${(Number(object.position?.z) || 0) * unitPx}px + ${pan.y}px)`,
@@ -179,12 +292,30 @@ function ReservationFloorPlan2D({ objects, availability, selectedId, onSelect })
           "--object-depth": depth,
         };
         const className = `editor-object ${object.object_type} ${object.properties?.table_shape || "short"} status-${status} ${isSelected ? "selected" : ""}`;
-        const content = <>
-          {isTable && chairPositions(object.properties?.table_shape || "short", object.table?.capacity || object.properties?.capacity || 2, object.properties?.chair_layout, object.dimensions).map((seat, index) => (
-            <i key={index} className="editor-chair" style={{ left: `${50 + (seat.x / (Number(width) || 1.45)) * 100}%`, top: `${50 + (seat.z / (Number(depth) || 1.45)) * 100}%`, transform: `translate(-50%, -50%) rotate(${-seat.rotation}rad)` }} />
-          ))}
-          <span>{isTable ? object.table?.table_number || object.label : ""}</span>
-        </>;
+        const content = (
+          <>
+            {isTable &&
+              chairPositions(
+                object.properties?.table_shape || "short",
+                object.table?.capacity || object.properties?.capacity || 2,
+                object.properties?.chair_layout,
+                object.dimensions,
+              ).map((seat, index) => (
+                <i
+                  key={index}
+                  className="editor-chair"
+                  style={{
+                    left: `${50 + (seat.x / (Number(width) || 1.45)) * 100}%`,
+                    top: `${50 + (seat.z / (Number(depth) || 1.45)) * 100}%`,
+                    transform: `translate(-50%, -50%) rotate(${-seat.rotation}rad)`,
+                  }}
+                />
+              ))}
+            <span>
+              {isTable ? object.table?.table_number || object.label : ""}
+            </span>
+          </>
+        );
         return isTable ? (
           <button
             key={object.id || object._key}
@@ -195,27 +326,100 @@ function ReservationFloorPlan2D({ objects, availability, selectedId, onSelect })
             aria-pressed={isSelected}
             aria-label={`${object.table?.table_number || object.label}, ${status}, capacity ${object.table?.capacity || object.properties?.capacity || "unknown"}`}
             title={`${object.table?.table_number || object.label} · ${status} · ${object.table?.capacity || object.properties?.capacity || "—"} seats`}
-            onClick={(event) => { event.stopPropagation(); if (available) onSelect(object.table_id); }}
-          >{content}</button>
+            onClick={(event) => {
+              event.stopPropagation();
+              if (available) onSelect(object.table_id);
+            }}
+          >
+            {content}
+          </button>
         ) : (
-          <div key={object.id || object._key} className={className} style={style} aria-hidden="true">{content}</div>
+          <div
+            key={object.id || object._key}
+            className={className}
+            style={style}
+            aria-hidden="true"
+          >
+            {content}
+          </div>
         );
       })}
       <div className="editor-status-legend" aria-label="Table availability">
-        {[["available", "Available"], ["reserved", "Reserved"], ["occupied", "Occupied"], ["cleaning", "Cleaning"], ["unavailable", "Unavailable"]].map(([key, label]) => <span key={key}><i className={`status-${key}`} />{label}</span>)}
+        {[
+          ["available", "Available"],
+          ["reserved", "Reserved"],
+          ["occupied", "Occupied"],
+          ["cleaning", "Cleaning"],
+          ["unavailable", "Unavailable"],
+        ].map(([key, label]) => (
+          <span key={key}>
+            <i className={`status-${key}`} />
+            {label}
+          </span>
+        ))}
       </div>
-      <span className="editor-board-hint">Drag to pan · Scroll to zoom · Select an available table</span>
+      <span className="editor-board-hint">
+        Drag to pan · Scroll to zoom · Select an available table
+      </span>
       <div className="editor-map-controls" aria-label="Floor plan navigation">
-        <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => setZoom((current) => Math.min(2.2, Number((current + 0.15).toFixed(2))))} aria-label="Zoom in">+</button>
-        <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => setZoom((current) => Math.max(0.55, Number((current - 0.15).toFixed(2))))} aria-label="Zoom out">−</button>
-        <label className="editor-zoom-slider"><span>{Math.round(zoom * 100)}%</span><input type="range" min="0.55" max="2.2" step="0.05" value={zoom} onPointerDown={(event) => event.stopPropagation()} onChange={(event) => setZoom(Number(event.target.value))} aria-label="Canvas zoom" /></label>
-        <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} aria-label="Reset view">Reset</button>
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() =>
+            setZoom((current) =>
+              Math.min(2.2, Number((current + 0.15).toFixed(2))),
+            )
+          }
+          aria-label="Zoom in"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() =>
+            setZoom((current) =>
+              Math.max(0.55, Number((current - 0.15).toFixed(2))),
+            )
+          }
+          aria-label="Zoom out"
+        >
+          −
+        </button>
+        <label className="editor-zoom-slider">
+          <span>{Math.round(zoom * 100)}%</span>
+          <input
+            type="range"
+            min="0.55"
+            max="2.2"
+            step="0.05"
+            value={zoom}
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(event) => setZoom(Number(event.target.value))}
+            aria-label="Canvas zoom"
+          />
+        </label>
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => {
+            setZoom(1);
+            setPan({ x: 0, y: 0 });
+          }}
+          aria-label="Reset view"
+        >
+          Reset
+        </button>
       </div>
     </div>
   );
 }
 
 export function ReservationBooking({ user }) {
+  const bookingDialog = useRef(null);
+  const povControls = useRef(null);
+  const [bookingModal, setBookingModal] = useState(false);
+  const [povTableId, setPovTableId] = useState(null);
   const availabilityRequest = useRef(0);
   const [floors, setFloors] = useState([]);
   const [floorsLoading, setFloorsLoading] = useState(true);
@@ -263,7 +467,11 @@ export function ReservationBooking({ user }) {
       if (request !== availabilityRequest.current) return;
       const rows = data.data || [];
       setAvailability(rows);
-      setSelected((ids) => ids.filter((id) => rows.some((row) => String(row.id) === String(id) && row.available)));
+      setSelected((ids) =>
+        ids.filter((id) =>
+          rows.some((row) => String(row.id) === String(id) && row.available),
+        ),
+      );
       if (data.policy) setPolicy(data.policy);
     } catch (e) {
       if (request !== availabilityRequest.current) return;
@@ -298,18 +506,64 @@ export function ReservationBooking({ user }) {
     [date, time, guests, floorId, policy.timezone],
   );
   const timeSlots = makeTimeSlots(policy);
-  const selectedTables = availability.filter((table) => selected.some((id) => String(id) === String(table.id)));
+  const bookingIds =
+    bookingModal && povTableId != null ? [povTableId] : selected;
+  const selectedTables = availability.filter((table) =>
+    bookingIds.some((id) => String(id) === String(table.id)),
+  );
   const selectedTable = selectedTables[0];
-  const selectedCapacity = selectedTables.reduce((total, table) => total + Number(table.capacity || 0), 0);
+  const selectedCapacity = selectedTables.reduce(
+    (total, table) => total + Number(table.capacity || 0),
+    0,
+  );
+  useEffect(() => {
+    if (bookingModal && selectedTables.length) {
+      if (bookingDialog.current && !bookingDialog.current.open)
+        bookingDialog.current.showModal();
+    } else {
+      bookingDialog.current?.close();
+      if (bookingModal) setBookingModal(false);
+    }
+  }, [bookingModal, selectedTables.length]);
+  function interactWithTable(id) {
+    if (
+      !availability.some(
+        (table) => String(table.id) === String(id) && table.available,
+      )
+    )
+      return;
+    setAutoAssign(false);
+    setPovTableId(id);
+    setError("");
+    setBookingModal(true);
+  }
+  function closeBooking() {
+    if (busy) return;
+    bookingDialog.current?.close();
+    setBookingModal(false);
+    setPovTableId(null);
+    povControls.current?.resume();
+  }
   function toggleTable(id) {
-    setSelected((current) => current.some((item) => String(item) === String(id))
-      ? current.filter((item) => String(item) !== String(id))
-      : [...current, id]);
+    setSelected((current) =>
+      current.some((item) => String(item) === String(id))
+        ? current.filter((item) => String(item) !== String(id))
+        : [...current, id],
+    );
   }
   async function book(event) {
     event.preventDefault();
-    if (!autoAssign && (!selectedTables.length || selectedTables.some((table) => !table.available) || selectedCapacity < Number(guests))) {
-      setError(selectedTables.length && selectedCapacity < Number(guests) ? "Add another available table to cover your party size." : "Choose available tables first.");
+    if (
+      !autoAssign &&
+      (!selectedTables.length ||
+        selectedTables.some((table) => !table.available) ||
+        selectedCapacity < Number(guests))
+    ) {
+      setError(
+        selectedTables.length && selectedCapacity < Number(guests)
+          ? "Add another available table to cover your party size."
+          : "Choose available tables first.",
+      );
       return;
     }
     setBusy(true);
@@ -321,8 +575,8 @@ export function ReservationBooking({ user }) {
         body: JSON.stringify({
           starts_at: bookingTime(date, time, policy.timezone),
           guest_count: Number(guests),
-          table_id: autoAssign ? null : selected[0],
-          ...(autoAssign ? {} : { table_ids: selected }),
+          table_id: autoAssign ? null : bookingIds[0],
+          ...(autoAssign ? {} : { table_ids: bookingIds }),
           floor_id: Number(floorId),
           guest_name: fields.get("guest_name"),
           guest_email: fields.get("guest_email"),
@@ -337,6 +591,8 @@ export function ReservationBooking({ user }) {
       });
       setSelected([]);
       setAutoAssign(false);
+      setBookingModal(false);
+      setPovTableId(null);
       await loadAvailability();
     } catch (e) {
       setError(e.message);
@@ -355,6 +611,114 @@ export function ReservationBooking({ user }) {
       setError(e.message);
     }
   }
+  const reservationForm = floor && (
+    <form className="reservation-form" onSubmit={book}>
+      <h2 id="reservation-booking-title">
+        {autoAssign
+          ? "Confirm your reservation"
+          : selectedTables.length === 1
+            ? `Confirm ${selectedTable.table_number}`
+            : `Confirm ${selectedTables.length} tables`}
+      </h2>
+      <p>
+        {guests} guests · {formatBookingDate(date)} at {formatTime12(time)} ·{" "}
+        {floor.name}
+        {autoAssign
+          ? " · table assigned when confirmed"
+          : ` · ${selectedCapacity} combined seats`}
+      </p>
+      {!autoAssign && (
+        <p className="reservation-confirm-tables">
+          <strong>Selected:</strong>{" "}
+          {selectedTables.map((table) => table.table_number).join(", ")}
+        </p>
+      )}
+      <label>
+        Name
+        <input
+          name="guest_name"
+          defaultValue={user.name}
+          required
+          maxLength="120"
+        />
+      </label>
+      <label>
+        Email
+        <input
+          name="guest_email"
+          defaultValue={user.email}
+          type="email"
+          maxLength="254"
+        />
+      </label>
+      <label>
+        Phone
+        <input
+          name="guest_phone"
+          type="tel"
+          autoComplete="tel"
+          placeholder="e.g. 0917 123 4567"
+          maxLength="32"
+        />
+      </label>
+      <div className="reservation-notes">
+        <label htmlFor="reservation-notes">
+          Special requests{" "}
+          <span className="reservation-notes-optional">(optional)</span>
+        </label>
+        <AutoTextarea
+          id="reservation-notes"
+          name="notes"
+          rows={3}
+          maxLength={1500}
+          placeholder="Tell us about dietary needs, accessibility needs, or a special occasion…"
+          aria-describedby="reservation-notes-hint"
+        />
+        <small id="reservation-notes-hint">
+          Up to 1,500 characters. Requests are subject to availability.
+        </small>
+      </div>
+      <button
+        disabled={busy || (!autoAssign && selectedCapacity < Number(guests))}
+      >
+        {busy ? "Checking availability…" : "Confirm reservation"}
+      </button>
+    </form>
+  );
+  const bookingOverlay = (
+    <dialog
+      ref={bookingDialog}
+      className="reservation-booking-dialog"
+      aria-labelledby="reservation-booking-title"
+      onClose={() => setBookingModal(false)}
+      onCancel={(event) => {
+        event.preventDefault();
+        closeBooking();
+      }}
+    >
+      {bookingModal && (
+        <>
+          <button
+            type="button"
+            className="booking-dialog-close"
+            disabled={busy}
+            onClick={closeBooking}
+            aria-label="Close booking dialog"
+          >
+            ×
+          </button>
+          {error && <Feedback>{error}</Feedback>}
+          {!autoAssign && selectedCapacity < Number(guests) && (
+            <p className="booking-dialog-capacity" role="status">
+              These tables seat {selectedCapacity}. Close this dialog and choose
+              more tables for your {guests} guests.
+            </p>
+          )}
+          {reservationForm}
+        </>
+      )}
+    </dialog>
+  );
   const objects = floor?.objects || [];
   return (
     <section className="welcome reservation-page">
@@ -372,8 +736,10 @@ export function ReservationBooking({ user }) {
             {result.status.replaceAll("_", " ")}
           </strong>
           <span>
-            {(result.tables?.length ? result.tables.map((table) => table.table_number).join(", ") : result.table?.table_number)} ·{" "}
-            {formatBookingDate(date)} at {formatTime12(time)}
+            {result.tables?.length
+              ? result.tables.map((table) => table.table_number).join(", ")
+              : result.table?.table_number}{" "}
+            · {formatBookingDate(date)} at {formatTime12(time)}
           </span>
           {result.deposit_required && (
             <button onClick={payDeposit}>
@@ -386,13 +752,19 @@ export function ReservationBooking({ user }) {
       <div className="reservation-controls">
         <label>
           Date
-          <ReservationDatePicker value={date} min={tomorrow()} onChange={setDate} />
+          <ReservationDatePicker
+            value={date}
+            min={tomorrow()}
+            onChange={setDate}
+          />
         </label>
         <label>
           Time
           <select value={time} onChange={(e) => setTime(e.target.value)}>
             {timeSlots.map((t) => (
-              <option key={t} value={t}>{formatTime12(t)}</option>
+              <option key={t} value={t}>
+                {formatTime12(t)}
+              </option>
             ))}
           </select>
         </label>
@@ -433,7 +805,9 @@ export function ReservationBooking({ user }) {
               Accessible 2D view
             </button>
           </div>
-          <div className={`reservation-floor-layout ${view === "2d" ? "is-2d" : "is-3d"}`}>
+          <div
+            className={`reservation-floor-layout ${view === "2d" ? "is-2d" : "is-3d"}`}
+          >
             <div className="reservation-floor-stage">
               {view === "3d" ? (
                 <Suspense
@@ -448,37 +822,91 @@ export function ReservationBooking({ user }) {
                     availability={availability}
                     selectedId={selected}
                     onSelect={toggleTable}
+                    onInteract={interactWithTable}
+                    bookingOverlay={bookingOverlay}
+                    bookingOpen={bookingModal}
+                    resumeControls={povControls}
                     reservationMode
                   />
                 </Suspense>
               ) : (
-                <ReservationFloorPlan2D objects={objects} availability={availability} selectedId={selected} onSelect={toggleTable} />
+                <ReservationFloorPlan2D
+                  objects={objects}
+                  availability={availability}
+                  selectedId={selected}
+                  onSelect={toggleTable}
+                />
               )}
             </div>
-            <aside className="reservation-table-panel" aria-label="Choose a table">
+            <aside
+              className="reservation-table-panel"
+              aria-label="Choose a table"
+            >
               <div className="reservation-table-panel-heading">
                 <h2>Choose a table</h2>
-                <span>{availability.filter((table) => table.available).length} available</span>
+                <span>
+                  {availability.filter((table) => table.available).length}{" "}
+                  available
+                </span>
               </div>
-              <p>Select one or more available tables. Their seats combine for your party.</p>
+              <p>
+                Select one or more available tables. Their seats combine for
+                your party.
+              </p>
               <div className="reservation-table-options">
                 {availability.map((table) => (
                   <button
                     type="button"
                     key={table.id}
                     disabled={!table.available}
-                    aria-pressed={selected.some((id) => String(id) === String(table.id))}
+                    aria-pressed={selected.some(
+                      (id) => String(id) === String(table.id),
+                    )}
                     className={`reservation-table-option status-${table.status || "unavailable"} ${selected.some((id) => String(id) === String(table.id)) ? "is-selected" : ""}`}
-                    onClick={() => { setAutoAssign(false); toggleTable(table.id); }}
+                    onClick={() => {
+                      setAutoAssign(false);
+                      toggleTable(table.id);
+                    }}
                   >
                     <strong>{table.table_number}</strong>
-                    <span>{table.capacity} seats · {table.status || "Unavailable"}</span>
-                    <small>{selected.some((id) => String(id) === String(table.id)) ? "Added" : "＋ Add"}</small>
+                    <span>
+                      {table.capacity} seats · {table.status || "Unavailable"}
+                    </span>
+                    <small>
+                      {selected.some((id) => String(id) === String(table.id))
+                        ? "Added"
+                        : "＋ Add"}
+                    </small>
                   </button>
                 ))}
-                {!availability.length && <small className="reservation-table-empty">No tables are available for this party size and time.</small>}
+                {!availability.length && (
+                  <small className="reservation-table-empty">
+                    No tables are available for this party size and time.
+                  </small>
+                )}
               </div>
-              {selectedTables.length > 0 && <div className="reservation-selected-summary" role="status"><strong>{selectedTables.length} table{selectedTables.length === 1 ? "" : "s"} selected</strong><span className="reservation-selected-table-numbers">{selectedTables.map((table) => table.table_number).join(" · ")}</span><span>{selectedCapacity} seats for {guests} guests</span>{selectedCapacity < Number(guests) && <span className="reservation-capacity-needed">Choose {Number(guests) - selectedCapacity} more seat{Number(guests) - selectedCapacity === 1 ? "" : "s"}.</span>}</div>}
+              {selectedTables.length > 0 && (
+                <div className="reservation-selected-summary" role="status">
+                  <strong>
+                    {selectedTables.length} table
+                    {selectedTables.length === 1 ? "" : "s"} selected
+                  </strong>
+                  <span className="reservation-selected-table-numbers">
+                    {selectedTables
+                      .map((table) => table.table_number)
+                      .join(" · ")}
+                  </span>
+                  <span>
+                    {selectedCapacity} seats for {guests} guests
+                  </span>
+                  {selectedCapacity < Number(guests) && (
+                    <span className="reservation-capacity-needed">
+                      Choose {Number(guests) - selectedCapacity} more seat
+                      {Number(guests) - selectedCapacity === 1 ? "" : "s"}.
+                    </span>
+                  )}
+                </div>
+              )}
             </aside>
           </div>
           <p className="availability-note">
@@ -500,49 +928,9 @@ export function ReservationBooking({ user }) {
               Assign one suitable table for me
             </label>
           )}
-          {(selectedTables.length > 0 || autoAssign) && (
-            <form className="reservation-form" onSubmit={book}>
-              <h2>
-                {autoAssign
-                  ? "Confirm your reservation"
-                  : selectedTables.length === 1 ? `Confirm ${selectedTable.table_number}` : `Confirm ${selectedTables.length} tables`}
-              </h2>
-              <p>
-                {guests} guests · {formatBookingDate(date)} at {formatTime12(time)} · {floor.name}
-                {autoAssign ? " · table assigned when confirmed" : ` · ${selectedCapacity} combined seats`}
-              </p>
-              {!autoAssign && <p className="reservation-confirm-tables"><strong>Selected:</strong> {selectedTables.map((table) => table.table_number).join(", ")}</p>}
-              <label>
-                Name
-                <input
-                  name="guest_name"
-                  defaultValue={user.name}
-                  required
-                  maxLength="120"
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  name="guest_email"
-                  defaultValue={user.email}
-                  type="email"
-                  maxLength="254"
-                />
-              </label>
-              <label>
-                Phone
-                <input name="guest_phone" maxLength="32" />
-              </label>
-              <label>
-                Notes
-                <textarea name="notes" maxLength="1500" />
-              </label>
-              <button disabled={busy || (!autoAssign && selectedCapacity < Number(guests))}>
-                {busy ? "Checking availability…" : "Confirm reservation"}
-              </button>
-            </form>
-          )}
+          {(selectedTables.length > 0 || autoAssign) &&
+            !bookingModal &&
+            reservationForm}
         </>
       ) : (
         <div className="empty-floor">
@@ -553,6 +941,7 @@ export function ReservationBooking({ user }) {
           </p>
         </div>
       )}
+      {view !== "3d" && bookingOverlay}
     </section>
   );
 }
@@ -614,7 +1003,9 @@ export function MyReservations() {
           starts_at: new Date(entered).toISOString(),
           guest_count: item.guest_count,
           table_id: item.table_id,
-          table_ids: item.tables?.length ? item.tables.map((table) => table.id) : [item.table_id],
+          table_ids: item.tables?.length
+            ? item.tables.map((table) => table.id)
+            : [item.table_id],
           floor_id: item.floor_id,
         }),
       });
@@ -643,7 +1034,10 @@ export function MyReservations() {
                 {item.reference} · {item.status.replaceAll("_", " ")}
               </strong>
               <small>
-                {(item.tables?.length ? item.tables.map((table) => table.table_number).join(", ") : item.table?.table_number) || "Unassigned"} · {item.guest_count} guests ·{" "}
+                {(item.tables?.length
+                  ? item.tables.map((table) => table.table_number).join(", ")
+                  : item.table?.table_number) || "Unassigned"}{" "}
+                · {item.guest_count} guests ·{" "}
                 {new Date(item.starts_at).toLocaleString()}
               </small>
               {item.deposit_required && (
@@ -741,7 +1135,10 @@ export function ReservationDesk({ user = { permissions: [] } }) {
                 {item.reference} · {item.guest_name} · {item.status}
               </strong>
               <small>
-                {(item.tables?.length ? item.tables.map((table) => table.table_number).join(", ") : item.table?.table_number) || "Unassigned"} · {item.guest_count} guests ·{" "}
+                {(item.tables?.length
+                  ? item.tables.map((table) => table.table_number).join(", ")
+                  : item.table?.table_number) || "Unassigned"}{" "}
+                · {item.guest_count} guests ·{" "}
                 {new Date(item.starts_at).toLocaleString()}–
                 {new Date(item.ends_at).toLocaleTimeString()}
               </small>
@@ -904,7 +1301,11 @@ export function FloorPlanEditor() {
   const dirty = useRef(false);
   const floor = floors.find((f) => String(f.id) === String(floorId));
   function rememberUndo() {
-    const entry = { objects: JSON.parse(JSON.stringify(objects)), createdObjectIds: [], deletedObjectIds: [...pendingDeleteIds.current] };
+    const entry = {
+      objects: JSON.parse(JSON.stringify(objects)),
+      createdObjectIds: [],
+      deletedObjectIds: [...pendingDeleteIds.current],
+    };
     undoStack.current.push(entry);
     if (undoStack.current.length > 50) undoStack.current.shift();
     return entry;
@@ -920,7 +1321,11 @@ export function FloorPlanEditor() {
       return;
     }
     try {
-      await Promise.all(entry.createdObjectIds.map((id) => api(`/admin/floor-plan/objects/${id}`, { method: "DELETE" })));
+      await Promise.all(
+        entry.createdObjectIds.map((id) =>
+          api(`/admin/floor-plan/objects/${id}`, { method: "DELETE" }),
+        ),
+      );
       setObjects(entry.objects);
       pendingDeleteIds.current = entry.deletedObjectIds || [];
       dirty.current = true;
@@ -936,9 +1341,15 @@ export function FloorPlanEditor() {
     try {
       const d = await api("/admin/floor-plan/floors");
       const nextFloors = d.data || [];
-      setFloors((current) => JSON.stringify(current) === JSON.stringify(nextFloors) ? current : nextFloors);
+      setFloors((current) =>
+        JSON.stringify(current) === JSON.stringify(nextFloors)
+          ? current
+          : nextFloors,
+      );
       if (syncObjects && !dirty.current && floorId) {
-        const latestFloor = nextFloors.find((item) => String(item.id) === String(floorId));
+        const latestFloor = nextFloors.find(
+          (item) => String(item.id) === String(floorId),
+        );
         if (latestFloor) setObjects(latestFloor.objects || []);
         dirty.current = false;
       }
@@ -956,14 +1367,31 @@ export function FloorPlanEditor() {
     const board = boardRef.current;
     if (!board || preview) return undefined;
     const handleWheel = (event) => {
-      if (event.target instanceof HTMLElement && event.target.closest("input, select, textarea, [contenteditable='true']")) return;
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.closest(
+          "input, select, textarea, [contenteditable='true']",
+        )
+      )
+        return;
       event.preventDefault();
-      setZoom((current) => Math.min(2.2, Math.max(0.55, Number((current * (event.deltaY < 0 ? 1.1 : 0.9)).toFixed(2)))));
+      setZoom((current) =>
+        Math.min(
+          2.2,
+          Math.max(
+            0.55,
+            Number((current * (event.deltaY < 0 ? 1.1 : 0.9)).toFixed(2)),
+          ),
+        ),
+      );
     };
     board.addEventListener("wheel", handleWheel, { passive: false });
     const observer = new ResizeObserver(([entry]) => {
       if (!entry) return;
-      setBoardSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+      setBoardSize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      });
     });
     observer.observe(board);
     return () => {
@@ -979,7 +1407,9 @@ export function FloorPlanEditor() {
       setError(e.message);
     }
   }
-  useEffect(() => { loadPresets(); }, []);
+  useEffect(() => {
+    loadPresets();
+  }, []);
   useEffect(() => {
     setObjects(floor?.objects || []);
     undoStack.current = [];
@@ -991,7 +1421,9 @@ export function FloorPlanEditor() {
     if (!floorId) return undefined;
     const refreshIfClean = () => {
       if (dirty.current) {
-        setNotice("A newer layout update is available. Save or discard your draft before refreshing.");
+        setNotice(
+          "A newer layout update is available. Save or discard your draft before refreshing.",
+        );
         return;
       }
       load(true);
@@ -1026,12 +1458,21 @@ export function FloorPlanEditor() {
     if (!floor || floor.is_published || pendingAdds) return;
     const objectCount = objects.length;
     const message = `Delete “${floor.name}” and its ${objectCount} layout item${objectCount === 1 ? "" : "s"}? This cannot be undone. Table and reservation history will be kept.`;
-    if (!(await confirm(message, { title: `Delete “${floor.name}”?`, confirmLabel: "Delete draft floor", destructive: true }))) return;
+    if (
+      !(await confirm(message, {
+        title: `Delete “${floor.name}”?`,
+        confirmLabel: "Delete draft floor",
+        destructive: true,
+      }))
+    )
+      return;
     setError("");
     setBusyAction("Deleting floor");
     try {
       await api(`/admin/floor-plan/floors/${floor.id}`, { method: "DELETE" });
-      const remaining = floors.filter((item) => String(item.id) !== String(floor.id));
+      const remaining = floors.filter(
+        (item) => String(item.id) !== String(floor.id),
+      );
       setFloors(remaining);
       const nextFloor = remaining[0] || null;
       setFloorId(nextFloor ? String(nextFloor.id) : "");
@@ -1045,21 +1486,38 @@ export function FloorPlanEditor() {
       setBusyAction("");
     }
   }
-  async function addTable(shape = "short", blueprint = null, position = { x: 0, z: 0 }, rotation = { y: 0 }) {
+  async function addTable(
+    shape = "short",
+    blueprint = null,
+    position = { x: 0, z: 0 },
+    rotation = { y: 0 },
+  ) {
     if (!floor) return;
     const undoEntry = rememberUndo();
-    const usedNumbers = new Set([
-      ...floors.flatMap((item) => item.objects || []).map((item) => item.table?.table_number),
-      ...objects.map((item) => item.table?.table_number),
-    ].filter(Boolean).map((number) => String(number).trim().toLowerCase()));
+    const usedNumbers = new Set(
+      [
+        ...floors
+          .flatMap((item) => item.objects || [])
+          .map((item) => item.table?.table_number),
+        ...objects.map((item) => item.table?.table_number),
+      ]
+        .filter(Boolean)
+        .map((number) => String(number).trim().toLowerCase()),
+    );
     let number = 1;
     while (usedNumbers.has(`table ${number}`)) number += 1;
     const table_number = `Table ${number}`;
-    const capacity = Math.max(1, Math.min(12, Number(blueprint?.capacity) || (shape === "long" ? 6 : 2)));
-    const chair_layout = blueprint?.chair_layout || defaultChairLayout(shape, capacity);
-    const dimensions = blueprint?.dimensions || (shape === "long"
-      ? { width: 2.4, depth: 1.15, height: 0.8 }
-      : { width: 1.45, depth: 1.45, height: 0.8 });
+    const capacity = Math.max(
+      1,
+      Math.min(12, Number(blueprint?.capacity) || (shape === "long" ? 6 : 2)),
+    );
+    const chair_layout =
+      blueprint?.chair_layout || defaultChairLayout(shape, capacity);
+    const dimensions =
+      blueprint?.dimensions ||
+      (shape === "long"
+        ? { width: 2.4, depth: 1.15, height: 0.8 }
+        : { width: 1.45, depth: 1.45, height: 0.8 });
     const tempKey = `pending-table-${Date.now()}-${Math.random()}`;
     const optimisticObject = {
       _key: tempKey,
@@ -1078,7 +1536,10 @@ export function FloorPlanEditor() {
     setError("");
     setNotice("");
     setPendingAdds((count) => count + 1);
-    setObjects((rows) => [...rows.map((row) => ({ ...row, _selected: false })), optimisticObject]);
+    setObjects((rows) => [
+      ...rows.map((row) => ({ ...row, _selected: false })),
+      optimisticObject,
+    ]);
     try {
       const d = await api(`/admin/floor-plan/floors/${floor.id}/tables`, {
         method: "POST",
@@ -1091,14 +1552,38 @@ export function FloorPlanEditor() {
           position,
         }),
       });
-      const newObject = { ...d.data.floor_plan_object, table: d.data, rotation: { ...rotation }, _selected: true };
+      const newObject = {
+        ...d.data.floor_plan_object,
+        table: d.data,
+        rotation: { ...rotation },
+        _selected: true,
+      };
       if (newObject.id) undoEntry.createdObjectIds.push(newObject.id);
-      setObjects((rows) => rows.map((row) => row._key === tempKey ? { ...newObject, position: row.position, rotation: { ...rotation }, _selected: true } : { ...row, _selected: false }));
-      setFloors((rows) => rows.map((row) => row.id === floor.id ? { ...row, is_published: false } : row));
-      setNotice(`${table_number} added. Drag it into place; edit its number or capacity in Properties.`);
+      setObjects((rows) =>
+        rows.map((row) =>
+          row._key === tempKey
+            ? {
+                ...newObject,
+                position: row.position,
+                rotation: { ...rotation },
+                _selected: true,
+              }
+            : { ...row, _selected: false },
+        ),
+      );
+      setFloors((rows) =>
+        rows.map((row) =>
+          row.id === floor.id ? { ...row, is_published: false } : row,
+        ),
+      );
+      setNotice(
+        `${table_number} added. Drag it into place; edit its number or capacity in Properties.`,
+      );
       return newObject.id;
     } catch (e) {
-      undoStack.current = undoStack.current.filter((entry) => entry !== undoEntry);
+      undoStack.current = undoStack.current.filter(
+        (entry) => entry !== undoEntry,
+      );
       setObjects((rows) => rows.filter((row) => row._key !== tempKey));
       setNotice("");
       setError(e.message);
@@ -1111,16 +1596,24 @@ export function FloorPlanEditor() {
     if (!floor) return;
     rememberUndo();
     dirty.current = true;
-    const defaults = type === "wall"
-      ? { width: 8, depth: 0.24, height: 2.2 }
-      : type === "door"
-        ? { width: 1.1, depth: 0.14, height: 2.1 }
-        : type === "entrance"
-          ? { width: 1.4, depth: 0.3, height: 0.12 }
-        : type === "flooring"
-          ? { width: 4, depth: 4, height: 0.06 }
-          : { width: 1.5, depth: 1, height: 0.6 };
-    const labels = { wall: "Wall", door: "Door", entrance: "Entry", counter: "Counter", furniture: "Furniture", flooring: "Floor panel" };
+    const defaults =
+      type === "wall"
+        ? { width: 8, depth: 0.24, height: 2.2 }
+        : type === "door"
+          ? { width: 1.1, depth: 0.14, height: 2.1 }
+          : type === "entrance"
+            ? { width: 1.4, depth: 0.3, height: 0.12 }
+            : type === "flooring"
+              ? { width: 4, depth: 4, height: 0.06 }
+              : { width: 1.5, depth: 1, height: 0.6 };
+    const labels = {
+      wall: "Wall",
+      door: "Door",
+      entrance: "Entry",
+      counter: "Counter",
+      furniture: "Furniture",
+      flooring: "Floor panel",
+    };
     setObjects((rows) => [
       ...rows.map((row) => ({ ...row, _selected: false })),
       {
@@ -1149,56 +1642,109 @@ export function FloorPlanEditor() {
       update(id, { table: { ...object.table, capacity: "" } });
       return;
     }
-    const capacity = Math.max(1, Math.min(12, Number.parseInt(rawValue, 10) || 1));
+    const capacity = Math.max(
+      1,
+      Math.min(12, Number.parseInt(rawValue, 10) || 1),
+    );
     const shape = object.properties?.table_shape || "short";
     update(id, {
       table: { ...object.table, capacity },
-      properties: { ...object.properties, chair_layout: defaultChairLayout(shape, capacity) },
+      properties: {
+        ...object.properties,
+        chair_layout: defaultChairLayout(shape, capacity),
+      },
     });
   }
   function setChairCount(object, side, rawValue) {
     const id = object.id ?? object._key;
     const shape = object.properties?.table_shape || "short";
-    const currentLayout = object.properties?.chair_layout || defaultChairLayout(shape, object.table?.capacity || 2);
+    const currentLayout =
+      object.properties?.chair_layout ||
+      defaultChairLayout(shape, object.table?.capacity || 2);
     if (rawValue === "") {
-      update(id, { properties: { ...object.properties, chair_layout: { ...currentLayout, [side]: "" } } });
+      update(id, {
+        properties: {
+          ...object.properties,
+          chair_layout: { ...currentLayout, [side]: "" },
+        },
+      });
       return;
     }
     if (shape !== "long") {
-      const count = Math.max(1, Math.min(12, Number.parseInt(rawValue, 10) || 1));
-      update(id, { table: { ...object.table, capacity: count }, properties: { ...object.properties, chair_layout: { around: count } } });
+      const count = Math.max(
+        1,
+        Math.min(12, Number.parseInt(rawValue, 10) || 1),
+      );
+      update(id, {
+        table: { ...object.table, capacity: count },
+        properties: { ...object.properties, chair_layout: { around: count } },
+      });
       return;
     }
     const otherSeats = ["top", "bottom", "left", "right"]
       .filter((name) => name !== side)
       .reduce((total, name) => total + (Number(currentLayout[name]) || 0), 0);
-    const count = Math.max(0, Math.min(12 - otherSeats, Number.parseInt(rawValue, 10) || 0));
-    const chair_layout = { ...defaultChairLayout("long", object.table?.capacity || 2), ...currentLayout, [side]: count };
-    const capacity = Math.max(1, ["top", "bottom", "left", "right"].reduce((total, name) => total + (Number(chair_layout[name]) || 0), 0));
-    update(id, { table: { ...object.table, capacity }, properties: { ...object.properties, chair_layout } });
+    const count = Math.max(
+      0,
+      Math.min(12 - otherSeats, Number.parseInt(rawValue, 10) || 0),
+    );
+    const chair_layout = {
+      ...defaultChairLayout("long", object.table?.capacity || 2),
+      ...currentLayout,
+      [side]: count,
+    };
+    const capacity = Math.max(
+      1,
+      ["top", "bottom", "left", "right"].reduce(
+        (total, name) => total + (Number(chair_layout[name]) || 0),
+        0,
+      ),
+    );
+    update(id, {
+      table: { ...object.table, capacity },
+      properties: { ...object.properties, chair_layout },
+    });
   }
   function selectObject(id, mode = "replace") {
-    setObjects((rows) => rows.map((row) => ({
-      ...row,
-      _selected: mode === "toggle" && (row.id ?? row._key) === id
-        ? !row._selected
-        : mode === "add" ? row._selected || (row.id ?? row._key) === id : (row.id ?? row._key) === id,
-    })));
+    setObjects((rows) =>
+      rows.map((row) => ({
+        ...row,
+        _selected:
+          mode === "toggle" && (row.id ?? row._key) === id
+            ? !row._selected
+            : mode === "add"
+              ? row._selected || (row.id ?? row._key) === id
+              : (row.id ?? row._key) === id,
+      })),
+    );
   }
   async function saveAsPreset(object) {
-    const name = await ask("Preset name", object.table?.table_number || "Table preset");
+    const name = await ask(
+      "Preset name",
+      object.table?.table_number || "Table preset",
+    );
     if (!name) return;
     const shape = object.properties?.table_shape || "short";
     const definition = {
       shape,
       capacity: object.table?.capacity || object.properties?.capacity || 2,
-      dimensions: { width: object.dimensions?.width || 1.45, depth: object.dimensions?.depth || 1.45 },
-      chair_layout: object.properties?.chair_layout || defaultChairLayout(shape, object.table?.capacity || 2),
+      dimensions: {
+        width: object.dimensions?.width || 1.45,
+        depth: object.dimensions?.depth || 1.45,
+      },
+      chair_layout:
+        object.properties?.chair_layout ||
+        defaultChairLayout(shape, object.table?.capacity || 2),
     };
     setBusyAction("Saving table preset");
     try {
-      const d = await api("/admin/floor-plan/presets", { method: "POST", body: JSON.stringify({ name, definition }) });
-      setPresets((rows) => [...rows, d.data].sort((a, b) => a.name.localeCompare(b.name)));
+      const d = await api("/admin/floor-plan/presets", {
+        method: "POST",
+        body: JSON.stringify({ name, definition }),
+      });
+      setPresets((rows) =>
+        [...rows, d.data].sort((a, b) => a.name.localeCompare(b.name)),
+      );
       setNotice(`“${name}” was saved to table presets.`);
     } catch (e) {
       setError(e.message);
@@ -1208,7 +1754,8 @@ export function FloorPlanEditor() {
   }
   async function saveSelectionAsPreset() {
     const selected = objects.filter((object) => object._selected);
-    if (selected.length < 2 || selected.some((object) => object._pending)) return;
+    if (selected.length < 2 || selected.some((object) => object._pending))
+      return;
     const name = await ask("Preset name", "Layout preset");
     if (!name) return;
     const origin = {
@@ -1220,23 +1767,45 @@ export function FloorPlanEditor() {
       objects: selected.map((object) => ({
         object_type: object.object_type,
         label: object.label || object.table?.table_number || object.object_type,
-        position: { x: (Number(object.position?.x) || 0) - origin.x, z: (Number(object.position?.z) || 0) - origin.z },
+        position: {
+          x: (Number(object.position?.x) || 0) - origin.x,
+          z: (Number(object.position?.z) || 0) - origin.z,
+        },
         rotation: { y: Number(object.rotation?.y) || 0 },
-        dimensions: { width: Number(object.dimensions?.width) || 0, depth: Number(object.dimensions?.depth) || 0, height: Number(object.dimensions?.height) || 0.6 },
+        dimensions: {
+          width: Number(object.dimensions?.width) || 0,
+          depth: Number(object.dimensions?.depth) || 0,
+          height: Number(object.dimensions?.height) || 0.6,
+        },
         properties: {
           ...(object.properties || {}),
-          ...(object.object_type === "table" ? {
-            capacity: Number(object.table?.capacity || object.properties?.capacity) || 2,
-            table_shape: object.properties?.table_shape || "short",
-            chair_layout: object.properties?.chair_layout || defaultChairLayout(object.properties?.table_shape || "short", object.table?.capacity || 2),
-          } : {}),
+          ...(object.object_type === "table"
+            ? {
+                capacity:
+                  Number(
+                    object.table?.capacity || object.properties?.capacity,
+                  ) || 2,
+                table_shape: object.properties?.table_shape || "short",
+                chair_layout:
+                  object.properties?.chair_layout ||
+                  defaultChairLayout(
+                    object.properties?.table_shape || "short",
+                    object.table?.capacity || 2,
+                  ),
+              }
+            : {}),
         },
       })),
     };
     setBusyAction("Saving layout preset");
     try {
-      const d = await api("/admin/floor-plan/presets", { method: "POST", body: JSON.stringify({ name, definition }) });
-      setPresets((rows) => [...rows, d.data].sort((a, b) => a.name.localeCompare(b.name)));
+      const d = await api("/admin/floor-plan/presets", {
+        method: "POST",
+        body: JSON.stringify({ name, definition }),
+      });
+      setPresets((rows) =>
+        [...rows, d.data].sort((a, b) => a.name.localeCompare(b.name)),
+      );
       setNotice(`“${name}” was saved as a reusable layout preset.`);
     } catch (e) {
       setError(e.message);
@@ -1255,13 +1824,21 @@ export function FloorPlanEditor() {
     const newItems = [];
     const tableIds = [];
     for (const item of definition.objects || []) {
-      const position = { x: Number(item.position?.x) || 0, z: Number(item.position?.z) || 0 };
+      const position = {
+        x: Number(item.position?.x) || 0,
+        z: Number(item.position?.z) || 0,
+      };
       if (item.object_type === "table") {
-        const id = await addTable(item.properties?.table_shape || "short", {
-          capacity: item.properties?.capacity,
-          chair_layout: item.properties?.chair_layout,
-          dimensions: item.dimensions,
-        }, position, item.rotation || { y: 0 });
+        const id = await addTable(
+          item.properties?.table_shape || "short",
+          {
+            capacity: item.properties?.capacity,
+            chair_layout: item.properties?.chair_layout,
+            dimensions: item.dimensions,
+          },
+          position,
+          item.rotation || { y: 0 },
+        );
         if (id !== null && id !== undefined) tableIds.push(id);
       } else {
         newItems.push({
@@ -1278,14 +1855,31 @@ export function FloorPlanEditor() {
       }
     }
     if (newItems.length) {
-      setObjects((rows) => [...rows.map((row) => ({ ...row, _selected: false })), ...newItems]);
+      setObjects((rows) => [
+        ...rows.map((row) => ({ ...row, _selected: false })),
+        ...newItems,
+      ]);
     }
     const allIds = new Set([...tableIds, ...newItems.map((item) => item._key)]);
-    setObjects((rows) => rows.map((row) => ({ ...row, _selected: allIds.has(row.id ?? row._key) })));
-    setNotice(`Added “${preset.name}”. The ${allIds.size} preset items are selected; drag them together to place the layout.`);
+    setObjects((rows) =>
+      rows.map((row) => ({
+        ...row,
+        _selected: allIds.has(row.id ?? row._key),
+      })),
+    );
+    setNotice(
+      `Added “${preset.name}”. The ${allIds.size} preset items are selected; drag them together to place the layout.`,
+    );
   }
   async function deletePreset(preset) {
-    if (!(await confirm("Existing tables will not change.", { title: `Delete “${preset.name}”?`, confirmLabel: "Delete preset", destructive: true }))) return;
+    if (
+      !(await confirm("Existing tables will not change.", {
+        title: `Delete “${preset.name}”?`,
+        confirmLabel: "Delete preset",
+        destructive: true,
+      }))
+    )
+      return;
     setBusyAction("Deleting table preset");
     try {
       await api(`/admin/floor-plan/presets/${preset.id}`, { method: "DELETE" });
@@ -1303,34 +1897,71 @@ export function FloorPlanEditor() {
     event.currentTarget.setPointerCapture(event.pointerId);
     suppressClick.current = false;
     if (event.button === 1 || spaceHeld.current) {
-      gesture.current = { kind: "pan", pointerId: event.pointerId, x: event.clientX, y: event.clientY, pan: { ...pan } };
+      gesture.current = {
+        kind: "pan",
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        pan: { ...pan },
+      };
       return;
     }
     const id = object.id ?? object._key;
     const toggleSelection = event.ctrlKey || event.metaKey;
     if (toggleSelection && object._selected) {
-      setObjects((rows) => rows.map((row) => (row.id ?? row._key) === id ? { ...row, _selected: false } : row));
+      setObjects((rows) =>
+        rows.map((row) =>
+          (row.id ?? row._key) === id ? { ...row, _selected: false } : row,
+        ),
+      );
       suppressClick.current = true;
       gesture.current = null;
       return;
     }
     if (toggleSelection) suppressClick.current = true;
     rememberUndo();
-    const selectedIds = objects.filter((item) => item._selected).map((item) => item.id ?? item._key);
+    const selectedIds = objects
+      .filter((item) => item._selected)
+      .map((item) => item.id ?? item._key);
     const additiveSelection = event.shiftKey || toggleSelection;
     const ids = additiveSelection
       ? [...new Set([...selectedIds, id])]
-      : object._selected ? selectedIds : [id];
-    setObjects((rows) => rows.map((row) => ({ ...row, _selected: ids.includes(row.id ?? row._key) })));
-    const positions = Object.fromEntries(ids.map((selectedId) => {
-      const selectedObject = objects.find((item) => (item.id ?? item._key) === selectedId);
-      return [selectedId, { ...(selectedObject?.position || object.position) }];
-    }));
-    gesture.current = { kind: "object", ids, pointerId: event.pointerId, x: event.clientX, y: event.clientY, positions };
+      : object._selected
+        ? selectedIds
+        : [id];
+    setObjects((rows) =>
+      rows.map((row) => ({
+        ...row,
+        _selected: ids.includes(row.id ?? row._key),
+      })),
+    );
+    const positions = Object.fromEntries(
+      ids.map((selectedId) => {
+        const selectedObject = objects.find(
+          (item) => (item.id ?? item._key) === selectedId,
+        );
+        return [
+          selectedId,
+          { ...(selectedObject?.position || object.position) },
+        ];
+      }),
+    );
+    gesture.current = {
+      kind: "object",
+      ids,
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      positions,
+    };
   }
   function startCanvasPan(event) {
     if (event.target !== event.currentTarget) return;
-    setObjects((rows) => rows.map((object) => object._selected ? { ...object, _selected: false } : object));
+    setObjects((rows) =>
+      rows.map((object) =>
+        object._selected ? { ...object, _selected: false } : object,
+      ),
+    );
     setContextMenu(null);
     event.currentTarget.setPointerCapture(event.pointerId);
     suppressClick.current = false;
@@ -1341,7 +1972,13 @@ export function FloorPlanEditor() {
       gesture.current = { kind: "box", pointerId: event.pointerId, x, y, rect };
       setSelectionBox({ left: x, top: y, width: 0, height: 0 });
     } else {
-      gesture.current = { kind: "pan", pointerId: event.pointerId, x: event.clientX, y: event.clientY, pan: { ...pan } };
+      gesture.current = {
+        kind: "pan",
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        pan: { ...pan },
+      };
     }
   }
   function moveGesture(event) {
@@ -1353,16 +1990,30 @@ export function FloorPlanEditor() {
     const dy = event.clientY - active.y;
     if (Math.abs(dx) + Math.abs(dy) > 3) suppressClick.current = true;
     if (active.kind === "pan") {
-      setPan({ x: active.pan.x + dx * 100 / rect.width, y: active.pan.y + dy * 100 / rect.height });
+      setPan({
+        x: active.pan.x + (dx * 100) / rect.width,
+        y: active.pan.y + (dy * 100) / rect.height,
+      });
       return;
     }
     if (active.kind === "box") {
-      const point = { x: event.clientX - active.rect.left, y: event.clientY - active.rect.top };
-      setSelectionBox({ left: Math.min(active.x, point.x), top: Math.min(active.y, point.y), width: Math.abs(point.x - active.x), height: Math.abs(point.y - active.y) });
+      const point = {
+        x: event.clientX - active.rect.left,
+        y: event.clientY - active.rect.top,
+      };
+      setSelectionBox({
+        left: Math.min(active.x, point.x),
+        top: Math.min(active.y, point.y),
+        width: Math.abs(point.x - active.x),
+        height: Math.abs(point.y - active.y),
+      });
       return;
     }
-    const unitPx = Math.max(1, Math.min(rect.width * 0.9 / 20, rect.height * 0.9 / 16)) * zoom;
-    const snap = (value) => snapToGrid ? Math.round(value) : Number(value.toFixed(2));
+    const unitPx =
+      Math.max(1, Math.min((rect.width * 0.9) / 20, (rect.height * 0.9) / 16)) *
+      zoom;
+    const snap = (value) =>
+      snapToGrid ? Math.round(value) : Number(value.toFixed(2));
     const snapWallToFloorSeam = (wall, position, rows) => {
       const angle = wall.rotation?.y || 0;
       const horizontal = Math.abs(Math.cos(angle)) >= Math.abs(Math.sin(angle));
@@ -1373,7 +2024,9 @@ export function FloorPlanEditor() {
         if (panel.object_type !== "flooring") continue;
         const panelPosition = panel.position || { x: 0, z: 0 };
         const panelDimensions = panel.dimensions || {};
-        const span = Number(horizontal ? panelDimensions.depth : panelDimensions.width) || 4;
+        const span =
+          Number(horizontal ? panelDimensions.depth : panelDimensions.width) ||
+          4;
         const center = Number(panelPosition[axis]) || 0;
         const firstSeam = center - span / 2;
         const seams = [firstSeam, firstSeam + span];
@@ -1388,43 +2041,85 @@ export function FloorPlanEditor() {
       }
       return { ...position, [axis]: nearest };
     };
-    setObjects((rows) => rows.map((o) => {
-      const id = o.id ?? o._key;
-      if (!active.ids.includes(id)) return o;
-      const position = active.positions[id] || o.position;
-      const x = position.x + dx / unitPx;
-      const z = position.z + dy / unitPx;
-      let nextPosition = { x: snap(x), z: snap(z) };
-      if (o.object_type === "wall") {
-        nextPosition = snapWallToFloorSeam(o, nextPosition, objects);
-        let bestDistance = 0.8;
-        const angle = o.rotation?.y || 0;
-        const halfLength = (Number(o.dimensions?.width) || 4) / 2;
-        const offset = { x: Math.cos(angle) * halfLength, z: -Math.sin(angle) * halfLength };
-        const endpoints = [1, -1].map((side) => ({ x: nextPosition.x + offset.x * side, z: nextPosition.z + offset.z * side }));
-        for (const neighbor of objects) {
-          if (neighbor.object_type !== "wall" || active.ids.includes(neighbor.id ?? neighbor._key)) continue;
-          const neighborAngle = neighbor.rotation?.y || 0;
-          const angleDelta = Math.abs(Math.atan2(Math.sin(angle - neighborAngle), Math.cos(angle - neighborAngle)));
-          const perpendicularDelta = Math.abs(Math.PI / 2 - angleDelta);
-          if (Math.min(angleDelta, Math.abs(Math.PI - angleDelta), perpendicularDelta) > Math.PI / 18) continue;
-          const neighborPosition = neighbor.position || { x: 0, z: 0 };
-          const neighborOffset = {
-            x: Math.cos(neighborAngle) * (Number(neighbor.dimensions?.width) || 4) / 2,
-            z: -Math.sin(neighborAngle) * (Number(neighbor.dimensions?.width) || 4) / 2,
+    setObjects((rows) =>
+      rows.map((o) => {
+        const id = o.id ?? o._key;
+        if (!active.ids.includes(id)) return o;
+        const position = active.positions[id] || o.position;
+        const x = position.x + dx / unitPx;
+        const z = position.z + dy / unitPx;
+        let nextPosition = { x: snap(x), z: snap(z) };
+        if (o.object_type === "wall") {
+          nextPosition = snapWallToFloorSeam(o, nextPosition, objects);
+          let bestDistance = 0.8;
+          const angle = o.rotation?.y || 0;
+          const halfLength = (Number(o.dimensions?.width) || 4) / 2;
+          const offset = {
+            x: Math.cos(angle) * halfLength,
+            z: -Math.sin(angle) * halfLength,
           };
-          const neighborEndpoints = [1, -1].map((side) => ({ x: neighborPosition.x + neighborOffset.x * side, z: neighborPosition.z + neighborOffset.z * side }));
-          endpoints.forEach((endpoint) => neighborEndpoints.forEach((target) => {
-            const distance = Math.hypot(target.x - endpoint.x, target.z - endpoint.z);
-            if (distance < bestDistance) {
-              bestDistance = distance;
-              nextPosition = { x: nextPosition.x + target.x - endpoint.x, z: nextPosition.z + target.z - endpoint.z };
-            }
+          const endpoints = [1, -1].map((side) => ({
+            x: nextPosition.x + offset.x * side,
+            z: nextPosition.z + offset.z * side,
           }));
+          for (const neighbor of objects) {
+            if (
+              neighbor.object_type !== "wall" ||
+              active.ids.includes(neighbor.id ?? neighbor._key)
+            )
+              continue;
+            const neighborAngle = neighbor.rotation?.y || 0;
+            const angleDelta = Math.abs(
+              Math.atan2(
+                Math.sin(angle - neighborAngle),
+                Math.cos(angle - neighborAngle),
+              ),
+            );
+            const perpendicularDelta = Math.abs(Math.PI / 2 - angleDelta);
+            if (
+              Math.min(
+                angleDelta,
+                Math.abs(Math.PI - angleDelta),
+                perpendicularDelta,
+              ) >
+              Math.PI / 18
+            )
+              continue;
+            const neighborPosition = neighbor.position || { x: 0, z: 0 };
+            const neighborOffset = {
+              x:
+                (Math.cos(neighborAngle) *
+                  (Number(neighbor.dimensions?.width) || 4)) /
+                2,
+              z:
+                (-Math.sin(neighborAngle) *
+                  (Number(neighbor.dimensions?.width) || 4)) /
+                2,
+            };
+            const neighborEndpoints = [1, -1].map((side) => ({
+              x: neighborPosition.x + neighborOffset.x * side,
+              z: neighborPosition.z + neighborOffset.z * side,
+            }));
+            endpoints.forEach((endpoint) =>
+              neighborEndpoints.forEach((target) => {
+                const distance = Math.hypot(
+                  target.x - endpoint.x,
+                  target.z - endpoint.z,
+                );
+                if (distance < bestDistance) {
+                  bestDistance = distance;
+                  nextPosition = {
+                    x: nextPosition.x + target.x - endpoint.x,
+                    z: nextPosition.z + target.z - endpoint.z,
+                  };
+                }
+              }),
+            );
+          }
         }
-      }
-      return { ...o, position: nextPosition };
-    }));
+        return { ...o, position: nextPosition };
+      }),
+    );
     dirty.current = true;
   }
   function alignObjectsToGrid() {
@@ -1440,26 +2135,46 @@ export function FloorPlanEditor() {
         if (panel.object_type !== "flooring") continue;
         const panelPosition = panel.position || { x: 0, z: 0 };
         const panelDimensions = panel.dimensions || {};
-        const span = Number(horizontal ? panelDimensions.depth : panelDimensions.width) || 4;
+        const span =
+          Number(horizontal ? panelDimensions.depth : panelDimensions.width) ||
+          4;
         const firstSeam = (Number(panelPosition[axis]) || 0) - span / 2;
         const seams = [firstSeam, firstSeam + span];
         for (let step = 1; step < span; step += 1) seams.push(firstSeam + step);
         for (const seam of seams) {
           const distance = Math.abs(position[axis] - seam);
-          if (distance < nearestDistance) { nearestDistance = distance; nearest = seam; }
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearest = seam;
+          }
         }
       }
-      return { ...position, [axis]: Number.isFinite(nearestDistance) ? nearest : Math.round(position[axis]) };
-    };
-    setObjects((rows) => rows.map((object) => {
-      const position = {
-        x: Math.round(Number(object.position?.x) || 0),
-        z: Math.round(Number(object.position?.z) || 0),
+      return {
+        ...position,
+        [axis]: Number.isFinite(nearestDistance)
+          ? nearest
+          : Math.round(position[axis]),
       };
-      return { ...object, position: object.object_type === "wall" ? snapWallToFloorSeam(object, position, rows) : position };
-    }));
+    };
+    setObjects((rows) =>
+      rows.map((object) => {
+        const position = {
+          x: Math.round(Number(object.position?.x) || 0),
+          z: Math.round(Number(object.position?.z) || 0),
+        };
+        return {
+          ...object,
+          position:
+            object.object_type === "wall"
+              ? snapWallToFloorSeam(object, position, rows)
+              : position,
+        };
+      }),
+    );
     dirty.current = true;
-    setNotice("All objects are aligned to the grid. Save draft to keep the changes.");
+    setNotice(
+      "All objects are aligned to the grid. Save draft to keep the changes.",
+    );
   }
   function finishGesture(event) {
     const active = gesture.current;
@@ -1471,76 +2186,161 @@ export function FloorPlanEditor() {
         const top = Math.min(active.y, event.clientY - board.top);
         const right = Math.max(active.x, event.clientX - board.left);
         const bottom = Math.max(active.y, event.clientY - board.top);
-        setObjects((rows) => rows.map((o) => {
-          const unitPx = Math.max(1, Math.min(board.width * 0.9 / 20, board.height * 0.9 / 16)) * zoom;
-          const x = board.width / 2 + (o.position?.x || 0) * unitPx + (pan.x / 100) * board.width;
-          const y = board.height / 2 + (o.position?.z || 0) * unitPx + (pan.y / 100) * board.height;
-          return { ...o, _selected: x >= left && x <= right && y >= top && y <= bottom };
-        }));
+        setObjects((rows) =>
+          rows.map((o) => {
+            const unitPx =
+              Math.max(
+                1,
+                Math.min((board.width * 0.9) / 20, (board.height * 0.9) / 16),
+              ) * zoom;
+            const x =
+              board.width / 2 +
+              (o.position?.x || 0) * unitPx +
+              (pan.x / 100) * board.width;
+            const y =
+              board.height / 2 +
+              (o.position?.z || 0) * unitPx +
+              (pan.y / 100) * board.height;
+            return {
+              ...o,
+              _selected: x >= left && x <= right && y >= top && y <= bottom,
+            };
+          }),
+        );
       }
       setSelectionBox(null);
     }
     gesture.current = null;
   }
   async function duplicateObject(object, offset = { x: 1, z: 1 }) {
-    const position = { x: (object.position?.x || 0) + offset.x, z: (object.position?.z || 0) + offset.z };
+    const position = {
+      x: (object.position?.x || 0) + offset.x,
+      z: (object.position?.z || 0) + offset.z,
+    };
     setContextMenu(null);
-    if (object.object_type === "table" || object.table_id || object._clipboardTable) {
+    if (
+      object.object_type === "table" ||
+      object.table_id ||
+      object._clipboardTable
+    ) {
       const shape = object.properties?.table_shape || "short";
-      return addTable(shape, {
-        capacity: object._clipboardTableData?.capacity || object.table?.capacity || object.properties?.capacity || 2,
-        dimensions: object.dimensions,
-        chair_layout: object.properties?.chair_layout || defaultChairLayout(shape, object._clipboardTableData?.capacity || object.table?.capacity || 2),
-      }, position, object.rotation || { y: 0 });
+      return addTable(
+        shape,
+        {
+          capacity:
+            object._clipboardTableData?.capacity ||
+            object.table?.capacity ||
+            object.properties?.capacity ||
+            2,
+          dimensions: object.dimensions,
+          chair_layout:
+            object.properties?.chair_layout ||
+            defaultChairLayout(
+              shape,
+              object._clipboardTableData?.capacity ||
+                object.table?.capacity ||
+                2,
+            ),
+        },
+        position,
+        object.rotation || { y: 0 },
+      );
     }
     rememberUndo();
     dirty.current = true;
     const { _clipboardTable, _clipboardTableData, ...copyable } = object;
-    const duplicate = { ...copyable, id: null, _key: `copy-${Date.now()}-${Math.random()}`, table_id: null, table: null, position, _selected: true };
-    setObjects((rows) => [...rows.map((row) => ({ ...row, _selected: false })), duplicate]);
+    const duplicate = {
+      ...copyable,
+      id: null,
+      _key: `copy-${Date.now()}-${Math.random()}`,
+      table_id: null,
+      table: null,
+      position,
+      _selected: true,
+    };
+    setObjects((rows) => [
+      ...rows.map((row) => ({ ...row, _selected: false })),
+      duplicate,
+    ]);
     return duplicate._key;
   }
   async function pasteCopiedObjects() {
     const selection = objects.filter((object) => object._selected);
-    const bounds = (items) => items.reduce((result, object) => {
-      const width = Number(object.dimensions?.width ?? (object.object_type === "table" ? 1.45 : 1)) || 0;
-      const depth = Number(object.dimensions?.depth ?? (object.object_type === "table" ? 1.45 : 1)) || 0;
-      const angle = Number(object.rotation?.y) || 0;
-      const halfX = (Math.abs(Math.cos(angle)) * width + Math.abs(Math.sin(angle)) * depth) / 2;
-      const halfZ = (Math.abs(Math.sin(angle)) * width + Math.abs(Math.cos(angle)) * depth) / 2;
-      const x = Number(object.position?.x) || 0;
-      const z = Number(object.position?.z) || 0;
-      result.minX = Math.min(result.minX, x - halfX);
-      result.maxX = Math.max(result.maxX, x + halfX);
-      result.minZ = Math.min(result.minZ, z - halfZ);
-      result.maxZ = Math.max(result.maxZ, z + halfZ);
-      return result;
-    }, { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity });
+    const bounds = (items) =>
+      items.reduce(
+        (result, object) => {
+          const width =
+            Number(
+              object.dimensions?.width ??
+                (object.object_type === "table" ? 1.45 : 1),
+            ) || 0;
+          const depth =
+            Number(
+              object.dimensions?.depth ??
+                (object.object_type === "table" ? 1.45 : 1),
+            ) || 0;
+          const angle = Number(object.rotation?.y) || 0;
+          const halfX =
+            (Math.abs(Math.cos(angle)) * width +
+              Math.abs(Math.sin(angle)) * depth) /
+            2;
+          const halfZ =
+            (Math.abs(Math.sin(angle)) * width +
+              Math.abs(Math.cos(angle)) * depth) /
+            2;
+          const x = Number(object.position?.x) || 0;
+          const z = Number(object.position?.z) || 0;
+          result.minX = Math.min(result.minX, x - halfX);
+          result.maxX = Math.max(result.maxX, x + halfX);
+          result.minZ = Math.min(result.minZ, z - halfZ);
+          result.maxZ = Math.max(result.maxZ, z + halfZ);
+          return result;
+        },
+        { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity },
+      );
     const copyBounds = bounds(clipboard.current);
     const targetBounds = selection.length ? bounds(selection) : copyBounds;
     const gap = 0.5;
     const offset = {
       x: targetBounds.maxX + gap - copyBounds.minX,
-      z: (targetBounds.minZ + targetBounds.maxZ - copyBounds.minZ - copyBounds.maxZ) / 2,
+      z:
+        (targetBounds.minZ +
+          targetBounds.maxZ -
+          copyBounds.minZ -
+          copyBounds.maxZ) /
+        2,
     };
     const pastedIds = [];
     for (const object of clipboard.current) {
-      const id = await duplicateObject({ ...object, position: { ...object.position } }, offset);
+      const id = await duplicateObject(
+        { ...object, position: { ...object.position } },
+        offset,
+      );
       if (id !== null && id !== undefined) pastedIds.push(id);
     }
     const pasted = new Set(pastedIds);
-    setObjects((rows) => rows.map((row) => ({
-      ...row,
-      _selected: pasted.has(row.id ?? row._key),
-    })));
-    if (pasted.size) setNotice(`${pasted.size} pasted item${pasted.size === 1 ? "" : "s"} selected.`);
+    setObjects((rows) =>
+      rows.map((row) => ({
+        ...row,
+        _selected: pasted.has(row.id ?? row._key),
+      })),
+    );
+    if (pasted.size)
+      setNotice(
+        `${pasted.size} pasted item${pasted.size === 1 ? "" : "s"} selected.`,
+      );
   }
   function copySelectedObjects() {
     const selected = objects.filter((object) => object._selected);
     if (!selected.length) return false;
     clipboard.current = selected.map((object) => {
-      const { id, table_id, table, _key, _pending, _selected, ...source } = object;
-      return { ...JSON.parse(JSON.stringify(source)), _clipboardTable: Boolean(table_id), _clipboardTableData: table ? { ...table } : null };
+      const { id, table_id, table, _key, _pending, _selected, ...source } =
+        object;
+      return {
+        ...JSON.parse(JSON.stringify(source)),
+        _clipboardTable: Boolean(table_id),
+        _clipboardTableData: table ? { ...table } : null,
+      };
     });
     return true;
   }
@@ -1553,12 +2353,22 @@ export function FloorPlanEditor() {
     }
     copySelectedObjects();
     rememberUndo();
-    const idsToDelete = selected.filter((object) => object.id).map((object) => object.id);
-    pendingDeleteIds.current = [...new Set([...pendingDeleteIds.current, ...idsToDelete])];
-    const selectedIds = new Set(selected.map((object) => object.id ?? object._key));
-    setObjects((rows) => rows.filter((object) => !selectedIds.has(object.id ?? object._key)));
+    const idsToDelete = selected
+      .filter((object) => object.id)
+      .map((object) => object.id);
+    pendingDeleteIds.current = [
+      ...new Set([...pendingDeleteIds.current, ...idsToDelete]),
+    ];
+    const selectedIds = new Set(
+      selected.map((object) => object.id ?? object._key),
+    );
+    setObjects((rows) =>
+      rows.filter((object) => !selectedIds.has(object.id ?? object._key)),
+    );
     dirty.current = true;
-    setNotice(`${selected.length} item${selected.length === 1 ? "" : "s"} cut. Press Ctrl+Z to undo, or save the draft to apply the removal.`);
+    setNotice(
+      `${selected.length} item${selected.length === 1 ? "" : "s"} cut. Press Ctrl+Z to undo, or save the draft to apply the removal.`,
+    );
   }
   async function deleteSelected() {
     const selected = objects.filter((object) => object._selected);
@@ -1571,17 +2381,34 @@ export function FloorPlanEditor() {
     const removal = tableCount
       ? `Remove ${selected.length} selected item${selected.length === 1 ? "" : "s"} from the floor plan? Table records will be deactivated, and active reservations or dining sessions will block removal.`
       : `Remove ${selected.length} selected item${selected.length === 1 ? "" : "s"} from the floor plan?`;
-    if (!(await confirm(removal, { title: "Remove selected items?", confirmLabel: "Remove items", destructive: true }))) return;
+    if (
+      !(await confirm(removal, {
+        title: "Remove selected items?",
+        confirmLabel: "Remove items",
+        destructive: true,
+      }))
+    )
+      return;
     dirty.current = true;
     setError("");
     setBusyAction("Removing items");
     try {
-      await Promise.all(selected.filter((object) => object.id).map((object) => api(`/admin/floor-plan/objects/${object.id}`, { method: "DELETE" })));
+      await Promise.all(
+        selected
+          .filter((object) => object.id)
+          .map((object) =>
+            api(`/admin/floor-plan/objects/${object.id}`, { method: "DELETE" }),
+          ),
+      );
       const ids = new Set(selected.map((object) => object.id ?? object._key));
-      setObjects((rows) => rows.filter((object) => !ids.has(object.id ?? object._key)));
+      setObjects((rows) =>
+        rows.filter((object) => !ids.has(object.id ?? object._key)),
+      );
       undoStack.current = [];
       setContextMenu(null);
-      setNotice(`${selected.length} layout item${selected.length === 1 ? "" : "s"} removed from this draft.`);
+      setNotice(
+        `${selected.length} layout item${selected.length === 1 ? "" : "s"} removed from this draft.`,
+      );
     } catch (e) {
       setError(e.message);
       dirty.current = false;
@@ -1595,48 +2422,107 @@ export function FloorPlanEditor() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "r") {
         event.preventDefault();
         event.stopPropagation();
-        setNotice(dirty.current
-          ? "Your floor plan has unsaved changes. Save the draft before refreshing; press R to rotate selected items."
-          : "Ctrl+R refresh is disabled in the floor-plan editor. Use R to rotate selected items.");
+        setNotice(
+          dirty.current
+            ? "Your floor plan has unsaved changes. Save the draft before refreshing; press R to rotate selected items."
+            : "Ctrl+R refresh is disabled in the floor-plan editor. Use R to rotate selected items.",
+        );
         return;
       }
-      if (event.target instanceof HTMLElement && ["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) return;
-      if (event.code === "Space") { spaceHeld.current = true; event.preventDefault(); return; }
-      if (event.key === "Escape") { setContextMenu(null); setSelectionBox(null); return; }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c" && objects.some((object) => object._selected)) {
+      if (
+        event.target instanceof HTMLElement &&
+        ["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)
+      )
+        return;
+      if (event.code === "Space") {
+        spaceHeld.current = true;
+        event.preventDefault();
+        return;
+      }
+      if (event.key === "Escape") {
+        setContextMenu(null);
+        setSelectionBox(null);
+        return;
+      }
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "c" &&
+        objects.some((object) => object._selected)
+      ) {
         event.preventDefault();
         copySelectedObjects();
-        setNotice(`${clipboard.current.length} item${clipboard.current.length === 1 ? "" : "s"} copied.`);
+        setNotice(
+          `${clipboard.current.length} item${clipboard.current.length === 1 ? "" : "s"} copied.`,
+        );
       }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "x" && objects.some((object) => object._selected)) {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "x" &&
+        objects.some((object) => object._selected)
+      ) {
         event.preventDefault();
         cutSelectedObjects();
       }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "v" && clipboard.current.length) {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "v" &&
+        clipboard.current.length
+      ) {
         event.preventDefault();
         // Place the copied group beside the current selection while preserving its layout.
         pasteCopiedObjects();
       }
-      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === "z") {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === "z"
+      ) {
         event.preventDefault();
         undo();
       }
-      if ((event.key === "Delete" || event.key === "Backspace") && objects.some((object) => object._selected)) {
+      if (
+        (event.key === "Delete" || event.key === "Backspace") &&
+        objects.some((object) => object._selected)
+      ) {
         event.preventDefault();
         deleteSelected();
       }
-      if (!event.ctrlKey && !event.metaKey && event.key.toLowerCase() === "r" && objects.some((object) => object._selected)) {
+      if (
+        !event.ctrlKey &&
+        !event.metaKey &&
+        event.key.toLowerCase() === "r" &&
+        objects.some((object) => object._selected)
+      ) {
         event.preventDefault();
         rememberUndo();
-        setObjects((rows) => rows.map((object) => object._selected ? { ...object, rotation: { ...object.rotation, y: ((object.rotation?.y || 0) + Math.PI / 4) % (2 * Math.PI) } } : object));
+        setObjects((rows) =>
+          rows.map((object) =>
+            object._selected
+              ? {
+                  ...object,
+                  rotation: {
+                    ...object.rotation,
+                    y:
+                      ((object.rotation?.y || 0) + Math.PI / 4) % (2 * Math.PI),
+                  },
+                }
+              : object,
+          ),
+        );
         dirty.current = true;
       }
     }
-    function onKeyUp(event) { if (event.code === "Space") spaceHeld.current = false; }
+    function onKeyUp(event) {
+      if (event.code === "Space") spaceHeld.current = false;
+    }
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onKeyUp);
-    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("keyup", onKeyUp); window.removeEventListener("blur", onKeyUp); };
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onKeyUp);
+    };
   }, [objects]);
   async function save() {
     if (pendingAdds) {
@@ -1646,7 +2532,11 @@ export function FloorPlanEditor() {
     setBusyAction("Saving draft");
     try {
       if (pendingDeleteIds.current.length) {
-        await Promise.all(pendingDeleteIds.current.map((id) => api(`/admin/floor-plan/objects/${id}`, { method: "DELETE" })));
+        await Promise.all(
+          pendingDeleteIds.current.map((id) =>
+            api(`/admin/floor-plan/objects/${id}`, { method: "DELETE" }),
+          ),
+        );
         pendingDeleteIds.current = [];
       }
       const d = await api(`/admin/floor-plan/floors/${floor.id}/layout`, {
@@ -1678,14 +2568,26 @@ export function FloorPlanEditor() {
   }
   async function publish() {
     if (pendingAdds) {
-      setNotice("Wait for new items to finish adding before publishing the layout.");
+      setNotice(
+        "Wait for new items to finish adding before publishing the layout.",
+      );
       return;
     }
-    if (!(await confirm("Customers will see this floor plan once it is published.", { title: "Publish this layout?", confirmLabel: "Publish layout" }))) return;
+    if (
+      !(await confirm(
+        "Customers will see this floor plan once it is published.",
+        { title: "Publish this layout?", confirmLabel: "Publish layout" },
+      ))
+    )
+      return;
     setBusyAction("Publishing layout");
     try {
       if (pendingDeleteIds.current.length) {
-        await Promise.all(pendingDeleteIds.current.map((id) => api(`/admin/floor-plan/objects/${id}`, { method: "DELETE" })));
+        await Promise.all(
+          pendingDeleteIds.current.map((id) =>
+            api(`/admin/floor-plan/objects/${id}`, { method: "DELETE" }),
+          ),
+        );
         pendingDeleteIds.current = [];
       }
       const d = await api(`/admin/floor-plan/floors/${floor.id}/publish`, {
@@ -1714,7 +2616,11 @@ export function FloorPlanEditor() {
           is_active: o.table.is_active ?? true,
         }),
       });
-      setObjects((rows) => rows.map((row) => (row.table_id === o.table_id ? { ...row, table: d.data } : row)));
+      setObjects((rows) =>
+        rows.map((row) =>
+          row.table_id === o.table_id ? { ...row, table: d.data } : row,
+        ),
+      );
       undoStack.current = [];
       setNotice("Table setup saved.");
     } catch (e) {
@@ -1742,7 +2648,12 @@ export function FloorPlanEditor() {
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {notice && <Feedback tone="success">{notice}</Feedback>}
       <div className="floor-editor-toolbar">
-        <div className="floor-toolbar-group" aria-label="Floor management">
+        <div
+          className="floor-toolbar-group floor-toolbar-floors"
+          role="group"
+          aria-label="Floor management"
+        >
+          <span className="floor-toolbar-label">Floor</span>
           <select
             aria-label="Floor"
             value={floorId}
@@ -1757,55 +2668,229 @@ export function FloorPlanEditor() {
               </option>
             ))}
           </select>
-          <button className="floor-action-secondary" onClick={addFloor} disabled={Boolean(busyAction)}>Add floor</button>
-          {floor && <button
-            className="floor-action-delete"
-            onClick={deleteDraftFloor}
-            disabled={floor.is_published || pendingAdds > 0 || Boolean(busyAction)}
-            title={floor.is_published ? "Save this published floor as a draft before deleting it" : pendingAdds ? "Wait for new items to finish adding" : `Delete draft floor ${floor.name}`}
-          >Delete draft floor</button>}
+          <button
+            className="floor-action-secondary"
+            onClick={addFloor}
+            disabled={Boolean(busyAction)}
+          >
+            Add floor
+          </button>
+          {floor && (
+            <button
+              className="floor-action-delete"
+              onClick={deleteDraftFloor}
+              disabled={
+                floor.is_published || pendingAdds > 0 || Boolean(busyAction)
+              }
+              title={
+                floor.is_published
+                  ? "Save this published floor as a draft before deleting it"
+                  : pendingAdds
+                    ? "Wait for new items to finish adding"
+                    : `Delete draft floor ${floor.name}`
+              }
+            >
+              Delete draft floor
+            </button>
+          )}
         </div>
         {floor && (
           <>
-            <div className="floor-toolbar-group" aria-label="Object library">
-            <details className="builder-menu" name="floor-editor-popover">
-              <summary>Object library</summary>
-              <div className="builder-menu-popover">
-                <strong className="builder-popover-title">Add an object</strong>
-                <section><strong>Tables & seating</strong><button onClick={() => addTable("short")}>Add round table</button><button onClick={() => addTable("long")}>Add rectangular table</button></section>
-                <section><strong>Room structure</strong><button onClick={() => addObject("wall", { width: 8 })}>Add long wall</button><button onClick={() => addObject("wall", { width: 4 })}>Add short wall</button><button onClick={() => addObject("door")}>Add door</button><button onClick={() => addObject("entrance")}>Add entry marker</button></section>
-                <section><strong>Room finish & decor</strong><button onClick={() => addObject("flooring")}>Add floor panel</button><button onClick={() => addObject("counter")}>Add counter</button><button onClick={() => addObject("furniture")}>Add furniture</button></section>
-              </div>
-            </details>
-            <details className="builder-menu builder-presets-menu" name="floor-editor-popover">
-              <summary>Table templates{presets.length ? ` · ${presets.length}` : ""}</summary>
-              <div className="builder-menu-popover">
-                <strong className="builder-popover-title">Your table templates</strong>
-                {presets.length ? presets.map((preset) => <div className="preset-menu-row" key={preset.id}><div><b>{preset.name}</b><small>{preset.definition.type === "group" ? `${preset.definition.objects?.length || 0} layout items` : `${preset.definition.shape === "long" ? "Rectangular" : "Round"} · ${preset.definition.capacity} seats`}</small></div><button onClick={() => addPreset(preset)}>Add preset</button><button className="preset-delete" aria-label={`Delete ${preset.name}`} title={`Delete ${preset.name}`} onClick={() => deletePreset(preset)}>×</button></div>) : <small>No saved presets yet. Select a table to save a table preset, or select multiple items to save a layout preset.</small>}
-              </div>
-            </details>
+            <div
+              className="floor-toolbar-group floor-toolbar-actions"
+              role="group"
+              aria-label="Layout actions"
+            >
+              <button
+                className="floor-action-secondary"
+                onClick={() => setPreview(!preview)}
+                disabled={pendingAdds > 0 || Boolean(busyAction)}
+              >
+                {preview ? "Edit layout" : "Preview 3D"}
+              </button>
+              <button
+                className="floor-action-primary"
+                onClick={save}
+                disabled={pendingAdds > 0 || Boolean(busyAction)}
+                title={
+                  pendingAdds
+                    ? "Wait for new items to finish adding"
+                    : "Save this draft"
+                }
+              >
+                Save draft
+              </button>
+              <button
+                className="floor-action-publish"
+                onClick={publish}
+                disabled={pendingAdds > 0 || Boolean(busyAction)}
+                title={
+                  pendingAdds
+                    ? "Wait for new items to finish adding"
+                    : "Publish this layout"
+                }
+              >
+                Publish layout
+              </button>
             </div>
-            <div className="floor-toolbar-group floor-toolbar-canvas">
-            <label className="snap-toggle"><input type="checkbox" checked={snapToGrid} onChange={(e) => setSnapToGrid(e.target.checked)} />Snap to grid</label>
-            <button className="floor-action-secondary" onClick={alignObjectsToGrid} disabled={!objects.length || pendingAdds > 0 || Boolean(busyAction)} title="Align every object to the nearest grid block">Align objects</button>
-            <button className="floor-action-secondary" onClick={undo} disabled={!undoStack.current.length || pendingAdds > 0 || Boolean(busyAction)} title="Undo the last floor-plan edit (Ctrl+Z)">Undo</button>
-            <span className="shortcut-hint" title="Ctrl/Shift-click or drag to select multiple objects. Ctrl+C copies, Ctrl+X cuts, Ctrl+V pastes, Ctrl+Z undoes. R rotates, Delete removes.">Ctrl-click select · Ctrl+C/X/V copy, cut, paste · Ctrl+Z undo</span>
+            <div
+              className="floor-toolbar-group floor-toolbar-library"
+              role="group"
+              aria-label="Add to layout"
+            >
+              <span className="floor-toolbar-label">Add to layout</span>
+              <details className="builder-menu" name="floor-editor-popover">
+                <summary>Object library</summary>
+                <div className="builder-menu-popover">
+                  <strong className="builder-popover-title">
+                    Add an object
+                  </strong>
+                  <section>
+                    <strong>Tables & seating</strong>
+                    <button onClick={() => addTable("short")}>
+                      Add round table
+                    </button>
+                    <button onClick={() => addTable("long")}>
+                      Add rectangular table
+                    </button>
+                  </section>
+                  <section>
+                    <strong>Room structure</strong>
+                    <button onClick={() => addObject("wall", { width: 8 })}>
+                      Add long wall
+                    </button>
+                    <button onClick={() => addObject("wall", { width: 4 })}>
+                      Add short wall
+                    </button>
+                    <button onClick={() => addObject("door")}>Add door</button>
+                    <button onClick={() => addObject("entrance")}>
+                      Add entry marker
+                    </button>
+                  </section>
+                  <section>
+                    <strong>Room finish & decor</strong>
+                    <button onClick={() => addObject("flooring")}>
+                      Add floor panel
+                    </button>
+                    <button onClick={() => addObject("counter")}>
+                      Add counter
+                    </button>
+                    <button onClick={() => addObject("furniture")}>
+                      Add furniture
+                    </button>
+                  </section>
+                </div>
+              </details>
+              <details
+                className="builder-menu builder-presets-menu"
+                name="floor-editor-popover"
+              >
+                <summary>
+                  Table templates{presets.length ? ` · ${presets.length}` : ""}
+                </summary>
+                <div className="builder-menu-popover">
+                  <strong className="builder-popover-title">
+                    Your table templates
+                  </strong>
+                  {presets.length ? (
+                    presets.map((preset) => (
+                      <div className="preset-menu-row" key={preset.id}>
+                        <div>
+                          <b>{preset.name}</b>
+                          <small>
+                            {preset.definition.type === "group"
+                              ? `${preset.definition.objects?.length || 0} layout items`
+                              : `${preset.definition.shape === "long" ? "Rectangular" : "Round"} · ${preset.definition.capacity} seats`}
+                          </small>
+                        </div>
+                        <button onClick={() => addPreset(preset)}>
+                          Add preset
+                        </button>
+                        <button
+                          className="preset-delete"
+                          aria-label={`Delete ${preset.name}`}
+                          title={`Delete ${preset.name}`}
+                          onClick={() => deletePreset(preset)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <small>
+                      No saved presets yet. Select a table to save a table
+                      preset, or select multiple items to save a layout preset.
+                    </small>
+                  )}
+                </div>
+              </details>
             </div>
-            <div className="floor-toolbar-group floor-toolbar-actions">
-            <button className="floor-action-secondary" onClick={() => setPreview(!preview)} disabled={pendingAdds > 0 || Boolean(busyAction)}>
-              {preview ? "Edit layout" : "Preview 3D"}
-            </button>
-            <button className="floor-action-primary" onClick={save} disabled={pendingAdds > 0 || Boolean(busyAction)} title={pendingAdds ? "Wait for new items to finish adding" : "Save this draft"}>Save draft</button>
-            <button className="floor-action-publish" onClick={publish} disabled={pendingAdds > 0 || Boolean(busyAction)} title={pendingAdds ? "Wait for new items to finish adding" : "Publish this layout"}>Publish layout</button>
+            <div
+              className="floor-toolbar-group floor-toolbar-canvas"
+              role="group"
+              aria-label="Arrange objects"
+            >
+              <label className="snap-toggle">
+                <input
+                  type="checkbox"
+                  checked={snapToGrid}
+                  onChange={(e) => setSnapToGrid(e.target.checked)}
+                />
+                Snap to grid
+              </label>
+              <button
+                className="floor-action-secondary"
+                onClick={alignObjectsToGrid}
+                disabled={
+                  !objects.length || pendingAdds > 0 || Boolean(busyAction)
+                }
+                title="Align every object to the nearest grid block"
+              >
+                Align objects
+              </button>
+              <button
+                className="floor-action-secondary"
+                onClick={undo}
+                disabled={
+                  !undoStack.current.length ||
+                  pendingAdds > 0 ||
+                  Boolean(busyAction)
+                }
+                title="Undo the last floor-plan edit (Ctrl+Z)"
+              >
+                Undo
+              </button>
+              <details
+                className="builder-menu floor-shortcuts"
+                name="floor-editor-popover"
+              >
+                <summary>Shortcuts</summary>
+                <div className="builder-menu-popover">
+                  <strong className="builder-popover-title">
+                    Keyboard shortcuts
+                  </strong>
+                  <p>Ctrl/Shift-click or drag to select multiple objects.</p>
+                  <p>Ctrl+C / X / V to copy, cut, and paste. Ctrl+Z to undo.</p>
+                  <p>R to rotate. Delete to remove.</p>
+                </div>
+              </details>
             </div>
           </>
         )}
       </div>
-      {(busyAction || pendingAdds > 0) && <div className="floor-work-indicator" role="status" aria-live="polite">
-        <LoaderCircle size={17} className="spin" aria-hidden="true" />
-        <span>{pendingAdds > 0 ? `Adding ${pendingAdds} item${pendingAdds === 1 ? "" : "s"}…` : `${busyAction}…`}</span>
-        <i aria-hidden="true"><b /></i>
-      </div>}
+      {(busyAction || pendingAdds > 0) && (
+        <div className="floor-work-indicator" role="status" aria-live="polite">
+          <LoaderCircle size={17} className="spin" aria-hidden="true" />
+          <span>
+            {pendingAdds > 0
+              ? `Adding ${pendingAdds} item${pendingAdds === 1 ? "" : "s"}…`
+              : `${busyAction}…`}
+          </span>
+          <i aria-hidden="true">
+            <b />
+          </i>
+        </div>
+      )}
       {floor && !preview && (
         <div
           ref={boardRef}
@@ -1818,10 +2903,10 @@ export function FloorPlanEditor() {
             "--floor-zoom": zoom,
             "--floor-pan-x": `${pan.x}%`,
             "--floor-pan-y": `${pan.y}%`,
-            "--floor-grid-x": `${Math.max(1, Math.min(boardSize.width * 0.9 / 20, boardSize.height * 0.9 / 16) * zoom)}px`,
-            "--floor-grid-y": `${Math.max(1, Math.min(boardSize.width * 0.9 / 20, boardSize.height * 0.9 / 16) * zoom)}px`,
-            "--floor-grid-major-x": `${Math.max(5, Math.min(boardSize.width * 0.9 / 20, boardSize.height * 0.9 / 16) * 5 * zoom)}px`,
-            "--floor-grid-major-y": `${Math.max(5, Math.min(boardSize.width * 0.9 / 20, boardSize.height * 0.9 / 16) * 5 * zoom)}px`,
+            "--floor-grid-x": `${Math.max(1, Math.min((boardSize.width * 0.9) / 20, (boardSize.height * 0.9) / 16) * zoom)}px`,
+            "--floor-grid-y": `${Math.max(1, Math.min((boardSize.width * 0.9) / 20, (boardSize.height * 0.9) / 16) * zoom)}px`,
+            "--floor-grid-major-x": `${Math.max(5, Math.min((boardSize.width * 0.9) / 20, (boardSize.height * 0.9) / 16) * 5 * zoom)}px`,
+            "--floor-grid-major-y": `${Math.max(5, Math.min((boardSize.width * 0.9) / 20, (boardSize.height * 0.9) / 16) * 5 * zoom)}px`,
             "--floor-pan-x-px": `${(pan.x / 100) * boardSize.width}px`,
             "--floor-pan-y-px": `${(pan.y / 100) * boardSize.height}px`,
           }}
@@ -1830,40 +2915,173 @@ export function FloorPlanEditor() {
             <button
               key={o.id || o._key}
               onPointerDown={(e) => startObjectDrag(e, o)}
-              onClick={(e) => { if (suppressClick.current) { suppressClick.current = false; return; } selectObject(o.id ?? o._key, e.ctrlKey || e.metaKey ? "toggle" : e.shiftKey ? "add" : "replace"); }}
-              onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); const rect = boardRef.current.getBoundingClientRect(); selectObject(o.id ?? o._key); setContextMenu({ id: o.id ?? o._key, x: Math.min(e.clientX - rect.left, rect.width - 170), y: Math.min(e.clientY - rect.top, rect.height - 90) }); }}
+              onClick={(e) => {
+                if (suppressClick.current) {
+                  suppressClick.current = false;
+                  return;
+                }
+                selectObject(
+                  o.id ?? o._key,
+                  e.ctrlKey || e.metaKey
+                    ? "toggle"
+                    : e.shiftKey
+                      ? "add"
+                      : "replace",
+                );
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const rect = boardRef.current.getBoundingClientRect();
+                selectObject(o.id ?? o._key);
+                setContextMenu({
+                  id: o.id ?? o._key,
+                  x: Math.min(e.clientX - rect.left, rect.width - 170),
+                  y: Math.min(e.clientY - rect.top, rect.height - 90),
+                });
+              }}
               data-object-key={String(o.id ?? o._key)}
               style={{
-                left: `calc(50% + ${(o.position?.x || 0) * Math.max(1, Math.min(boardSize.width * 0.9 / 20, boardSize.height * 0.9 / 16) * zoom)}px + ${pan.x}%)`,
-                top: `calc(50% + ${(o.position?.z || 0) * Math.max(1, Math.min(boardSize.width * 0.9 / 20, boardSize.height * 0.9 / 16) * zoom)}px + ${pan.y}%)`,
+                left: `calc(50% + ${(o.position?.x || 0) * Math.max(1, Math.min((boardSize.width * 0.9) / 20, (boardSize.height * 0.9) / 16) * zoom)}px + ${pan.x}%)`,
+                top: `calc(50% + ${(o.position?.z || 0) * Math.max(1, Math.min((boardSize.width * 0.9) / 20, (boardSize.height * 0.9) / 16) * zoom)}px + ${pan.y}%)`,
                 transform: `translate(-50%,-50%) rotate(${-(o.rotation?.y || 0)}rad)`,
-                "--object-width": o.dimensions?.width ?? (o.properties?.table_shape === "long" ? 2.4 : 1.45),
-                "--object-depth": o.dimensions?.depth ?? (o.properties?.table_shape === "long" ? 1.15 : 1.45),
+                "--object-width":
+                  o.dimensions?.width ??
+                  (o.properties?.table_shape === "long" ? 2.4 : 1.45),
+                "--object-depth":
+                  o.dimensions?.depth ??
+                  (o.properties?.table_shape === "long" ? 1.15 : 1.45),
               }}
               className={`editor-object ${o.object_type} ${o.properties?.table_shape || "short"} status-${o.table?.operational_status || "available"} ${o._selected ? "selected" : ""} ${o._pending ? "is-pending" : ""}`}
-              title={o.table_id ? `${o.table?.operational_status || "available"} · ${o.table?.capacity || o.properties?.capacity || 2} seats` : o.object_type}
-              aria-label={o.table_id ? `${o.table?.table_number || o.label}, ${o.table?.operational_status || "available"}, capacity ${o.table?.capacity || 2}` : o.label || o.object_type}
+              title={
+                o.table_id
+                  ? `${o.table?.operational_status || "available"} · ${o.table?.capacity || o.properties?.capacity || 2} seats`
+                  : o.object_type
+              }
+              aria-label={
+                o.table_id
+                  ? `${o.table?.table_number || o.label}, ${o.table?.operational_status || "available"}, capacity ${o.table?.capacity || 2}`
+                  : o.label || o.object_type
+              }
             >
-              {o.object_type === "table" && chairPositions(o.properties?.table_shape || "short", o.table?.capacity || o.properties?.capacity || 2, o.properties?.chair_layout, o.dimensions).map((seat, i) => <i key={i} className="editor-chair" style={{ left: `${50 + (seat.x / (o.dimensions?.width || 1.45)) * 100}%`, top: `${50 + (seat.z / (o.dimensions?.depth || 1.45)) * 100}%`, transform: `translate(-50%, -50%) rotate(${-seat.rotation}rad)` }} />)}
+              {o.object_type === "table" &&
+                chairPositions(
+                  o.properties?.table_shape || "short",
+                  o.table?.capacity || o.properties?.capacity || 2,
+                  o.properties?.chair_layout,
+                  o.dimensions,
+                ).map((seat, i) => (
+                  <i
+                    key={i}
+                    className="editor-chair"
+                    style={{
+                      left: `${50 + (seat.x / (o.dimensions?.width || 1.45)) * 100}%`,
+                      top: `${50 + (seat.z / (o.dimensions?.depth || 1.45)) * 100}%`,
+                      transform: `translate(-50%, -50%) rotate(${-seat.rotation}rad)`,
+                    }}
+                  />
+                ))}
               <span>{o.table?.table_number || o.label || o.object_type}</span>
             </button>
           ))}
-          <div className="editor-map-controls" aria-label="Floor plan navigation">
-            <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={() => setZoom((z) => Math.min(2.2, Number((z + 0.15).toFixed(2))))} aria-label="Zoom in" title="Zoom in">+</button>
-            <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={() => setZoom((z) => Math.max(0.55, Number((z - 0.15).toFixed(2))))} aria-label="Zoom out" title="Zoom out">−</button>
+          <div
+            className="editor-map-controls"
+            aria-label="Floor plan navigation"
+          >
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() =>
+                setZoom((z) => Math.min(2.2, Number((z + 0.15).toFixed(2))))
+              }
+              aria-label="Zoom in"
+              title="Zoom in"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() =>
+                setZoom((z) => Math.max(0.55, Number((z - 0.15).toFixed(2))))
+              }
+              aria-label="Zoom out"
+              title="Zoom out"
+            >
+              −
+            </button>
             <label className="editor-zoom-slider">
               <span>{Math.round(zoom * 100)}%</span>
-              <input type="range" min="0.55" max="2.2" step="0.05" value={zoom} onPointerDown={(e) => e.stopPropagation()} onChange={(e) => setZoom(Number(e.target.value))} aria-label="Canvas zoom" title="Adjust canvas zoom" />
+              <input
+                type="range"
+                min="0.55"
+                max="2.2"
+                step="0.05"
+                value={zoom}
+                onPointerDown={(e) => e.stopPropagation()}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                aria-label="Canvas zoom"
+                title="Adjust canvas zoom"
+              />
             </label>
-            <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} aria-label="Reset view" title="Reset view">Reset</button>
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => {
+                setZoom(1);
+                setPan({ x: 0, y: 0 });
+              }}
+              aria-label="Reset view"
+              title="Reset view"
+            >
+              Reset
+            </button>
           </div>
-          <div className="editor-status-legend" aria-label="Table status legend">
-            {[["available", "Available"], ["reserved", "Reserved"], ["occupied", "Occupied"], ["cleaning", "Cleaning"], ["unavailable", "Unavailable"]].map(([key, label]) => <span key={key}><i className={`status-${key}`} />{label}</span>)}
+          <div
+            className="editor-status-legend"
+            aria-label="Table status legend"
+          >
+            {[
+              ["available", "Available"],
+              ["reserved", "Reserved"],
+              ["occupied", "Occupied"],
+              ["cleaning", "Cleaning"],
+              ["unavailable", "Unavailable"],
+            ].map(([key, label]) => (
+              <span key={key}>
+                <i className={`status-${key}`} />
+                {label}
+              </span>
+            ))}
           </div>
-          <span className="editor-board-hint">Drag to move · objects snap one block at a time · Ctrl/Shift-click to select · Space+drag to pan · scroll to zoom</span>
+          <span className="editor-board-hint">
+            Drag to move · objects snap one block at a time · Ctrl/Shift-click
+            to select · Space+drag to pan · scroll to zoom
+          </span>
           <span className="editor-room-label">Room area · 20 × 16 units</span>
-          {selectionBox && <div className="editor-selection-box" style={selectionBox} />}
-          {contextMenu && <div className="editor-context-menu" style={{ left: contextMenu.x, top: contextMenu.y }} onPointerDown={(e) => e.stopPropagation()}><button onClick={() => { const item = objects.find((row) => String(row.id ?? row._key) === String(contextMenu.id)); if (item) duplicateObject(item); }}>Duplicate</button><button onClick={deleteSelected}>Delete selected</button></div>}
+          {selectionBox && (
+            <div className="editor-selection-box" style={selectionBox} />
+          )}
+          {contextMenu && (
+            <div
+              className="editor-context-menu"
+              style={{ left: contextMenu.x, top: contextMenu.y }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => {
+                  const item = objects.find(
+                    (row) =>
+                      String(row.id ?? row._key) === String(contextMenu.id),
+                  );
+                  if (item) duplicateObject(item);
+                }}
+              >
+                Duplicate
+              </button>
+              <button onClick={deleteSelected}>Delete selected</button>
+            </div>
+          )}
         </div>
       )}
       {floor && preview && (
@@ -1872,132 +3090,380 @@ export function FloorPlanEditor() {
             <div className="floor-scene scene-loading">Loading preview…</div>
           }
         >
-          <FloorScene objects={objects} selectedId={previewSelectedId} selectLayoutObjects onSelect={setPreviewSelectedId} />
+          <FloorScene
+            objects={objects}
+            selectedId={previewSelectedId}
+            selectLayoutObjects
+            onSelect={setPreviewSelectedId}
+          />
         </Suspense>
       )}
       {floor && !preview && (
-        <section className={`editor-selection ${inspectorCollapsed ? "is-collapsed" : ""}`} aria-label="Selected object settings">
-          <button className="editor-inspector-toggle" onClick={() => setInspectorCollapsed((value) => !value)} aria-expanded={!inspectorCollapsed}><strong>Properties</strong><span>{selectedObjects.length ? `${selectedObjects.length} selected` : "No selection"}</span><b>{inspectorCollapsed ? "Expand" : "Collapse"}</b></button>
-          {!inspectorCollapsed && <>
-          {selectedObjects.length > 1 && <>
-            <p className="editor-inspector-empty">{selectedObjects.length} items selected. Drag any selected item to move the group, press R to rotate, or remove them below.</p>
-            <button className="editor-save-details" onClick={saveSelectionAsPreset} disabled={selectedObjects.some((item) => item._pending || Boolean(busyAction))}>Save selection as preset</button>
-            <button className="editor-remove-items" onClick={deleteSelected} disabled={selectedObjects.some((item) => item._pending)}>Remove selected ({selectedObjects.length})</button>
-          </>}
-          {selectedObjects.length === 1 && selectedObjects
-            .map((o) => (
-              <div key={o.id || o._key}>
-                <strong>
-                  Selected: {o.table?.table_number || o.label || o.object_type}
-                </strong>
-                <small className="floor-editor-helper">Drag the object to place it. Use these fields for precise adjustments.</small>
-                {!o.table_id && <label>
-                  Object label
-                  <input
-                    value={o.label || ""}
-                    onChange={(e) => update(o.id ?? o._key, { label: e.target.value })}
-                  />
-                </label>}
-                {o.table_id && (
-                  <>
-                    <label>
-                      Table shape
-                      <select
-                        value={o.properties?.table_shape || "short"}
-                        onChange={(e) => {
-                          const shape = e.target.value;
-                          update(o.id ?? o._key, {
-                            properties: { ...o.properties, table_shape: shape, chair_layout: defaultChairLayout(shape, o.table?.capacity || 2) },
-                            dimensions: shape === "long"
-                              ? { ...o.dimensions, width: 2.4, depth: 1.15 }
-                              : { ...o.dimensions, width: 1.45, depth: 1.45 },
-                          });
-                        }}
-                      >
-                        <option value="short">Short / round</option>
-                        <option value="long">Long / rectangular</option>
-                      </select>
-                    </label>
-                    <label>
-                      Table number
-                      <input
-                        value={o.table?.table_number || ""}
-                        onChange={(e) =>
-                          update(o.id ?? o._key, {
-                            table: { ...o.table, table_number: e.target.value },
-                          })
-                        }
-                      />
-                    </label>
-                    <label>
-                      Capacity
-                      <input
-                        type="number"
-                        step="1"
-                        min="1"
-                        max="12"
-                        inputMode="numeric"
-                        aria-label="Table capacity, 1 to 12 seats"
-                        value={o.table?.capacity ?? 2}
-                        onChange={(e) => setTableCapacity(o, e.target.value)}
-                        onBlur={() => {
-                          if (!o.table?.capacity) setTableCapacity(o, "1");
-                        }}
-                      />
-                    </label>
-                    <label>
-                      Zone
-                      <input
-                        value={o.table?.zone || ""}
-                        onChange={(e) =>
-                          update(o.id ?? o._key, {
-                            table: { ...o.table, zone: e.target.value },
-                          })
-                        }
-                      />
-                    </label>
-                    <fieldset className="chair-layout-controls">
-                      <legend>Chair arrangement</legend>
-                      {o.properties?.table_shape === "long" ? <>
-                        <small className="chair-layout-help">Set seats on each side. Total seats follow the side counts (maximum 12).</small>
-                        {["top", "bottom", "left", "right"].map((side) => <label key={side}>{side}<input type="number" min="0" max="12" step="1" inputMode="numeric" value={o.properties?.chair_layout?.[side] ?? defaultChairLayout("long", o.table?.capacity || 2)[side]} onChange={(e) => setChairCount(o, side, e.target.value)} /></label>)}
-                      </> : <label>Seats around<input type="number" min="1" max="12" step="1" inputMode="numeric" aria-label="Seats around table, 1 to 12" value={o.properties?.chair_layout?.around ?? o.table?.capacity ?? 2} onChange={(e) => setChairCount(o, "around", e.target.value)} onBlur={() => { if (!o.properties?.chair_layout?.around) setChairCount(o, "around", "1"); }} /></label>}
-                    </fieldset>
-                    <button className="editor-save-details" onClick={() => saveTable(o)}>
-                      Save table details
+        <section
+          className={`editor-selection ${inspectorCollapsed ? "is-collapsed" : ""}`}
+          aria-label="Selected object settings"
+        >
+          <button
+            className="editor-inspector-toggle"
+            onClick={() => setInspectorCollapsed((value) => !value)}
+            aria-expanded={!inspectorCollapsed}
+          >
+            <strong>Properties</strong>
+            <span>
+              {selectedObjects.length
+                ? `${selectedObjects.length} selected`
+                : "No selection"}
+            </span>
+            <b>{inspectorCollapsed ? "Expand" : "Collapse"}</b>
+          </button>
+          {!inspectorCollapsed && (
+            <>
+              {selectedObjects.length > 1 && (
+                <>
+                  <p className="editor-inspector-empty">
+                    {selectedObjects.length} items selected. Drag any selected
+                    item to move the group, press R to rotate, or remove them
+                    below.
+                  </p>
+                  <button
+                    className="editor-save-details"
+                    onClick={saveSelectionAsPreset}
+                    disabled={selectedObjects.some(
+                      (item) => item._pending || Boolean(busyAction),
+                    )}
+                  >
+                    Save selection as preset
+                  </button>
+                  <button
+                    className="editor-remove-items"
+                    onClick={deleteSelected}
+                    disabled={selectedObjects.some((item) => item._pending)}
+                  >
+                    Remove selected ({selectedObjects.length})
+                  </button>
+                </>
+              )}
+              {selectedObjects.length === 1 &&
+                selectedObjects.map((o) => (
+                  <div key={o.id || o._key}>
+                    <strong>
+                      Selected:{" "}
+                      {o.table?.table_number || o.label || o.object_type}
+                    </strong>
+                    <small className="floor-editor-helper">
+                      Drag the object to place it. Use these fields for precise
+                      adjustments.
+                    </small>
+                    {!o.table_id && (
+                      <label>
+                        Object label
+                        <input
+                          value={o.label || ""}
+                          onChange={(e) =>
+                            update(o.id ?? o._key, { label: e.target.value })
+                          }
+                        />
+                      </label>
+                    )}
+                    {o.table_id && (
+                      <>
+                        <label>
+                          Table shape
+                          <select
+                            value={o.properties?.table_shape || "short"}
+                            onChange={(e) => {
+                              const shape = e.target.value;
+                              update(o.id ?? o._key, {
+                                properties: {
+                                  ...o.properties,
+                                  table_shape: shape,
+                                  chair_layout: defaultChairLayout(
+                                    shape,
+                                    o.table?.capacity || 2,
+                                  ),
+                                },
+                                dimensions:
+                                  shape === "long"
+                                    ? {
+                                        ...o.dimensions,
+                                        width: 2.4,
+                                        depth: 1.15,
+                                      }
+                                    : {
+                                        ...o.dimensions,
+                                        width: 1.45,
+                                        depth: 1.45,
+                                      },
+                              });
+                            }}
+                          >
+                            <option value="short">Short / round</option>
+                            <option value="long">Long / rectangular</option>
+                          </select>
+                        </label>
+                        <label>
+                          Table number
+                          <input
+                            value={o.table?.table_number || ""}
+                            onChange={(e) =>
+                              update(o.id ?? o._key, {
+                                table: {
+                                  ...o.table,
+                                  table_number: e.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </label>
+                        <label>
+                          Capacity
+                          <input
+                            type="number"
+                            step="1"
+                            min="1"
+                            max="12"
+                            inputMode="numeric"
+                            aria-label="Table capacity, 1 to 12 seats"
+                            value={o.table?.capacity ?? 2}
+                            onChange={(e) =>
+                              setTableCapacity(o, e.target.value)
+                            }
+                            onBlur={() => {
+                              if (!o.table?.capacity) setTableCapacity(o, "1");
+                            }}
+                          />
+                        </label>
+                        <label>
+                          Zone
+                          <input
+                            value={o.table?.zone || ""}
+                            onChange={(e) =>
+                              update(o.id ?? o._key, {
+                                table: { ...o.table, zone: e.target.value },
+                              })
+                            }
+                          />
+                        </label>
+                        <fieldset className="chair-layout-controls">
+                          <legend>Chair arrangement</legend>
+                          {o.properties?.table_shape === "long" ? (
+                            <>
+                              <small className="chair-layout-help">
+                                Set seats on each side. Total seats follow the
+                                side counts (maximum 12).
+                              </small>
+                              {["top", "bottom", "left", "right"].map(
+                                (side) => (
+                                  <label key={side}>
+                                    {side}
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="12"
+                                      step="1"
+                                      inputMode="numeric"
+                                      value={
+                                        o.properties?.chair_layout?.[side] ??
+                                        defaultChairLayout(
+                                          "long",
+                                          o.table?.capacity || 2,
+                                        )[side]
+                                      }
+                                      onChange={(e) =>
+                                        setChairCount(o, side, e.target.value)
+                                      }
+                                    />
+                                  </label>
+                                ),
+                              )}
+                            </>
+                          ) : (
+                            <label>
+                              Seats around
+                              <input
+                                type="number"
+                                min="1"
+                                max="12"
+                                step="1"
+                                inputMode="numeric"
+                                aria-label="Seats around table, 1 to 12"
+                                value={
+                                  o.properties?.chair_layout?.around ??
+                                  o.table?.capacity ??
+                                  2
+                                }
+                                onChange={(e) =>
+                                  setChairCount(o, "around", e.target.value)
+                                }
+                                onBlur={() => {
+                                  if (!o.properties?.chair_layout?.around)
+                                    setChairCount(o, "around", "1");
+                                }}
+                              />
+                            </label>
+                          )}
+                        </fieldset>
+                        <button
+                          className="editor-save-details"
+                          onClick={() => saveTable(o)}
+                        >
+                          Save table details
+                        </button>
+                        <button
+                          className="editor-save-details"
+                          onClick={() => saveAsPreset(o)}
+                        >
+                          Save as preset
+                        </button>
+                      </>
+                    )}
+                    <div className="editor-transform-fields">
+                      <label>
+                        Position X
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={Number((o.position?.x || 0).toFixed(2))}
+                          onChange={(e) =>
+                            update(o.id ?? o._key, {
+                              position: {
+                                ...o.position,
+                                x: Number(e.target.value) || 0,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Position Z
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={Number((o.position?.z || 0).toFixed(2))}
+                          onChange={(e) =>
+                            update(o.id ?? o._key, {
+                              position: {
+                                ...o.position,
+                                z: Number(e.target.value) || 0,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="editor-rotation-field">
+                        Rotation ·{" "}
+                        {Math.round(
+                          (((((o.rotation?.y || 0) * 180) / Math.PI) % 360) +
+                            360) %
+                            360,
+                        )}
+                        °
+                        <input
+                          type="range"
+                          min="0"
+                          max="345"
+                          step="15"
+                          value={
+                            Math.round(
+                              ((((((o.rotation?.y || 0) * 180) / Math.PI) %
+                                360) +
+                                360) %
+                                360) /
+                                15,
+                            ) * 15
+                          }
+                          onChange={(e) =>
+                            update(o.id ?? o._key, {
+                              rotation: {
+                                ...o.rotation,
+                                y: (Number(e.target.value) * Math.PI) / 180,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                      {o.object_type !== "table" && (
+                        <>
+                          <label>
+                            Width
+                            <input
+                              type="number"
+                              min="0"
+                              max="30"
+                              step="0.1"
+                              value={o.dimensions?.width ?? 1}
+                              onChange={(e) =>
+                                update(o.id ?? o._key, {
+                                  dimensions: {
+                                    ...o.dimensions,
+                                    width:
+                                      e.target.value === ""
+                                        ? ""
+                                        : Math.max(
+                                            0,
+                                            Number(e.target.value) || 0,
+                                          ),
+                                  },
+                                })
+                              }
+                              onBlur={() => {
+                                if (o.dimensions?.width === "")
+                                  update(o.id ?? o._key, {
+                                    dimensions: { ...o.dimensions, width: 0 },
+                                  });
+                              }}
+                            />
+                          </label>
+                          <label>
+                            Depth
+                            <input
+                              type="number"
+                              min="0"
+                              max="30"
+                              step="0.1"
+                              value={o.dimensions?.depth ?? 1}
+                              onChange={(e) =>
+                                update(o.id ?? o._key, {
+                                  dimensions: {
+                                    ...o.dimensions,
+                                    depth:
+                                      e.target.value === ""
+                                        ? ""
+                                        : Math.max(
+                                            0,
+                                            Number(e.target.value) || 0,
+                                          ),
+                                  },
+                                })
+                              }
+                              onBlur={() => {
+                                if (o.dimensions?.depth === "")
+                                  update(o.id ?? o._key, {
+                                    dimensions: { ...o.dimensions, depth: 0 },
+                                  });
+                              }}
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      className="editor-remove-items"
+                      onClick={deleteSelected}
+                      disabled={o._pending}
+                    >
+                      Remove item from floor
                     </button>
-                    <button className="editor-save-details" onClick={() => saveAsPreset(o)}>Save as preset</button>
-                  </>
-                )}
-                <div className="editor-transform-fields">
-                  <label>
-                    Position X
-                    <input type="number" step="0.1" value={Number((o.position?.x || 0).toFixed(2))} onChange={(e) => update(o.id ?? o._key, { position: { ...o.position, x: Number(e.target.value) || 0 } })} />
-                  </label>
-                  <label>
-                    Position Z
-                    <input type="number" step="0.1" value={Number((o.position?.z || 0).toFixed(2))} onChange={(e) => update(o.id ?? o._key, { position: { ...o.position, z: Number(e.target.value) || 0 } })} />
-                  </label>
-                  <label className="editor-rotation-field">
-                    Rotation · {Math.round((((o.rotation?.y || 0) * 180 / Math.PI) % 360 + 360) % 360)}°
-                    <input type="range" min="0" max="345" step="15" value={Math.round(((((o.rotation?.y || 0) * 180 / Math.PI) % 360 + 360) % 360) / 15) * 15} onChange={(e) => update(o.id ?? o._key, { rotation: { ...o.rotation, y: Number(e.target.value) * Math.PI / 180 } })} />
-                  </label>
-                  {o.object_type !== "table" && <>
-                    <label>
-                      Width
-                      <input type="number" min="0" max="30" step="0.1" value={o.dimensions?.width ?? 1} onChange={(e) => update(o.id ?? o._key, { dimensions: { ...o.dimensions, width: e.target.value === "" ? "" : Math.max(0, Number(e.target.value) || 0) } })} onBlur={() => { if (o.dimensions?.width === "") update(o.id ?? o._key, { dimensions: { ...o.dimensions, width: 0 } }); }} />
-                    </label>
-                    <label>
-                      Depth
-                      <input type="number" min="0" max="30" step="0.1" value={o.dimensions?.depth ?? 1} onChange={(e) => update(o.id ?? o._key, { dimensions: { ...o.dimensions, depth: e.target.value === "" ? "" : Math.max(0, Number(e.target.value) || 0) } })} onBlur={() => { if (o.dimensions?.depth === "") update(o.id ?? o._key, { dimensions: { ...o.dimensions, depth: 0 } }); }} />
-                    </label>
-                  </>}
-                </div>
-                <button className="editor-remove-items" onClick={deleteSelected} disabled={o._pending}>Remove item from floor</button>
-              </div>
-            ))}
-          {selectedObjects.length === 0 && <p className="editor-inspector-empty">Select a table or layout object to edit it. Drag items on the canvas to arrange the floor.</p>}
-          </>}
+                  </div>
+                ))}
+              {selectedObjects.length === 0 && (
+                <p className="editor-inspector-empty">
+                  Select a table or layout object to edit it. Drag items on the
+                  canvas to arrange the floor.
+                </p>
+              )}
+            </>
+          )}
         </section>
       )}
     </section>

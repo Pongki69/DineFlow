@@ -4,7 +4,10 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 
+Schedule::command('deliveries:refresh-etas')->everyMinute()->withoutOverlapping()->runInBackground();
+
 Schedule::command('deliveries:purge-locations')->daily();
+Schedule::command('deliveries:dispatch')->everyFiveSeconds()->withoutOverlapping(2)->runInBackground();
 Schedule::command('payments:expire-pending')->everyFiveMinutes();
 Schedule::command('reservations:send-reminders')->hourly();
 Schedule::command('notifications:purge-read')->daily();

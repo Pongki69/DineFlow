@@ -31,6 +31,9 @@ it('isolates customer tracking and rider actions and stops GPS after completion'
     $this->actingAs($rider)->postJson('/api/v1/rider/deliveries/'.$delivery->id.'/accept')->assertOk();
     $this->postJson('/api/v1/rider/deliveries/'.$delivery->id.'/locations', ['latitude' => 14.6, 'longitude' => 120.98])->assertForbidden();
     foreach (['arrived_at_restaurant', 'picked_up', 'in_transit', 'delivered'] as $status) {
+        if ($status === 'delivered') {
+            $this->postJson('/api/v1/rider/deliveries/'.$delivery->id.'/proof', ['photo' => \Tests\Support\DeliveryPhoto::file()])->assertOk();
+        }
         $this->patchJson('/api/v1/rider/deliveries/'.$delivery->id.'/status', ['status' => $status])->assertOk();
     }
     $this->postJson('/api/v1/rider/deliveries/'.$delivery->id.'/locations', ['latitude' => 14.6, 'longitude' => 120.98])->assertForbidden();

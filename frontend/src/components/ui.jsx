@@ -174,6 +174,7 @@ export function StatusBadge({ status }) {
   ].includes(status);
   return (
     <span
+      data-status={status || "pending"}
       className={`status-badge status-badge--${good ? "good" : bad ? "muted" : "pending"}`}
     >
       <i aria-hidden="true" />

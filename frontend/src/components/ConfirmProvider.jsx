@@ -34,12 +34,12 @@ export function ConfirmProvider({ children }) {
       });
     });
   }
-  function requestPrompt(message, defaultValue = "") {
+  function requestPrompt(message, defaultValue = "", options = {}) {
     resolver.current?.(null);
     dialog.current?.close();
     return new Promise((resolve) => {
       resolver.current = resolve;
-      setRequest({ kind: "prompt", message, defaultValue });
+      setRequest({ kind: "prompt", message, defaultValue, ...options });
     });
   }
   return (
@@ -48,9 +48,13 @@ export function ConfirmProvider({ children }) {
         {children}
         <dialog
           ref={dialog}
-          className="action-dialog"
+          className={`action-dialog${request?.description ? " action-dialog--detailed" : ""}`}
           aria-labelledby="action-dialog-title"
-          aria-describedby={request?.kind === "confirm" ? "action-dialog-description" : undefined}
+          aria-describedby={
+            request?.kind === "confirm" || request?.description
+              ? "action-dialog-description"
+              : undefined
+          }
           onCancel={(event) => {
             event.preventDefault();
             finish(null);
@@ -60,27 +64,70 @@ export function ConfirmProvider({ children }) {
             key={request?.message}
             onSubmit={(event) => {
               event.preventDefault();
-              finish(request?.kind === "confirm" ? true : new FormData(event.currentTarget).get("value"));
+              finish(
+                request?.kind === "confirm"
+                  ? true
+                  : new FormData(event.currentTarget).get("value"),
+              );
             }}
           >
-            <span className="eyebrow">{request?.kind === "confirm" ? "PLEASE CONFIRM" : "RESTAURANT WORKSPACE"}</span>
-            <h2 id="action-dialog-title">{request?.kind === "confirm" ? request.title : request?.message}</h2>
-            {request?.kind === "confirm" ? <p id="action-dialog-description" className="action-dialog-description">{request.message}</p> : <Field
-              label="Your response"
-              name="value"
-              type={
-                /^\d{4}-\d{2}-\d{2}T/.test(String(request?.defaultValue || ""))
-                  ? "datetime-local"
-                  : "text"
-              }
-              defaultValue={request?.defaultValue}
-              autoFocus
-            />}
+            <span className="eyebrow">
+              {request?.kind === "confirm"
+                ? "PLEASE CONFIRM"
+                : "RESTAURANT WORKSPACE"}
+            </span>
+            <h2 id="action-dialog-title">
+              {request?.kind === "confirm" ? request.title : request?.message}
+            </h2>
+            {request?.description && (
+              <p id="action-dialog-description">{request.description}</p>
+            )}
+            {request?.kind === "confirm" ? (
+              <p
+                id="action-dialog-description"
+                className="action-dialog-description"
+              >
+                {request.message}
+              </p>
+            ) : (
+              <Field
+                label={request?.label || "Your response"}
+                name="value"
+                type={
+                  /^\d{4}-\d{2}-\d{2}T/.test(
+                    String(request?.defaultValue || ""),
+                  )
+                    ? "datetime-local"
+                    : "text"
+                }
+                defaultValue={request?.defaultValue}
+                required={request?.required}
+                minLength={request?.minLength}
+                maxLength={request?.maxLength}
+                autoFocus
+              >
+                {request?.multiline ? <textarea rows={3} /> : undefined}
+              </Field>
+            )}
+            {request?.confirmationLabel && (
+              <label className="action-dialog-confirmation">
+                <input type="checkbox" required />{" "}
+                <span>{request.confirmationLabel}</span>
+              </label>
+            )}
             <div className="dialog-actions">
-              <Button variant="secondary" onClick={() => finish(request?.kind === "confirm" ? false : null)}>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  finish(request?.kind === "confirm" ? false : null)
+                }
+              >
                 Cancel
               </Button>
-              <Button type="submit" className={request?.destructive ? "dialog-confirm--danger" : ""}>
+              <Button
+                type="submit"
+                className={request?.destructive ? "dialog-confirm--danger" : ""}
+              >
                 {request?.confirmLabel || "Continue"}
               </Button>
             </div>

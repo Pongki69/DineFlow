@@ -32,6 +32,8 @@ After a successful deployment, open /up, register a customer, and log into the a
 
 The scheduler runs while this container is awake. Render can suspend it when idle, so reminder/expiry jobs may run late; this is a portfolio demo, not an always-on restaurant service. Reverb is not started; the UI polls for delivery and floor availability updates. Images uploaded to local storage disappear on restart; use committed demo assets or arrange persistent storage before relying on uploads. Migrations never reset or delete the database.
 
+Delivery GPS acknowledgement does not wait for route-provider requests. In this sync demo profile, the scheduler refreshes eligible delivery ETAs once per minute. Operational deployments should use `QUEUE_CONNECTION=database` with a continuously monitored worker for prompt, coalesced ETA updates. The image includes GD to normalize delivery proof photos and strip metadata server-side; those private proofs remain in the database. This does not make local menu-image storage persistent.
+
 Mail stays in logs until configured. For Brevo SMTP, use port 2525 on Render Free (465 and 587 are blocked). Leave PayMongo keys blank for cash-only demos, or supply test keys and a test webhook at /api/v1/webhooks/paymongo. Do not use live payment keys for this public demo.
 
 Docker is not installed on the development machine, so a full container build must be verified by Render's first build. Application tests, the production frontend build, and shell syntax can be checked locally.

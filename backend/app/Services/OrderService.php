@@ -11,6 +11,8 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\RestaurantSetting;
 use App\Models\RestaurantTable;
+use App\Models\Reservation;
+use App\Models\RiderProfile;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -41,12 +43,28 @@ class OrderService
             $session = null;
             $table = null;
             if ($data['order_type'] === 'dine_in') {
-                $table = RestaurantTable::query()->where('qr_code', $data['table_code'])->where('is_active', true)->lockForUpdate()->first();
+                $code = trim($data['table_code']);
+                $reservation = null;
+                if (! \Illuminate\Support\Str::isUuid($code)) {
+                    $reservation = Reservation::where('reference', strtoupper($code))
+                        ->where('customer_id', $actor->id)->lockForUpdate()->first();
+                    if (! $reservation) {
+                        throw ValidationException::withMessages(['table_code' => 'Choose your reservation or enter the table code supplied by staff.']);
+                    }
+                    if ($reservation->status !== 'seated') {
+                        $message = in_array($reservation->status, ['pending', 'confirmed', 'checked_in'], true)
+                            ? 'Your reservation is not seated yet. Ask staff to seat your party before placing a dine-in order.'
+                            : 'This reservation is no longer active. Choose your current booking or ask staff for your table code.';
+                        throw ValidationException::withMessages(['table_code' => $message]);
+                    }
+                }
+                $tableQuery = RestaurantTable::query()->where('is_active', true);
+                $table = ($reservation ? $tableQuery->whereKey($reservation->table_id) : $tableQuery->where('qr_code', $code))->lockForUpdate()->first();
                 if (! $table) {
                     throw ValidationException::withMessages(['table_code' => 'This table code is invalid or inactive.']);
                 }
                 $session = DiningSession::query()->where('table_id', $table->id)->where('status', 'open')->lockForUpdate()->first();
-                if (! $session) {
+                if (! $session || ($reservation && $session->reservation_id !== $reservation->id)) {
                     throw ValidationException::withMessages(['table_code' => 'This table does not have an open dining session. Ask a staff member for help.']);
                 }
             }
@@ -147,20 +165,22 @@ class OrderService
             $order->statusHistory()->create(['actor_id' => $actor->id, 'from_status' => null, 'to_status' => 'pending']);
 
             if ($order->order_type === 'delivery') {
-                $delivery = Delivery::create(['order_id' => $order->id, 'status' => 'pending_assignment']);
+                $pickup = $deliveryQuotes->location();
+                $delivery = Delivery::create(['order_id' => $order->id, 'status' => 'pending_assignment', 'pickup_latitude' => $pickup['latitude'] ?? null, 'pickup_longitude' => $pickup['longitude'] ?? null, 'pickup_address' => $pickup['address'] ?? null]);
                 DeliveryStatusHistory::create(['delivery_id' => $delivery->id, 'actor_id' => $actor->id, 'from_status' => null, 'to_status' => 'pending_assignment']);
             }
 
-            return $order->load(['items.addons', 'table:id,table_number', 'diningSession:id,status']);
+            return $order->load(['items.addons', 'table:id,table_number', 'diningSession:id,status', 'delivery:id,order_id,status']);
         }, 3);
 
         app(RestaurantNotificationService::class)->send($actor, 'order.placed', 'Order received', 'Your order '.$order->order_number.' has been received.', ['order_id' => $order->id, 'order_number' => $order->order_number]);
         return $order;
     }
 
-    public function transition(Order $order, User $actor, string $to, ?string $note = null): Order
+    public function transition(Order $order, User $actor, string $to, ?string $note = null, ?int $prepMinutes = null, ?string $vehicle = null): Order
     {
-        $order = DB::transaction(function () use ($order, $actor, $to, $note): Order {
+        $order = DB::transaction(function () use ($order, $actor, $to, $note, $prepMinutes, $vehicle): Order {
+            if ($order->order_type === 'delivery') DispatchGuard::lock();
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             $isOwnerCancellation = $to === 'cancelled' && $locked->customer_id === $actor->id && $locked->status === 'pending';
             $isKitchenUpdate = $actor->hasPermission('kitchen.orders.update') && ! $actor->hasPermission('orders.manage');
@@ -176,7 +196,7 @@ class OrderService
                 'pending' => ['confirmed', 'cancelled'],
                 'confirmed' => ['preparing', 'cancelled'],
                 'preparing' => ['ready_to_serve', 'cancelled'],
-                'ready_to_serve' => $locked->order_type === 'dine_in' ? ['served'] : ['completed'],
+                'ready_to_serve' => $locked->order_type === 'dine_in' ? ['served'] : ($locked->order_type === 'delivery' ? [] : ['completed']),
                 'served' => $locked->order_type === 'dine_in' ? ['completed'] : [],
                 'completed' => [], 'cancelled' => [],
             ];
@@ -192,16 +212,50 @@ class OrderService
 
             $from = $locked->status;
             $locked->status = $to;
+            if ($locked->order_type === 'delivery' && in_array($to, ['confirmed', 'preparing'], true)) {
+                if (! $locked->prep_ready_at || $prepMinutes !== null) {
+                    $locked->prep_minutes = $prepMinutes ?? 15;
+                    $locked->prep_ready_at = now()->addMinutes($locked->prep_minutes);
+                }
+                if ($vehicle !== null) $locked->delivery_vehicle_class = $vehicle;
+            }
+            if ($locked->order_type === 'delivery' && $to === 'ready_to_serve') $locked->prep_ready_at = now();
             if ($to === 'confirmed') $locked->confirmed_at = now();
             if ($to === 'completed') $locked->completed_at = now();
             if ($to === 'cancelled') $locked->cancelled_at = now();
             $locked->save();
             $locked->statusHistory()->create(['actor_id' => $actor->id, 'from_status' => $from, 'to_status' => $to, 'note' => $note]);
+            if ($locked->order_type === 'delivery') {
+                $delivery = Delivery::where('order_id', $locked->id)->lockForUpdate()->first();
+                if ($delivery && ! in_array($delivery->status, Delivery::TERMINAL, true)) {
+                    if ($to === 'cancelled') {
+                        app(DispatchService::class)->withdraw($delivery->id);
+                        $delivery->statusHistory()->create(['actor_id' => $actor->id, 'from_status' => $delivery->status, 'to_status' => 'cancelled', 'reason' => 'Order cancelled.']);
+                        $delivery->update(['status' => 'cancelled', 'dispatch_status' => 'cancelled', 'cancelled_at' => now()]);
+                        if ($delivery->rider_user_id && ! Delivery::where('rider_user_id', $delivery->rider_user_id)->whereNotIn('status', Delivery::TERMINAL)->exists()) RiderProfile::where('user_id', $delivery->rider_user_id)->update(['is_available' => true]);
+                    } elseif ($delivery->status === 'pending_assignment') {
+                        if ($prepMinutes !== null || $vehicle !== null) app(DispatchService::class)->withdraw($delivery->id);
+                        if (! $delivery->offers()->whereNotNull('active_delivery_id')->exists()) $delivery->update(['dispatch_status' => 'scheduled', 'next_dispatch_at' => now(), 'search_stage_started_at' => null]);
+                    }
+                }
+            }
+
 
             return $locked;
         }, 3);
 
         app(AuditLogService::class)->record($actor, 'order.status_changed', $order, ['status' => $order->status], request());
+        if ($order->order_type === 'delivery' && $order->delivery) {
+            $delivery = $order->delivery;
+            DB::afterCommit(function () use ($delivery) {
+                try {
+                    broadcast(new \App\Events\DeliveryTrackingUpdated($delivery->fresh()));
+                } catch (\Throwable $exception) {
+                    report($exception);
+                }
+            });
+        }
+
 
         app(RestaurantNotificationService::class)->send($order->customer, 'order.status_changed', 'Order update', 'Order '.$order->order_number.' is now '.str_replace('_', ' ', $order->status).'.', ['order_id' => $order->id, 'order_number' => $order->order_number, 'status' => $order->status]);
 

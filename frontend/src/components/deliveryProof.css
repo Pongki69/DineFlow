@@ -1,0 +1,47 @@
+.delivery-proof {
+  padding: 20px;
+  margin: 18px 0;
+  border: 1px solid var(--border, #cbd5ca);
+  border-radius: 14px;
+  background: #f6f8f3;
+}
+.delivery-proof h3,
+.delivery-proof h2 {
+  margin: 0 0 10px;
+}
+.delivery-proof p,
+.delivery-proof small {
+  color: #4b5e50;
+  line-height: 1.7;
+}
+.delivery-proof label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.delivery-proof input {
+  display: block;
+  max-width: 100%;
+  margin-bottom: 8px;
+}
+.delivery-proof small {
+  display: block;
+  margin-bottom: 12px;
+}
+.delivery-proof-image {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 10px;
+  margin: 12px 0;
+  background: #e4eae2;
+}
+.delivery-proof .delivery-proof-error {
+  color: #9e2820;
+}
+.delivery-proof .delivery-proof-saved {
+  color: #245139;
+  font-weight: 600;
+}

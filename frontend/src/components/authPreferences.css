@@ -12,7 +12,7 @@
   gap: 9px;
   min-height: 44px;
   color: var(--ink);
-  font-size: 13px;
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 
@@ -25,7 +25,7 @@
 .auth-login-preferences small,
 .auth-password-manager-hint {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.6;
 }
 

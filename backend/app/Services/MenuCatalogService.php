@@ -7,6 +7,7 @@ use App\Models\MenuItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class MenuCatalogService
 {
@@ -15,7 +16,7 @@ class MenuCatalogService
         $category ??= new MenuCategory();
         $category->fill($data);
         if (! $category->exists || $category->isDirty('name')) {
-            $category->slug = $this->uniqueSlug(MenuCategory::query(), $data['name'], $category->getKey());
+            $category->slug = $this->uniqueSlug(MenuCategory::withTrashed(), $data['name'], $category->getKey());
         }
         $category->save();
 
@@ -25,6 +26,9 @@ class MenuCatalogService
     public function saveItem(array $data, ?MenuItem $item = null): MenuItem
     {
         return DB::transaction(function () use ($data, $item): MenuItem {
+            if (! MenuCategory::whereKey($data['category_id'])->lockForUpdate()->first()) {
+                throw ValidationException::withMessages(['category_id' => 'This category no longer exists. Choose another category.']);
+            }
             $item ??= new MenuItem();
             $variants = $data['variants'] ?? null;
             $addons = $data['addons'] ?? null;
@@ -40,6 +44,10 @@ class MenuCatalogService
                     Storage::disk('public')->delete($item->image_path);
                 }
                 $item->image_path = $image->store('menu-items', 'public');
+                $item->image_source_url = null;
+            } elseif (! empty($data['image_source_url'])) {
+                if ($item->image_path) Storage::disk('public')->delete($item->image_path);
+                $item->image_path = null;
             }
             $item->save();
 

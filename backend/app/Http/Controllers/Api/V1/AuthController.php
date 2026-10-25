@@ -135,11 +135,42 @@ class AuthController extends Controller
             : response()->json(['message' => __($status)], 422);
     }
 
+    public function preferences(Request $request, AuditLogService $audit): JsonResponse
+    {
+        $user = $request->user();
+        $pages = ['', '/account', '/settings'];
+        $permissionPages = [
+            'dashboard.view' => ['/dashboard'], 'orders.manage' => ['/orders'],
+            'kitchen.orders.view' => ['/kitchen'], 'service.tables.view' => ['/service'],
+            'reservations.manage' => ['/reservations'], 'payments.manage' => ['/payments'],
+            'payments.refund' => ['/payments'], 'deliveries.manage' => ['/admin/deliveries'],
+            'reports.operations' => ['/reports'], 'reports.daily_transactions' => ['/cashier/summary'],
+            'menu.manage' => ['/admin/menu'], 'users.manage' => ['/admin/users'],
+            'audit.view' => ['/admin/audit'], 'floorplan.manage' => ['/admin/floor-plan'],
+            'settings.manage' => ['/admin/settings', '/admin/payment-settings', '/admin/business-settings', '/admin/delivery'],
+        ];
+        foreach ($permissionPages as $permission => $routes) {
+            if ($user->hasPermission($permission)) $pages = array_merge($pages, $routes);
+        }
+        if ($user->hasRole('customer')) $pages = array_merge($pages, ['/menu', '/restaurant', '/reserve', '/my-reservations', '/my-orders']);
+        if ($user->hasRole('rider') && $user->hasPermission('deliveries.assigned')) $pages = array_merge($pages, ['/rider', '/rider/deliveries', '/rider/offers', '/rider/history', '/rider/reviews']);
+        $data = $request->validate([
+            'home_page' => ['present', 'nullable', 'string', \Illuminate\Validation\Rule::in($pages)],
+            'compact_view' => ['required', 'boolean'], 'reduced_motion' => ['required', 'boolean'],
+            'show_notification_badge' => ['required', 'boolean'],
+        ]);
+        $data['home_page'] ??= '';
+        $user->forceFill(['ui_preferences' => $data])->save();
+        $audit->record($user, 'account.preferences_updated', $user, $data, $request);
+        return response()->json(['user' => $this->userPayload($user)]);
+    }
+
     private function userPayload(User $user): array
     {
         return [
             'id' => $user->id, 'name' => $user->name, 'email' => $user->email,
             'roles' => $user->roles()->pluck('slug')->all(), 'permissions' => $user->permissionSlugs(),
+            'preferences' => array_replace(['home_page' => '', 'compact_view' => false, 'reduced_motion' => false, 'show_notification_badge' => true], $user->ui_preferences ?? []),
         ];
     }
 }

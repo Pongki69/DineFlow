@@ -12,7 +12,7 @@ class Order extends Model
         'order_number', 'customer_id', 'customer_name_snapshot', 'customer_email_snapshot', 'order_type', 'status',
         'table_id', 'table_number_snapshot', 'dining_session_id', 'delivery_address', 'delivery_address_id', 'delivery_latitude', 'delivery_longitude', 'delivery_instructions', 'delivery_recipient_name', 'delivery_phone', 'delivery_distance_km', 'delivery_duration_minutes', 'customer_notes', 'subtotal',
         'item_discount_total', 'service_charge', 'delivery_fee', 'tax', 'total', 'currency', 'confirmed_at',
-        'completed_at', 'cancelled_at',
+        'completed_at', 'cancelled_at', 'prep_minutes', 'prep_ready_at', 'delivery_vehicle_class',
     ];
 
     protected function casts(): array
@@ -22,6 +22,7 @@ class Order extends Model
             'delivery_fee' => 'decimal:2', 'tax' => 'decimal:2', 'total' => 'decimal:2',
             'delivery_latitude' => 'decimal:7', 'delivery_longitude' => 'decimal:7', 'delivery_distance_km' => 'decimal:2',
             'confirmed_at' => 'datetime', 'completed_at' => 'datetime', 'cancelled_at' => 'datetime',
+            'prep_ready_at' => 'datetime',
         ];
     }
 

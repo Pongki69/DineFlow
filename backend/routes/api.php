@@ -32,11 +32,16 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/restaurant/branding', [DeliveryController::class, 'branding']);
 
     Route::middleware(['auth:sanctum', 'account.active'])->group(function (): void {
+        Route::put('/me/preferences', [AuthController::class, 'preferences']);
+        Route::get('/rider/summary', [DeliveryOperationsController::class, 'riderSummary'])->middleware('permission:deliveries.assigned');
         Route::middleware('permission:menu.manage')->prefix('menu')->group(function (): void {
             Route::post('/categories', [MenuController::class, 'storeCategory']);
             Route::put('/categories/{category}', [MenuController::class, 'updateCategory']);
+            Route::delete('/categories/{category}', [MenuController::class, 'deleteCategory']);
+            Route::get('/categories/{category}/deletion-preview', [MenuController::class, 'categoryDeletionPreview']);
             Route::post('/items', [MenuController::class, 'storeItem']);
             Route::put('/items/{item}', [MenuController::class, 'updateItem']);
+            Route::delete('/items/{item}', [MenuController::class, 'deleteItem']);
             Route::patch('/items/{item}/active', [MenuController::class, 'deactivateItem']);
             Route::patch('/items/{item}/availability', [MenuController::class, 'availability']);
         });
@@ -48,6 +53,7 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/me', [AuthController::class, 'update'])->middleware('throttle:10,1');
 
         Route::get('/maps/search', [DeliveryController::class, 'search'])->middleware('throttle:20,1');
+        Route::get('/maps/reverse', [DeliveryController::class, 'reverse'])->middleware('throttle:30,1');
         Route::post('/delivery/quote', [DeliveryController::class, 'quote'])->middleware('throttle:30,1');
         Route::get('/addresses', [DeliveryController::class, 'addresses']);
         Route::post('/addresses', [DeliveryController::class, 'saveAddress']);
@@ -60,7 +66,22 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/notifications', [DeliveryOperationsController::class, 'notifications']);
         Route::patch('/notifications/{notification}/read', [DeliveryOperationsController::class, 'readNotification']);
         Route::get('/my/deliveries/{delivery}', [DeliveryOperationsController::class, 'tracking'])->middleware('permission:orders.view_own');
+        Route::get('/my/deliveries/{delivery}/route', [DeliveryOperationsController::class, 'routePreview'])->middleware(['permission:orders.view_own', 'throttle:20,1']);
+        Route::get('/rider/dispatch', [\App\Http\Controllers\Api\V1\DispatchController::class, 'index'])->middleware('permission:deliveries.assigned');
+        Route::put('/rider/presence', [\App\Http\Controllers\Api\V1\DispatchController::class, 'presence'])->middleware(['permission:deliveries.assigned', 'throttle:20,1']);
+        Route::post('/rider/offers/{offer}/respond', [\App\Http\Controllers\Api\V1\DispatchController::class, 'respond'])->middleware('permission:deliveries.assigned');
+        Route::post('/admin/deliveries/{delivery}/retry-dispatch', [\App\Http\Controllers\Api\V1\DispatchController::class, 'retry'])->middleware('permission:deliveries.manage');
+        Route::post('/my/deliveries/{delivery}/rating', [\App\Http\Controllers\Api\V1\RiderReviewController::class, 'save'])->middleware('throttle:10,1');
+        Route::patch('/my/deliveries/{delivery}/rating', [\App\Http\Controllers\Api\V1\RiderReviewController::class, 'save'])->middleware('throttle:10,1');
+        Route::get('/riders/{rider}/profile', [\App\Http\Controllers\Api\V1\RiderReviewController::class, 'profile']);
+        Route::get('/rider/reviews', [\App\Http\Controllers\Api\V1\RiderReviewController::class, 'own'])->middleware('permission:deliveries.assigned');
+        Route::get('/rider/deliveries/{delivery}', [DeliveryOperationsController::class, 'riderDetails'])->middleware('permission:deliveries.assigned');
+        Route::get('/rider/deliveries/{delivery}/route', [DeliveryOperationsController::class, 'riderRoute'])->middleware(['permission:deliveries.assigned', 'throttle:20,1']);
+        Route::get('/deliveries/{delivery}/proof', [DeliveryOperationsController::class, 'proof'])->middleware('throttle:30,1');
+        Route::post('/rider/deliveries/{delivery}/proof', [DeliveryOperationsController::class, 'uploadProof'])->middleware(['permission:deliveries.assigned', 'throttle:10,1']);
         Route::get('/rider/assignments', [DeliveryOperationsController::class, 'riderIndex'])->middleware('permission:deliveries.assigned');
+        Route::post('/rider/route-plan', [DeliveryOperationsController::class, 'routePlan'])->middleware(['permission:deliveries.assigned', 'throttle:10,1']);
+        Route::put('/rider/route-order', [DeliveryOperationsController::class, 'saveRouteOrder'])->middleware(['permission:deliveries.assigned', 'throttle:20,1']);
         Route::get('/rider/profile', [DeliveryOperationsController::class, 'riderProfile'])->middleware('permission:deliveries.assigned');
         Route::put('/rider/profile', [DeliveryOperationsController::class, 'updateRiderProfile'])->middleware('permission:deliveries.assigned');
         Route::post('/rider/deliveries/{delivery}/{response}', [DeliveryOperationsController::class, 'respond'])->whereIn('response', ['accept', 'reject'])->middleware('permission:deliveries.assigned');
@@ -69,6 +90,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/deliveries', [DeliveryOperationsController::class, 'managerIndex'])->middleware('permission:deliveries.manage');
         Route::post('/admin/deliveries/{delivery}/assign', [DeliveryOperationsController::class, 'assign'])->middleware('permission:deliveries.manage');
         Route::post('/admin/deliveries/{delivery}/cancel', [DeliveryOperationsController::class, 'cancel'])->middleware('permission:deliveries.manage');
+        Route::post('/admin/deliveries/{delivery}/recover', [DeliveryOperationsController::class, 'recover'])->middleware(['permission:deliveries.manage', 'throttle:30,1']);
 
         Route::post('/orders/{order}/payments/checkout', [PaymentController::class, 'orderCheckout'])->middleware('throttle:10,1');
         Route::post('/orders/{order}/payments/cash', [PaymentController::class, 'cashOrder'])->middleware('permission:payments.manage');
@@ -98,6 +120,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/audit-logs', [StaffAccountController::class, 'auditLogs'])->middleware('permission:audit.view');
 
         Route::get('/orders', [OrderController::class, 'index']);
+        Route::get('/orders/dine-in-reservations', [OrderController::class, 'dineInReservations']);
         Route::post('/orders', [OrderController::class, 'store'])->middleware(['throttle:20,1', 'idempotent']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
         Route::patch('/orders/{order}/status', [OrderController::class, 'status']);

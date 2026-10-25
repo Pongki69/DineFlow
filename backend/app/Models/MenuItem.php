@@ -13,13 +13,14 @@ class MenuItem extends Model
     protected $fillable = [
         'category_id', 'name', 'slug', 'sku', 'description', 'image_path', 'base_price',
         'discount_percent', 'is_active', 'is_available', 'is_sold_out', 'available_from',
-        'available_until', 'sort_order',
+        'available_until', 'sort_order', 'pieces', 'servings', 'image_source_url',
     ];
 
     protected function casts(): array
     {
         return [
             'base_price' => 'decimal:2', 'discount_percent' => 'decimal:2',
+            'pieces' => 'integer', 'servings' => 'integer',
             'is_active' => 'boolean', 'is_available' => 'boolean', 'is_sold_out' => 'boolean',
             'available_from' => 'datetime', 'available_until' => 'datetime', 'sort_order' => 'integer',
         ];

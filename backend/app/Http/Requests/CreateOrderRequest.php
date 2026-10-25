@@ -17,7 +17,7 @@ class CreateOrderRequest extends FormRequest
     {
         return [
             'order_type' => ['required', 'in:dine_in,pickup,delivery'],
-            'table_code' => ['required_if:order_type,dine_in', 'nullable', 'uuid'],
+            'table_code' => ['required_if:order_type,dine_in', 'nullable', 'string', 'max:64'],
             'delivery_address' => ['required_if:order_type,delivery', 'nullable', 'string', 'max:2000'],
             'delivery_address_id' => ['nullable', 'integer', 'exists:delivery_addresses,id'],
             'delivery_latitude' => ['required_if:order_type,delivery', 'nullable', 'numeric', 'between:-90,90'],

@@ -8,8 +8,9 @@ RUN npm run build
 
 FROM php:8.3-apache-bookworm AS php-base
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates git unzip libpq-dev libonig-dev libzip-dev libicu-dev \
-    && docker-php-ext-install -j2 pdo_pgsql mbstring zip intl bcmath opcache pcntl \
+    ca-certificates git unzip libpq-dev libonig-dev libzip-dev libicu-dev libjpeg62-turbo-dev libpng-dev libwebp-dev \
+    && docker-php-ext-configure gd --with-jpeg --with-webp \
+    && docker-php-ext-install -j2 pdo_pgsql mbstring zip intl bcmath opcache pcntl gd \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"

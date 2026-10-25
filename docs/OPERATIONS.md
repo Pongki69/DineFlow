@@ -2,7 +2,7 @@
 
 ## Local setup
 
-1. Install PHP 8.3 with `pdo_pgsql`, `pdo_sqlite`, `openssl`, `curl`, `mbstring`, `fileinfo`, and `zip`, plus Composer 2.10, Node.js, npm, and PostgreSQL 17 or a compatible PostgreSQL release.
+1. Install PHP 8.3 with `pdo_pgsql`, `pdo_sqlite`, `openssl`, `curl`, `mbstring`, `fileinfo`, `zip`, and `gd` (JPEG/PNG/WebP support), plus Composer 2.10, Node.js, npm, and PostgreSQL 17 or a compatible PostgreSQL release.
 2. Copy the root `.env.example` to `backend/.env`. Set `APP_KEY` with `php artisan key:generate`, and configure the local PostgreSQL database and credentials. Keep real credentials out of source control.
 3. From `backend/`, install Composer dependencies and run `php artisan migrate --seed`. From `frontend/`, run `npm ci`.
 4. Start PostgreSQL, then run Laravel with `php artisan serve` and the frontend with `npm run dev` in separate terminals. Run `php artisan reverb:start` for broadcasting and `php artisan schedule:work` for scheduled maintenance and reservation reminders.
@@ -48,6 +48,18 @@ Validate record counts and application health in the restore environment before 
 Run `php artisan test` from `backend/`; run `npm test` and `npm run build` from `frontend/`. The application's test database is configured separately from production. Review migration status with `php artisan migrate:status`, check `/up`, inspect application and queue logs, and monitor disk/storage growth. Keep dependencies patched and rerun tests and the frontend build after updates.
 
 The web rider dashboard can share GPS only while the page is open and has location permission. Browsers may pause or stop location reporting in the background; reliable locked-screen/background tracking needs a dedicated mobile application or platform-supported background-location capability.
+
+## Delivery recovery and route operations
+
+An unsuccessful delivery is terminal for the rider. A manager can use **Resume with original rider** only after contacting that rider, confirming the food remains in the same rider's custody, and recording a reason. The service restores the last recorded stage rather than creating a second order or changing the rider. It refuses completed/cancelled orders, inactive or unauthorized riders, conflicting active work, mismatched active batches and live offers. Original failure and recovery events remain in the audit/history. If custody changed or the food is no longer deliverable, do not use recovery: resolve the order with the restaurant using its existing cancellation/refund policy.
+
+Dispatch queue/search/pagination now run on the server. Counts cover all records; search applies within the selected queue, with up to 50 results per page. Historical records no longer crowd active work out of a fixed latest-200 collection.
+
+GPS requests persist and acknowledge coordinates without calling a route provider. With `QUEUE_CONNECTION=database`, keep the existing queue worker continuously available; coalesced ETA jobs use the latest fresh GPS and skip completed/reassigned deliveries. With the portfolio `sync` setting, the scheduler runs `deliveries:refresh-etas` once per minute instead. This is a fallback, not live traffic or guaranteed background phone tracking. ETA calculation freshness still expires in the customer API. Monitor worker/scheduler failures and provider limits; missing estimates must remain visible as unavailable rather than invented.
+
+Proof photos are decoded and re-encoded on the server as JPEG, resized to 1600 pixels on the longest side, and stripped of embedded metadata before storage. GD is required; uploads fail explicitly if processing is unavailable. Decode is limited to 16 megapixels and stored images to 1 MB. Image work occurs outside the delivery row lock. Access remains private; no image bytes are added to assignment listings. The business must choose and document a proof-retention period before production launch; this update does not silently purge existing evidence.
+
+Production acceptance remains a separate release gate: exercise restore from backup in an isolated database, monitor the deployed worker/scheduler, review TLS/secrets/access, and field-test supported rider phones (including screen lock, permissions, offline transitions and camera uploads). A successful local test suite does not establish these properties. The documented Render Free profile is a portfolio configuration; use persistent media storage and an always-on scheduler/worker for operational service.
 
 ## Verification added with workflow completion
 

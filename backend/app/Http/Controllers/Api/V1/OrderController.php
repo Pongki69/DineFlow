@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateOrderRequest;
 use App\Models\Order;
+use App\Models\Reservation;
 use App\Services\OrderService;
 use App\Services\DeliveryQuoteService;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,22 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    public function dineInReservations(Request $request): JsonResponse
+    {
+        $reservations = Reservation::where('customer_id', $request->user()->id)
+            ->whereIn('status', ['pending', 'confirmed', 'checked_in', 'seated'])
+            ->with('table.currentSession')->orderBy('starts_at')->get();
+
+        return response()->json(['data' => $reservations->map(fn ($reservation) => [
+            'reference' => $reservation->reference,
+            'starts_at' => $reservation->starts_at,
+            'table_number' => $reservation->table?->table_number,
+            'status' => $reservation->status,
+            'ready' => $reservation->status === 'seated' && $reservation->table?->is_active
+                && $reservation->table?->currentSession?->reservation_id === $reservation->id,
+        ])]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate(['order_type' => ['nullable','in:dine_in,pickup,delivery'], 'status' => ['nullable','in:pending,confirmed,preparing,ready_to_serve,served,completed,cancelled'], 'payment_status' => ['nullable','in:paid,pending,unpaid'], 'from' => ['nullable','date'], 'to' => ['nullable','date','after_or_equal:from'], 'per_page' => ['nullable','integer','min:1','max:100']]);
@@ -47,8 +64,8 @@ class OrderController extends Controller
 
     public function status(Request $request, Order $order, OrderService $orders): JsonResponse
     {
-        $data = $request->validate(['status' => ['required', 'in:confirmed,preparing,ready_to_serve,served,completed,cancelled'], 'note' => ['nullable', 'string', 'max:500']]);
-        return response()->json(['data' => $orders->transition($order, $request->user(), $data['status'], $data['note'] ?? null)]);
+        $data = $request->validate(['status' => ['required', 'in:confirmed,preparing,ready_to_serve,served,completed,cancelled'], 'note' => ['nullable', 'string', 'max:500'], 'prep_minutes' => ['nullable', 'integer', 'min:1', 'max:180'], 'delivery_vehicle_class' => ['nullable', 'in:bicycle,motorcycle,car']]);
+        return response()->json(['data' => $orders->transition($order, $request->user(), $data['status'], $data['note'] ?? null, $data['prep_minutes'] ?? null, $data['delivery_vehicle_class'] ?? null)]);
     }
 
     public function kitchenIndex(Request $request): JsonResponse

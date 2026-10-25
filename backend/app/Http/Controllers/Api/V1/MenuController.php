@@ -12,7 +12,9 @@ use App\Services\MenuCatalogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class MenuController extends Controller
 {
@@ -75,6 +77,35 @@ class MenuController extends Controller
         return response()->json(['data' => $category]);
     }
 
+    public function categoryDeletionPreview(MenuCategory $category): JsonResponse
+    {
+        return response()->json(['data' => [
+            'id' => $category->id, 'name' => $category->name,
+            'dishes' => $category->items()->orderBy('name')->get(['id', 'name', 'base_price', 'is_active', 'is_sold_out']),
+        ]]);
+    }
+
+    public function deleteCategory(Request $request, MenuCategory $category, AuditLogService $audit): JsonResponse
+    {
+        $data = $request->validate(['dish_ids' => ['present', 'array'], 'dish_ids.*' => ['integer', 'distinct']]);
+        DB::transaction(function () use ($request, $category, $audit, $data): void {
+            $category = MenuCategory::whereKey($category->id)->lockForUpdate()->firstOrFail();
+            $dishes = $category->items()->orderBy('id')->lockForUpdate()->get();
+            $reviewed = collect($data['dish_ids'])->map(fn ($id) => (int) $id)->sort()->values()->all();
+            if ($reviewed !== $dishes->pluck('id')->all()) {
+                throw ValidationException::withMessages(['dish_ids' => 'The dishes in this category have changed. Refresh the list and review it again before deleting.']);
+            }
+            foreach ($dishes as $dish) {
+                $dish->delete();
+                $audit->record($request->user(), 'menu.item_deleted', $dish, ['name' => $dish->name, 'category_id' => $category->id], $request);
+            }
+            $category->delete();
+            $audit->record($request->user(), 'menu.category_deleted', $category, ['name' => $category->name, 'dish_ids' => $reviewed, 'dish_count' => $dishes->count()], $request);
+        });
+
+        return response()->json(null, 204);
+    }
+
     public function storeItem(MenuItemRequest $request, MenuCatalogService $catalog, AuditLogService $audit): JsonResponse
     {
         $item = $catalog->saveItem($request->validated());
@@ -89,6 +120,16 @@ class MenuController extends Controller
         $audit->record($request->user(), 'menu.item_updated', $item, ['name' => $item->name, 'is_sold_out' => $item->is_sold_out], $request);
 
         return response()->json(['data' => $this->itemPayload($item, true)]);
+    }
+
+    public function deleteItem(Request $request, MenuItem $item, AuditLogService $audit): JsonResponse
+    {
+        DB::transaction(function () use ($request, $item, $audit): void {
+            $item->delete();
+            $audit->record($request->user(), 'menu.item_deleted', $item, ['name' => $item->name], $request);
+        });
+
+        return response()->json(null, 204);
     }
 
     public function deactivateItem(Request $request, MenuItem $item, AuditLogService $audit): JsonResponse
@@ -112,7 +153,7 @@ class MenuController extends Controller
     private function itemPayload(MenuItem $item, bool $manage): array
     {
         $item->setAttribute('is_currently_available', $item->is_currently_available);
-        $item->setAttribute('image_url', $item->image_path ? Storage::disk('public')->url($item->image_path) : null);
+        $item->setAttribute('image_url', $item->image_source_url ?: ($item->image_path ? Storage::disk('public')->url($item->image_path) : null));
         $item->setRelation('variants', $item->variants->filter(fn ($variant) => $manage || $variant->is_active)->values());
         $item->setRelation('addons', $item->addons->filter(fn ($addon) => $manage || $addon->is_active)->values());
 

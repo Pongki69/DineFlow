@@ -1,10 +1,11 @@
 import { Feedback, Skeleton } from "./components/ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { MapPin, X } from "lucide-react";
 import {
-  CircleMarker,
+  Circle,
   MapContainer,
   Marker,
-  Popup,
   TileLayer,
   useMap,
   useMapEvents,
@@ -12,6 +13,13 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { api } from "./api";
+import { GoogleRestaurantPin } from "./components/GoogleRestaurantPin";
+import { restaurantMapIcon as restaurantPin } from "./components/restaurantMapIcon";
+import {
+  DeliveryAddressPicker,
+  deliveryPosition,
+} from "./components/DeliveryAddressPicker";
+export { DeliveryAddressPicker as DeliveryMapSelector } from "./components/DeliveryAddressPicker";
 
 const pin = L.divIcon({
   className: "delivery-pin",
@@ -19,7 +27,12 @@ const pin = L.divIcon({
   iconSize: [24, 24],
   iconAnchor: [12, 22],
 });
-function PinPicker({ position, onMove }) {
+function PinPicker({
+  position,
+  onMove,
+  icon = pin,
+  title = "Drag to adjust location",
+}) {
   useMapEvents({
     click(event) {
       onMove(event.latlng);
@@ -29,7 +42,9 @@ function PinPicker({ position, onMove }) {
     <Marker
       position={position}
       draggable
-      icon={pin}
+      icon={icon}
+      title={title}
+      alt={title}
       eventHandlers={{
         dragend(event) {
           onMove(event.target.getLatLng());
@@ -38,416 +53,361 @@ function PinPicker({ position, onMove }) {
     />
   ) : null;
 }
-function MapCenter({ position }) {
+
+function locationPosition(location) {
+  if (
+    location?.latitude == null ||
+    location?.longitude == null ||
+    location.latitude === "" ||
+    location.longitude === ""
+  )
+    return null;
+  const lat = Number(location.latitude),
+    lng = Number(location.longitude);
+  return Number.isFinite(lat) &&
+    Math.abs(lat) <= 90 &&
+    Number.isFinite(lng) &&
+    Math.abs(lng) <= 180
+    ? [lat, lng]
+    : null;
+}
+
+function CoverageView({ position, radius }) {
   const map = useMap();
   useEffect(() => {
-    if (position) map.setView(position, Math.max(map.getZoom(), 15));
-  }, [map, position?.[0], position?.[1]]);
+    map.invalidateSize();
+    if (position)
+      map.fitBounds(L.latLng(position).toBounds(radius * 2000), {
+        padding: [24, 24],
+        maxZoom: 16,
+      });
+  }, [map, position?.[0], position?.[1], radius]);
   return null;
 }
 
-export function DeliveryMapSelector({ items, value, onChange, onQuote }) {
-  const [addresses, setAddresses] = useState([]);
-  const [restaurant, setRestaurant] = useState(null);
-  const [mapProvider, setMapProvider] = useState(null);
-  const [search, setSearch] = useState("");
+function RestaurantPinEditor({ location, radius, onChange }) {
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [quote, setQuote] = useState(null);
-  const position =
-    value?.latitude != null
-      ? [Number(value.latitude), Number(value.longitude)]
-      : null;
-  const itemsJson = useMemo(() => JSON.stringify(items || []), [items]);
-  useEffect(() => {
-    api("/addresses")
-      .then((r) => setAddresses(r.data || []))
-      .catch(() => {});
-    api("/restaurant/location")
-      .then((r) => {
-        setRestaurant(r.data);
-        setMapProvider(r.map_provider);
-      })
-      .catch(() => {});
-  }, []);
-  useEffect(() => {
-    if (!position || !items?.length) {
-      setQuote(null);
-      return;
+  const [addressStatus, setAddressStatus] = useState("");
+  const lookup = useRef(null);
+  useEffect(() => () => lookup.current?.abort(), []);
+  const position = locationPosition(location);
+  const coverage =
+    Number(radius) > 0 && Number(radius) <= 100 ? Number(radius) : 8;
+  async function movePin(point) {
+    lookup.current?.abort();
+    const controller = new AbortController();
+    lookup.current = controller;
+    const latitude = Number(point.lat.toFixed(6)),
+      longitude = Number(point.lng.toFixed(6));
+    onChange((current) => ({ ...current, latitude, longitude, address: "" }));
+    setAddressStatus("Finding the address for your pin…");
+    try {
+      const result = await api(
+        `/maps/reverse?latitude=${latitude}&longitude=${longitude}`,
+        { signal: controller.signal },
+      );
+      if (controller.signal.aborted) return;
+      if (!result.data?.label)
+        throw new Error("No address found. You can enter it manually.");
+      onChange((current) =>
+        current.latitude === latitude &&
+        current.longitude === longitude &&
+        !current.address
+          ? { ...current, address: result.data.label }
+          : current,
+      );
+      setAddressStatus("Address found. You can edit it below if needed.");
+    } catch (failure) {
+      if (!controller.signal.aborted)
+        setAddressStatus(
+          failure.message ||
+            "Could not find the address. Enter it manually below.",
+        );
     }
-    let alive = true;
-    setBusy(true);
-    setError("");
-    setQuote(null);
-    onQuote?.(null);
-    api("/delivery/quote", {
-      method: "POST",
-      body: JSON.stringify({
-        latitude: Number(value.latitude),
-        longitude: Number(value.longitude),
-        items: JSON.parse(itemsJson),
-      }),
-    })
-      .then((r) => {
-        if (alive) {
-          setQuote(r.data);
-          onQuote?.(r.data);
-        }
-      })
-      .catch((e) => {
-        if (alive) {
-          setQuote(null);
-          onQuote?.(null);
-          setError(e.message);
-        }
-      })
-      .finally(() => alive && setBusy(false));
-    return () => {
-      alive = false;
-    };
-  }, [value?.latitude, value?.longitude, itemsJson]);
+  }
   async function searchPlaces() {
-    if (search.trim().length < 3) {
+    if (busy) return;
+    if (query.trim().length < 3) {
       setError("Enter at least three characters to search.");
       return;
     }
-    setError("");
     setBusy(true);
+    setError("");
+    setResults([]);
     try {
-      const result = await api(`/maps/search?q=${encodeURIComponent(search)}`);
+      const result = await api(
+        `/maps/search?q=${encodeURIComponent(query.trim())}`,
+      );
       setResults(result.data || []);
       if (!result.data?.length)
         setError(
-          "No matching places found. Try a more complete address or place a pin on the map.",
+          "No places found. Try another address or click the map to place your pin.",
         );
-    } catch (e) {
-      setError(e.message);
+    } catch (failure) {
+      setError(failure.message);
     } finally {
       setBusy(false);
     }
   }
-  function choose(place) {
-    onChange({
-      ...value,
-      formatted_address: place.label,
-      latitude: Number(place.latitude),
-      longitude: Number(place.longitude),
-      delivery_address_id: null,
-    });
-    setResults([]);
-  }
-  function move(latlng) {
-    onChange({
-      ...value,
-      latitude: latlng.lat,
-      longitude: latlng.lng,
-      delivery_address_id: null,
-    });
-  }
-  async function save() {
-    if (!value?.formatted_address || !position) {
-      setError("Search for an address or enter it before saving.");
-      return;
-    }
-    setError("");
-    try {
-      const id = value.address_record_id || value.delivery_address_id;
-      const data = {
-        label: value.label || "Home",
-        recipient_name: value.recipient_name || "",
-        phone: value.phone || "",
-        formatted_address: value.formatted_address,
-        latitude: Number(value.latitude),
-        longitude: Number(value.longitude),
-        delivery_instructions: value.delivery_instructions || "",
-        is_default: false,
-      };
-      const result = await api(id ? `/addresses/${id}` : "/addresses", {
-        method: id ? "PUT" : "POST",
-        body: JSON.stringify(data),
-      });
-      setAddresses((current) => [
-        result.data,
-        ...current.filter((a) => a.id !== result.data.id),
-      ]);
-      onChange({
-        ...value,
-        delivery_address_id: result.data.id,
-        address_record_id: result.data.id,
-      });
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-  async function deleteSaved() {
-    const id = value?.address_record_id || value?.delivery_address_id;
-    if (!id) return;
-    try {
-      await api(`/addresses/${id}`, { method: "DELETE" });
-      setAddresses((current) => current.filter((a) => a.id !== id));
-      onChange({});
-    } catch (e) {
-      setError(e.message);
-    }
-  }
   return (
-    <div className="delivery-map-box">
-      <h3>Delivery destination</h3>
-      {addresses.length > 0 && (
-        <label>
-          Saved address
-          <select
-            value={value?.address_record_id || value?.delivery_address_id || ""}
-            onChange={(e) => {
-              const a = addresses.find((x) => String(x.id) === e.target.value);
-              if (a)
-                onChange({
-                  ...a,
-                  delivery_address_id: a.id,
-                  address_record_id: a.id,
-                });
-              else
-                onChange({
-                  ...value,
-                  delivery_address_id: null,
-                  address_record_id: null,
-                });
+    <div className="restaurant-pin-editor">
+      <div className="restaurant-pin-heading">
+        <h3>Pin your restaurant</h3>
+        <span>Click the map or drag the pin</span>
+      </div>
+      <div className="restaurant-pin-search">
+        <label htmlFor="restaurant-map-search">
+          Find a place or address
+          <input
+            id="restaurant-map-search"
+            value={query}
+            placeholder="Search your restaurant, street, or city"
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                searchPlaces();
+              }
             }}
-          >
-            <option value="">Choose or enter a new address</option>
-            {addresses.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.label} · {a.formatted_address}
-              </option>
-            ))}
-          </select>
+          />
         </label>
-      )}
-      <div className="delivery-search">
-        <input
-          aria-label="Search delivery address"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search an address or place"
-          minLength={3}
-        />
-        <button type="button" onClick={searchPlaces} disabled={busy}>
-          Search
+        <button type="button" disabled={busy} onClick={searchPlaces}>
+          {busy ? "Searching…" : "Search map"}
         </button>
       </div>
+      {error && (
+        <p className="field-error" role="alert">
+          {error}
+        </p>
+      )}
       {results.length > 0 && (
-        <div className="place-results">
-          {results.map((place, i) => (
+        <div
+          className="place-results restaurant-pin-results"
+          aria-label="Matching places"
+        >
+          {results.map((place, index) => (
             <button
               type="button"
-              key={`${place.label}-${i}`}
-              onClick={() => choose(place)}
+              key={`${place.label}-${index}`}
+              onClick={() => {
+                lookup.current?.abort();
+                setAddressStatus("");
+                onChange({
+                  ...location,
+                  address: place.label,
+                  latitude: Number(place.latitude),
+                  longitude: Number(place.longitude),
+                });
+                setResults([]);
+                setQuery(place.label);
+              }}
             >
               {place.label}
             </button>
           ))}
         </div>
       )}
-      <p className="map-help">
-        Choose a search result or tap the map. Drag the pin to fine-tune your
-        drop-off point.
-      </p>
-      <div className="outdoor-map">
+      <div
+        className="restaurant-settings-map"
+        aria-label="Restaurant location map"
+      >
         <MapContainer
-          center={
-            position ||
-            (restaurant?.latitude
-              ? [Number(restaurant.latitude), Number(restaurant.longitude)]
-              : [14.5995, 120.9842])
-          }
-          zoom={position ? 16 : 12}
-          scrollWheelZoom
+          center={position || [14.5995, 120.9842]}
+          zoom={12}
+          scrollWheelZoom={false}
         >
-          <MapCenter position={position} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {restaurant?.latitude && (
-            <CircleMarker
-              center={[
-                Number(restaurant.latitude),
-                Number(restaurant.longitude),
-              ]}
-              radius={8}
-              pathOptions={{ color: "#2e5a43" }}
-            >
-              <Popup>
-                {restaurant.name || "Restaurant"}
-                <br />
-                {restaurant.address}
-              </Popup>
-            </CircleMarker>
+          <CoverageView position={position} radius={coverage} />
+          {position && (
+            <Circle
+              center={position}
+              radius={coverage * 1000}
+              pathOptions={{ color: "#2e5a43", fillOpacity: 0.08, weight: 2 }}
+              interactive={false}
+            />
           )}
-          <PinPicker position={position} onMove={move} />
+          <PinPicker
+            position={position}
+            icon={restaurantPin}
+            title="Restaurant location — drag to adjust"
+            onMove={movePin}
+          />
         </MapContainer>
       </div>
-      {mapProvider === "geoapify" && (
-        <p className="map-help">
-          Address search and routing powered by{" "}
-          <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">
-            Geoapify
-          </a>
-          .
+      {addressStatus && (
+        <p className="restaurant-address-status" role="status">
+          {addressStatus}
         </p>
       )}
-      <label>
-        Delivery address
-        <input
-          value={value?.formatted_address || ""}
-          onChange={(e) =>
-            onChange({
-              ...value,
-              formatted_address: e.target.value,
-              delivery_address_id: null,
-            })
-          }
-          placeholder="Street, barangay, city"
-          required
-        />
-      </label>
-      <div className="address-details">
-        <label>
-          Recipient
-          <input
-            value={value?.recipient_name || ""}
-            onChange={(e) =>
-              onChange({ ...value, recipient_name: e.target.value })
-            }
-            maxLength={120}
-            required
-          />
-        </label>
-        <label>
-          Phone
-          <input
-            value={value?.phone || ""}
-            onChange={(e) => onChange({ ...value, phone: e.target.value })}
-            maxLength={32}
-            required
-          />
-        </label>
-      </div>
-      <label>
-        Drop-off instructions
-        <textarea
-          value={value?.delivery_instructions || ""}
-          onChange={(e) =>
-            onChange({ ...value, delivery_instructions: e.target.value })
-          }
-          maxLength={1000}
-          placeholder="Gate, landmark, or other instructions"
-        />
-      </label>
-      <div className="address-actions">
-        <button type="button" className="save-address-button" onClick={save}>
-          {value?.address_record_id || value?.delivery_address_id
-            ? "Update saved address"
-            : "Save this address"}
-        </button>
-        {(value?.address_record_id || value?.delivery_address_id) && (
-          <button
-            type="button"
-            className="delete-address-button"
-            onClick={deleteSaved}
-          >
-            Delete saved address
-          </button>
-        )}
-      </div>
-      {busy && (
-        <p className="map-help" role="status">
-          Finding route and delivery estimate…
-        </p>
-      )}
-      {error && (
-        <div className="error" role="alert">
-          {error}
-        </div>
-      )}
-      {quote && (
-        <div className="delivery-quote">
-          <strong>Delivery · ₱{quote.delivery_fee}</strong>
-          <span>
-            {quote.distance_km} km by road · about {quote.duration_minutes}{" "}
-            minutes
-          </span>
-          {Number(quote.minimum_order) > 0 && (
-            <small>
-              {quote.meets_minimum
-                ? `Minimum order ₱${quote.minimum_order} met`
-                : `Add ₱${quote.minimum_remaining} to reach the ₱${quote.minimum_order} delivery minimum.`}
-            </small>
-          )}
-        </div>
-      )}
-      {restaurant?.navigation_url && (
-        <a
-          className="map-link"
-          href={restaurant.navigation_url}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Directions to {restaurant.name || "the restaurant"}
-        </a>
-      )}
+      <p className="restaurant-pin-help">
+        {position
+          ? `Restaurant pin: ${position[0].toFixed(6)}, ${position[1].toFixed(6)}. Shaded area: ${coverage} km delivery radius.`
+          : "Click the map to place your restaurant pin."}{" "}
+        The address fills automatically when you place or move the pin. Save
+        settings to apply your changes.
+      </p>
     </div>
   );
 }
 
-export function RestaurantLocation() {
-  const [location, setLocation] = useState(null);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    api("/restaurant/location")
-      .then((r) => setLocation(r.data))
-      .catch((e) => setError(e.message));
-  }, []);
-  if (error) return <div className="error">{error}</div>;
-  if (!location) return <p>Restaurant location has not been configured yet.</p>;
-  const center = [Number(location.latitude), Number(location.longitude)];
+export function DeliveryDestination({ items, value, onChange, onQuote }) {
+  const dialog = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState({});
+  const [pinError, setPinError] = useState("");
+  const current = open ? draft : value;
+  const ready =
+    deliveryPosition(draft) &&
+    draft.pin_confirmed &&
+    draft.quote &&
+    draft.quote.meets_minimum !== false &&
+    draft.formatted_address?.trim() &&
+    draft.recipient_name?.trim() &&
+    draft.phone?.trim();
+  function show() {
+    setDraft({ ...value, quote: null });
+    setPinError("");
+    dialog.current.showModal();
+    const body = dialog.current.querySelector(".delivery-destination-body");
+    if (body) body.scrollTop = 0;
+    setOpen(true);
+  }
+  function confirm(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!ready) {
+      setPinError(
+        "Confirm your drop-off pin, complete your contact details and wait for a valid delivery estimate.",
+      );
+      return;
+    }
+    onChange(draft);
+    onQuote?.(draft.quote);
+    dialog.current.close();
+    setOpen(false);
+  }
+  const footerHint = !deliveryPosition(draft)
+    ? "Start by searching for your delivery address."
+    : !draft.pin_confirmed
+      ? "Confirm the pin at your gate or entrance."
+      : !draft.formatted_address?.trim() ||
+          !draft.recipient_name?.trim() ||
+          !draft.phone?.trim()
+        ? "Add the full address, recipient and phone number."
+        : draft.quote?.meets_minimum === false
+          ? "Your cart must meet the delivery minimum."
+          : !draft.quote
+            ? "Waiting for a valid delivery estimate. Check any message above."
+            : "Your pin and contact details are ready.";
   return (
-    <section className="location-card">
-      <h2>{location.name || "Visit our restaurant"}</h2>
-      <p>{location.address}</p>
-      <p>
-        {location.phone} {location.contact_email}
-      </p>
-      {location.opening_hours && (
+    <>
+      <div className="delivery-destination-card">
+        <div className="delivery-destination-heading">
+          <MapPin size={19} aria-hidden="true" />
+          <strong>Deliver to</strong>
+        </div>
         <p>
-          Opening hours:{" "}
-          {Object.entries(location.opening_hours)
-            .map(
-              ([day, hours]) =>
-                `${day}: ${hours.closed ? "Closed" : hours.open && hours.close ? `${hours.open}–${hours.close}` : "Hours not provided"}`,
-            )
-            .join(" · ")}
+          {value?.formatted_address ||
+            "Choose your delivery address and pin your drop-off point."}
         </p>
+        {value?.recipient_name && (
+          <small>
+            {value.recipient_name}
+            {value.phone ? ` · ${value.phone}` : ""}
+          </small>
+        )}
+        {value?.quote && (
+          <span className="delivery-destination-estimate">
+            ₱{value.quote.delivery_fee} delivery · about{" "}
+            {value.quote.duration_minutes} min travel
+          </span>
+        )}
+        <button
+          type="button"
+          className="ui-button ui-button--secondary"
+          onClick={show}
+        >
+          {value?.formatted_address
+            ? "Change delivery address"
+            : "Choose delivery address"}
+        </button>
+      </div>
+      {createPortal(
+        <dialog
+          ref={dialog}
+          className="delivery-destination-dialog delivery-guided-dialog"
+          aria-labelledby="delivery-destination-title"
+          onClose={() => setOpen(false)}
+        >
+          <div className="app-content delivery-destination-content">
+            <form className="delivery-destination-form" onSubmit={confirm}>
+              <header className="delivery-destination-header">
+                <div>
+                  <h2 id="delivery-destination-title">
+                    Where should we deliver?
+                  </h2>
+                  <p>
+                    Choose your address, confirm the entrance, and add your
+                    contact details.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Close delivery address"
+                  onClick={() => {
+                    dialog.current.close();
+                    setOpen(false);
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </header>
+              <div className="delivery-destination-body">
+                <DeliveryAddressPicker
+                  items={items}
+                  value={current}
+                  onChange={open ? setDraft : onChange}
+                  onQuote={
+                    open
+                      ? (quote) =>
+                          setDraft((previous) => ({ ...previous, quote }))
+                      : onQuote
+                  }
+                  active={open}
+                />
+                {pinError && (
+                  <p className="field-error" role="alert">
+                    {pinError}
+                  </p>
+                )}
+              </div>
+              <footer className="delivery-destination-footer">
+                <span role="status">{footerHint}</span>
+                <button
+                  type="submit"
+                  className="ui-button ui-button--primary"
+                  disabled={!ready}
+                >
+                  Use this address
+                </button>
+              </footer>
+            </form>
+          </div>
+        </dialog>,
+        document.body,
       )}
-      <MapContainer center={center} zoom={16} scrollWheelZoom>
-        <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <Marker position={center} icon={pin} />
-      </MapContainer>
-      <a
-        className="map-link"
-        href={location.navigation_url}
-        target="_blank"
-        rel="noreferrer"
-      >
-        Open directions
-      </a>
-    </section>
+    </>
   );
 }
+
+export { RestaurantLocation } from "./components/RestaurantLocation";
 
 export function DeliverySettings() {
   const [loading, setLoading] = useState(true),
@@ -601,6 +561,36 @@ export function DeliverySettings() {
       {data.policy && (
         <form className="delivery-settings-form" onSubmit={save}>
           <h2>Restaurant location</h2>
+          {import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY ? (
+            <GoogleRestaurantPin
+              location={data.location}
+              radius={data.policy.radius_km}
+              apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}
+              onChange={(location) =>
+                setData((current) => ({
+                  ...current,
+                  location:
+                    typeof location === "function"
+                      ? location(current.location)
+                      : location,
+                }))
+              }
+            />
+          ) : (
+            <RestaurantPinEditor
+              location={data.location}
+              radius={data.policy.radius_km}
+              onChange={(location) =>
+                setData((current) => ({
+                  ...current,
+                  location:
+                    typeof location === "function"
+                      ? location(current.location)
+                      : location,
+                }))
+              }
+            />
+          )}
           {[
             ["name", "Restaurant name"],
             ["address", "Address"],
@@ -613,7 +603,33 @@ export function DeliverySettings() {
               {label}
               <input
                 required={["address", "latitude", "longitude"].includes(key)}
-                value={data.location?.[key] || ""}
+                type={
+                  ["latitude", "longitude"].includes(key)
+                    ? "number"
+                    : key === "contact_email"
+                      ? "email"
+                      : key === "phone"
+                        ? "tel"
+                        : "text"
+                }
+                step={
+                  ["latitude", "longitude"].includes(key) ? "any" : undefined
+                }
+                min={
+                  key === "latitude"
+                    ? -90
+                    : key === "longitude"
+                      ? -180
+                      : undefined
+                }
+                max={
+                  key === "latitude"
+                    ? 90
+                    : key === "longitude"
+                      ? 180
+                      : undefined
+                }
+                value={data.location?.[key] ?? ""}
                 onChange={(e) => change("location", key, e.target.value)}
               />
             </label>

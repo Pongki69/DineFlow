@@ -1,0 +1,105 @@
+.saved-delivery-addresses {
+  margin-top: 32px;
+  scroll-margin-top: 100px;
+  min-width: 0;
+}
+.saved-addresses-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.saved-addresses-heading h2,
+.saved-addresses-heading h3 {
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+.saved-addresses-heading p {
+  margin: 0;
+  max-width: 620px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+.saved-addresses-heading > .ui-button {
+  flex-shrink: 0;
+}
+.saved-address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.saved-address-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: white;
+}
+.saved-address-card-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.saved-address-card-title h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--text-body);
+  overflow-wrap: anywhere;
+}
+.saved-address-card-title svg {
+  flex-shrink: 0;
+}
+.saved-address-default {
+  padding: 4px 9px;
+  background: #edf3e9;
+  color: #27513b;
+  border-radius: 20px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+.saved-address-card p {
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.saved-address-card .saved-address-contact {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+.saved-address-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+.saved-address-editor {
+  max-width: 840px;
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: white;
+}
+.saved-address-editor .delivery-map-box.delivery-address-picker {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+@media (max-width: 599px) {
+  .saved-addresses-heading {
+    flex-wrap: wrap;
+  }
+  .saved-address-editor {
+    padding: 14px;
+  }
+}

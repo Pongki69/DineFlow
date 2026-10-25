@@ -1,0 +1,15 @@
+.restaurant-map-pin {
+  background: transparent;
+  border: 0;
+}
+.restaurant-map-pin svg {
+  display: block;
+  width: 40px;
+  height: 52px;
+  filter: drop-shadow(0 3px 3px rgb(20 45 30 / 28%));
+}
+.restaurant-map-pin:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 20px;
+}

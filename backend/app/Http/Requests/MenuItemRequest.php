@@ -18,11 +18,14 @@ class MenuItemRequest extends FormRequest
         $itemId = is_object($item) ? $item->getKey() : $item;
 
         return [
-            'category_id' => ['required', 'integer', 'exists:menu_categories,id'],
+            'category_id' => ['required', 'integer', Rule::exists('menu_categories', 'id')->whereNull('deleted_at')],
             'name' => ['required', 'string', 'max:140'],
             'sku' => ['nullable', 'string', 'max:64', Rule::unique('menu_items', 'sku')->ignore($itemId)],
             'description' => ['nullable', 'string', 'max:5000'],
+            'pieces' => ['nullable', 'integer', 'min:1', 'max:9999'],
+            'servings' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'image' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'image_source_url' => ['sometimes', 'nullable', 'url:http,https', 'max:2048', Rule::prohibitedIf(fn () => $this->hasFile('image'))],
             'base_price' => ['required', 'numeric', 'min:0', 'max:99999999.99', 'decimal:0,2'],
             'discount_percent' => ['sometimes', 'numeric', 'min:0', 'max:100', 'decimal:0,2'],
             'is_active' => ['sometimes', 'boolean'],

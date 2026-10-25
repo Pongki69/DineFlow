@@ -12,6 +12,7 @@ return [
         'token' => env('MAPBOX_SERVER_TOKEN'),
         'country' => env('MAPS_COUNTRY', 'ph'),
         'routing_url' => env('MAPS_ROUTING_URL', 'https://api.mapbox.com/directions/v5/mapbox/driving'),
+        'traffic_enabled' => env('MAPS_TRAFFIC_ENABLED', false),
     ],
     'notification_retention_days' => env('NOTIFICATION_RETENTION_DAYS', 180),
 ];

@@ -37,7 +37,7 @@ class PaymentService
     {
         $plan = DB::transaction(function () use ($order, $actor): array {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status === 'cancelled') throw ValidationException::withMessages(['order' => 'This order is no longer payable.']);
+            if (in_array($locked->status, ['completed', 'cancelled'], true)) throw ValidationException::withMessages(['order' => 'Online payment is unavailable for completed or cancelled orders. Contact the restaurant if the payment record needs correction.']);
             $existing = $locked->payments()->where('status', 'pending')->latest()->first();
             if ($existing) return ['payment' => $existing, 'existing' => true];
             $this->assertNoPending($locked);

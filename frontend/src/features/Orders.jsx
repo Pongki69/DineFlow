@@ -1,7 +1,12 @@
 import { EmptyState, Feedback, Skeleton, StatusBadge } from "../components/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import "../components/riderDispatch.css";
+import {
+  foodLabels,
+  deliveryLabels,
+} from "../components/CustomerOrderProgress";
 export function OrdersView({
   kitchen = false,
   staff = false,
@@ -9,6 +14,8 @@ export function OrdersView({
 }) {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
+  const [prep, setPrep] = useState({});
+  const request = useRef(null);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState({
     order_type: "",
@@ -18,6 +25,9 @@ export function OrdersView({
     to: "",
   });
   async function load() {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
     setError("");
     try {
       const query = new URLSearchParams(
@@ -26,22 +36,43 @@ export function OrdersView({
       query.set("per_page", "100");
       const result = await api(
         kitchen ? "/kitchen/orders" : `/orders?${query}`,
+        { signal: controller.signal },
       );
-      setOrders(result.data || []);
+      if (!controller.signal.aborted) setOrders(result.data || []);
     } catch (e) {
-      setError(e.message);
+      if (!controller.signal.aborted) setError(e.message);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }
   useEffect(() => {
     load();
+    const timer = setInterval(load, 5000);
+    return () => {
+      clearInterval(timer);
+      request.current?.abort();
+    };
   }, [kitchen, filters]);
   async function advance(order, status) {
     try {
       await api(`/orders/${order.id}/status`, {
         method: "PATCH",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({
+          status,
+          ...((status === "confirmed" || status === "preparing") &&
+          order.order_type === "delivery" &&
+          (!order.prep_ready_at || prep[order.id] !== undefined)
+            ? {
+                prep_minutes: Number(
+                  prep[order.id]?.minutes ?? order.prep_minutes ?? 15,
+                ),
+                delivery_vehicle_class:
+                  prep[order.id]?.vehicle ||
+                  order.delivery_vehicle_class ||
+                  "motorcycle",
+              }
+            : {}),
+        }),
       });
       await load();
     } catch (e) {
@@ -201,28 +232,99 @@ export function OrdersView({
                   )
                   .join(" · ")}
               </small>
-              {order.delivery && (
+              {order.delivery && !staff && (
                 <Link
-                  className="map-link"
+                  className="customer-order-track-link"
                   to={`/delivery/${order.delivery.id}/tracking`}
                 >
-                  Track delivery · {order.delivery.status.replaceAll("_", " ")}
+                  Track order & rider
                 </Link>
+              )}
+              {order.delivery && (
+                <small>
+                  {foodLabels[order.status] || order.status} ·{" "}
+                  {deliveryLabels[order.delivery.status] ||
+                    order.delivery.status.replaceAll("_", " ")}
+                </small>
               )}
             </div>
             <div>
               {staff &&
-                (next[order.status] || []).map((status) => (
-                  <button key={status} onClick={() => advance(order, status)}>
-                    {status.replaceAll("_", " ")}
-                  </button>
-                ))}
+                order.order_type === "delivery" &&
+                ["pending", "confirmed"].includes(order.status) && (
+                  <div className="dispatch-prep-fields">
+                    <label>
+                      Kitchen prep time (minutes)
+                      <input
+                        aria-label={`Prep time for ${order.order_number}`}
+                        type="number"
+                        min="1"
+                        max="180"
+                        value={
+                          prep[order.id]?.minutes ?? order.prep_minutes ?? 15
+                        }
+                        onChange={(e) =>
+                          setPrep((current) => ({
+                            ...current,
+                            [order.id]: {
+                              ...current[order.id],
+                              minutes: e.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      Vehicle needed
+                      <select
+                        aria-label={`Vehicle needed for ${order.order_number}`}
+                        value={
+                          prep[order.id]?.vehicle ||
+                          order.delivery_vehicle_class ||
+                          "motorcycle"
+                        }
+                        onChange={(e) =>
+                          setPrep((current) => ({
+                            ...current,
+                            [order.id]: {
+                              ...current[order.id],
+                              vehicle: e.target.value,
+                            },
+                          }))
+                        }
+                      >
+                        <option value="bicycle">Bicycle · small order</option>
+                        <option value="motorcycle">
+                          Motorcycle · standard order
+                        </option>
+                        <option value="car">
+                          Car · large / catering order
+                        </option>
+                      </select>
+                    </label>
+                  </div>
+                )}
+              {staff &&
+                (next[order.status] || [])
+                  .filter(
+                    (status) =>
+                      !(
+                        order.order_type === "delivery" &&
+                        status === "completed"
+                      ),
+                  )
+                  .map((status) => (
+                    <button key={status} onClick={() => advance(order, status)}>
+                      {status.replaceAll("_", " ")}
+                    </button>
+                  ))}
               {!staff && order.status === "pending" && (
                 <button onClick={() => advance(order, "cancelled")}>
                   Cancel order
                 </button>
               )}
               {!staff &&
+                !["completed", "cancelled"].includes(order.status) &&
                 order.payment_summary &&
                 Number(order.payment_summary.balance_due) > 0 && (
                   <button onClick={() => checkout(order)}>

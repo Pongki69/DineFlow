@@ -1,5 +1,4 @@
-import { EmptyState, Feedback, Skeleton } from "./components/ui";
-import { usePrompt } from "./components/ConfirmProvider";
+import { Feedback, Skeleton, Button } from "./components/ui";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -8,6 +7,7 @@ import {
   Polyline,
   Popup,
   TileLayer,
+  Tooltip,
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
@@ -15,6 +15,17 @@ import "leaflet/dist/leaflet.css";
 import { privateEcho } from "./realtime";
 
 import { api } from "./api";
+import { CustomerOrderProgress } from "./components/CustomerOrderProgress";
+import { RiderReviewForm } from "./components/RiderReviewForm";
+import { TrackingDisclosureSummary } from "./components/TrackingDisclosureSummary";
+import {
+  DeliveryArrivalTimes,
+  DeliveryPathLegend,
+  RecordedDeliveryPath,
+  arrivalLabel,
+  recordedSegments,
+} from "./components/DeliveryJourney";
+import { DeliveryProofPhoto } from "./components/DeliveryProof";
 
 const riderPin = L.divIcon({
   className: "delivery-pin",
@@ -24,505 +35,121 @@ const riderPin = L.divIcon({
 });
 const terminal = ["delivered", "failed", "cancelled"];
 const title = (s) => String(s || "").replaceAll("_", " ");
-function RecenterMap({ point }) {
+const pickupPin = L.divIcon({
+  className: "customer-location-pin",
+  html: '<span role="img" aria-label="Restaurant pickup">R</span>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
+const destinationPin = L.divIcon({
+  className: "customer-location-pin destination",
+  html: '<span role="img" aria-label="Your delivery destination">D</span>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
+function trackingPoint(point) {
+  if (
+    point?.latitude == null ||
+    point?.longitude == null ||
+    point.latitude === "" ||
+    point.longitude === ""
+  )
+    return null;
+  const lat = Number(point.latitude),
+    lng = Number(point.longitude);
+  return Number.isFinite(lat) &&
+    Math.abs(lat) <= 90 &&
+    Number.isFinite(lng) &&
+    Math.abs(lng) <= 180
+    ? [lat, lng]
+    : null;
+}
+function TrackingViewport({ points }) {
   const map = useMap();
+  const key = JSON.stringify(points);
   useEffect(() => {
-    if (point) map.setView(point, Math.max(14, map.getZoom()));
-  }, [map, point?.[0], point?.[1]]);
+    if (points.length)
+      map.fitBounds(points, { padding: [80, 60], maxZoom: 15 });
+  }, [map, key]);
   return null;
 }
 
-export function RiderDashboard() {
-  const [loading, setLoading] = useState(true);
-  const ask = usePrompt();
-  const [deliveries, setDeliveries] = useState([]),
-    [profile, setProfile] = useState({}),
-    [error, setError] = useState(""),
-    [notice, setNotice] = useState(""),
-    [trackingId, setTrackingId] = useState(null),
-    [geoError, setGeoError] = useState("");
-  const watchRef = useRef(null),
-    sendAt = useRef(0);
-  async function load() {
-    setError("");
-    try {
-      const r = await api("/rider/assignments");
-      setDeliveries(r.data || []);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+export { RiderDeliveries } from "./features/RiderDeliveries";
+export { DispatchDashboard } from "./features/DispatchDashboard";
+
+function CompletedDeliveryMap({ children, deliveryId, needsRoute }) {
+  const [expanded, setExpanded] = useState(false);
+  const [suggestion, setSuggestion] = useState(null);
+  const [routeError, setRouteError] = useState("");
   useEffect(() => {
-    load();
-    const timer = setInterval(load, 12000);
-    api("/rider/profile")
-      .then((r) => setProfile(r.data || {}))
-      .catch(() => {});
-    return () => clearInterval(timer);
-  }, []);
-  const tracked = deliveries.find((d) => d.id === trackingId);
-  const trackedStatus = tracked?.status;
-  useEffect(() => {
-    if (!trackingId) return;
-    if (!["picked_up", "in_transit"].includes(trackedStatus)) {
-      setTrackingId(null);
-      return;
-    }
-    if (!navigator.geolocation) {
-      setGeoError("This browser does not support location sharing.");
-      return;
-    }
-    const id = navigator.geolocation.watchPosition(
-      async (position) => {
-        if (Date.now() - sendAt.current < 9500) return;
-        sendAt.current = Date.now();
-        const c = position.coords;
-        try {
-          await api(`/rider/deliveries/${trackingId}/locations`, {
-            method: "POST",
-            body: JSON.stringify({
-              latitude: c.latitude,
-              longitude: c.longitude,
-              accuracy_meters: c.accuracy,
-              speed_mps: c.speed,
-            }),
-          });
-          setGeoError("");
-        } catch (e) {
-          setGeoError(`Location update not sent: ${e.message}`);
-        }
-      },
-      (e) =>
-        setGeoError(
-          e.code === 1
-            ? "Location permission denied. Enable location access to share your delivery progress."
-            : "GPS is unavailable. Check location services and try again.",
-        ),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
-    );
-    watchRef.current = id;
-    return () => {
-      navigator.geolocation.clearWatch(id);
-      watchRef.current = null;
-    };
-  }, [trackingId, trackedStatus]);
-  async function act(d, path, body = {}) {
-    setError("");
-    setNotice("");
-    try {
-      await api(path, {
-        method: path.includes("/status") ? "PATCH" : "POST",
-        body: JSON.stringify(body),
-      });
-      setNotice(`Delivery ${d.order.order_number} updated.`);
-      if (terminal.includes(body.status)) setTrackingId(null);
-      await load();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-  async function saveProfile(e) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    try {
-      const r = await api("/rider/profile", {
-        method: "PUT",
-        body: JSON.stringify(Object.fromEntries(f)),
-      });
-      setProfile(r.data);
-      setNotice("Rider profile saved.");
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-  return (
-    <section className="welcome rider-workspace">
-      <span className="eyebrow">RIDER WORKSPACE</span>
-      <h1>My deliveries</h1>
-      <p>
-        Location sharing only runs while this page is open and a picked-up
-        delivery is active.
-      </p>
-      {loading && <Skeleton label="Loading your content" />}
-      {!loading && !error && deliveries.length === 0 && (
-        <EmptyState
-          title="Ready for your next delivery"
-          description="Your assigned deliveries will appear here."
-        />
-      )}
-      {error && <Feedback onRetry={load}>{error}</Feedback>}
-      {geoError && (
-        <div className="error" role="alert">
-          {geoError}
-        </div>
-      )}
-      {notice && <Feedback tone="success">{notice}</Feedback>}
-      <form className="rider-profile" onSubmit={saveProfile}>
-        <strong>Rider details</strong>
-        <label>
-          Phone
-          <input
-            name="phone"
-            value={profile.phone || ""}
-            onChange={(e) =>
-              setProfile((p) => ({ ...p, phone: e.target.value }))
-            }
-            maxLength={32}
-          />
-        </label>
-        <label>
-          Vehicle
-          <input
-            name="vehicle_type"
-            value={profile.vehicle_type || ""}
-            onChange={(e) =>
-              setProfile((p) => ({ ...p, vehicle_type: e.target.value }))
-            }
-            maxLength={40}
-            placeholder="Motorcycle, bicycle…"
-          />
-        </label>
-        <label>
-          Plate
-          <input
-            name="vehicle_plate"
-            value={profile.vehicle_plate || ""}
-            onChange={(e) =>
-              setProfile((p) => ({ ...p, vehicle_plate: e.target.value }))
-            }
-            maxLength={24}
-          />
-        </label>
-        <button>Save rider details</button>
-      </form>
-      <button className="refresh-button" onClick={load}>
-        Refresh assignments
-      </button>
-      <div className="rider-delivery-list">
-        {deliveries.length === 0 && (
-          <p>No deliveries are assigned to your account.</p>
-        )}
-        {deliveries.map((d) => {
-          const o = d.order;
-          const next =
-            d.status === "accepted"
-              ? "arrived_at_restaurant"
-              : d.status === "arrived_at_restaurant"
-                ? "picked_up"
-                : d.status === "picked_up"
-                  ? "in_transit"
-                  : d.status === "in_transit"
-                    ? "delivered"
-                    : null;
-          const canPick = next !== "picked_up" || o.status === "ready_to_serve";
-          return (
-            <article className="rider-delivery-card" key={d.id}>
-              <div className="rider-delivery-head">
-                <div>
-                  <strong>Order {o.order_number}</strong>
-                  <span className={`delivery-state state-${d.status}`}>
-                    {title(d.status)}
-                  </span>
-                </div>
-                <strong>₱{o.total}</strong>
-              </div>
-              <p>
-                <b>Pickup:</b>{" "}
-                {o.pickup?.address || "Restaurant address not configured"}
-                {o.pickup?.phone && ` · ${o.pickup.phone}`}
-              </p>
-              <p>
-                <b>Drop-off:</b> {o.destination.address}
-              </p>
-              <p>
-                <b>Recipient:</b> {o.destination.recipient_name} ·{" "}
-                {o.destination.phone}
-              </p>
-              {o.destination.instructions && (
-                <p>
-                  <b>Instructions:</b> {o.destination.instructions}
-                </p>
-              )}
-              <p className="rider-items">
-                {o.items
-                  ?.map((i) => `${i.quantity}× ${i.item_name_snapshot}`)
-                  .join(" · ")}
-              </p>
-              {o.destination.latitude && (
-                <a
-                  className="map-link"
-                  target="_blank"
-                  rel="noreferrer"
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${o.destination.latitude},${o.destination.longitude}&travelmode=driving`}
-                >
-                  Open turn-by-turn navigation
-                </a>
-              )}
-              <div className="rider-actions">
-                {d.status === "assigned" && (
-                  <>
-                    <button
-                      onClick={async () =>
-                        act(d, `/rider/deliveries/${d.id}/accept`)
-                      }
-                    >
-                      Accept assignment
-                    </button>
-                    <button
-                      className="danger-button"
-                      onClick={async () => {
-                        const reason = await ask(
-                          "Why are you rejecting this assignment?",
-                        );
-                        if (reason)
-                          act(d, `/rider/deliveries/${d.id}/reject`, {
-                            reason,
-                          });
-                      }}
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
-                {next && (
-                  <button
-                    disabled={!canPick}
-                    onClick={async () =>
-                      act(d, `/rider/deliveries/${d.id}/status`, {
-                        status: next,
-                      })
-                    }
-                  >
-                    {next === "arrived_at_restaurant"
-                      ? "Arrived at restaurant"
-                      : next === "picked_up"
-                        ? canPick
-                          ? "Pick up order"
-                          : "Waiting for kitchen to mark order ready"
-                        : next === "in_transit"
-                          ? "Start delivery"
-                          : "Mark delivered"}
-                  </button>
-                )}
-                {["picked_up", "in_transit"].includes(d.status) && (
-                  <button
-                    className={trackingId === d.id ? "tracking-on" : ""}
-                    onClick={async () => {
-                      setGeoError("");
-                      setTrackingId(trackingId === d.id ? null : d.id);
-                    }}
-                  >
-                    {trackingId === d.id
-                      ? "Stop location sharing"
-                      : "Start location sharing"}
-                  </button>
-                )}
-                {[
-                  "accepted",
-                  "arrived_at_restaurant",
-                  "picked_up",
-                  "in_transit",
-                ].includes(d.status) && (
-                  <button
-                    className="danger-button"
-                    onClick={async () => {
-                      const reason = await ask(
-                        "Describe the delivery problem:",
-                      );
-                      if (reason)
-                        act(d, `/rider/deliveries/${d.id}/status`, {
-                          status: "failed",
-                          reason,
-                        });
-                    }}
-                  >
-                    Report a problem
-                  </button>
-                )}
-              </div>
-              <small>
-                {d.history
-                  ?.map(
-                    (h) =>
-                      `${title(h.to_status)} · ${new Date(h.created_at).toLocaleString()}`,
-                  )
-                  .join("  /  ")}
-              </small>
-            </article>
+    if (!expanded || !needsRoute) return;
+    const controller = new AbortController();
+    setRouteError("");
+    api(`/my/deliveries/${deliveryId}/route`, { signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted) setSuggestion(result.data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setRouteError(
+            "A suggested route is unavailable. The arrival times and location pins are still available.",
           );
-        })}
-      </div>
-    </section>
-  );
-}
-
-export function DispatchDashboard() {
-  const [loading, setLoading] = useState(true);
-  const ask = usePrompt();
-  const [deliveries, setDeliveries] = useState([]),
-    [riders, setRiders] = useState([]),
-    [selection, setSelection] = useState({}),
-    [error, setError] = useState(""),
-    [notice, setNotice] = useState("");
-  async function load() {
-    setError("");
-    try {
-      const r = await api("/admin/deliveries");
-      setDeliveries(r.data || []);
-      setRiders(r.riders || []);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-  useEffect(() => {
-    load();
-    const timer = setInterval(load, 15000);
-    return () => clearInterval(timer);
-  }, []);
-  async function assign(d) {
-    try {
-      await api(`/admin/deliveries/${d.id}/assign`, {
-        method: "POST",
-        body: JSON.stringify({ rider_id: Number(selection[d.id]) }),
       });
-      setNotice(`Rider assigned to ${d.order.order_number}.`);
-      await load();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
-  async function cancel(d) {
-    const reason = await ask("Reason for cancelling this delivery:");
-    if (!reason) return;
-    try {
-      await api(`/admin/deliveries/${d.id}/cancel`, {
-        method: "POST",
-        body: JSON.stringify({ reason }),
-      });
-      await load();
-    } catch (e) {
-      setError(e.message);
-    }
-  }
+    return () => controller.abort();
+  }, [expanded, needsRoute, deliveryId]);
   return (
-    <section className="welcome dispatch-dashboard">
-      <span className="eyebrow">DELIVERY OPERATIONS</span>
-      <h1>Dispatch and tracking</h1>
-      {loading && <Skeleton label="Loading your content" />}
-      {!loading && !error && deliveries.length === 0 && (
-        <EmptyState
-          title="No deliveries waiting"
-          description="Delivery orders will appear here when they are ready for dispatch."
-        />
-      )}
-      {error && <Feedback onRetry={load}>{error}</Feedback>}
-      {notice && <Feedback tone="success">{notice}</Feedback>}
-      <button className="refresh-button" onClick={load}>
-        Refresh deliveries
-      </button>
-      <div className="rider-delivery-list">
-        {deliveries.map((d) => (
-          <article className="rider-delivery-card" key={d.id}>
-            <div className="rider-delivery-head">
-              <div>
-                <strong>{d.order.order_number}</strong>
-                <span className={`delivery-state state-${d.status}`}>
-                  {title(d.status)}
-                </span>
-              </div>
-              <span>{d.rider?.name || "Unassigned"}</span>
-            </div>
-            <p>{d.order.delivery_address}</p>
-            <p>
-              ₱{d.order.total} · {d.order.delivery_distance_km || "—"} km · ETA{" "}
-              {d.estimated_arrival_at
-                ? new Date(d.estimated_arrival_at).toLocaleTimeString()
-                : "not available"}
-            </p>
-            {d.location_updates?.[0] && (
-              <p>
-                Last rider GPS: {d.location_updates[0].latitude},{" "}
-                {d.location_updates[0].longitude} ·{" "}
-                {new Date(
-                  d.location_updates[0].recorded_at,
-                ).toLocaleTimeString()}
-              </p>
-            )}
-            {!terminal.includes(d.status) &&
-              !["picked_up", "in_transit"].includes(d.status) && (
-                <div className="dispatch-assign">
-                  <select
-                    aria-label={`Assign rider for ${d.order.order_number}`}
-                    value={selection[d.id] || d.rider_user_id || ""}
-                    onChange={(e) =>
-                      setSelection((s) => ({ ...s, [d.id]: e.target.value }))
-                    }
-                  >
-                    <option value="">Select available rider</option>
-                    {riders.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name} · {r.vehicle_type || "vehicle not set"}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    disabled={!selection[d.id] && !d.rider_user_id}
-                    onClick={async () => assign(d)}
-                  >
-                    {d.rider_user_id ? "Reassign" : "Assign rider"}
-                  </button>
-                  <button
-                    className="danger-button"
-                    onClick={async () => cancel(d)}
-                  >
-                    Cancel delivery
-                  </button>
-                </div>
-              )}
-            <small>
-              {d.status_history
-                ?.map(
-                  (h) =>
-                    `${title(h.to_status)} · ${new Date(h.created_at).toLocaleString()}`,
-                )
-                .join(" / ")}
-            </small>
-          </article>
-        ))}
-      </div>
-    </section>
+    <details
+      className="customer-completed-map"
+      onToggle={(event) => setExpanded(event.currentTarget.open)}
+    >
+      <TrackingDisclosureSummary meta="Map & times">
+        Delivery locations
+      </TrackingDisclosureSummary>
+      {expanded && children(suggestion, routeError)}
+    </details>
   );
 }
 
-export function CustomerDeliveryTracking() {
+export function CustomerDeliveryTracking({ user }) {
   const { deliveryId } = useParams();
   const [data, setData] = useState(null),
     [notifications, setNotifications] = useState([]),
     [error, setError] = useState("");
+  const trackingRequest = useRef(null);
   async function load() {
+    trackingRequest.current?.abort();
+    const controller = new AbortController();
+    trackingRequest.current = controller;
     try {
-      const [r, n] = await Promise.all([
-        api(`/my/deliveries/${deliveryId}`),
-        api("/notifications"),
-      ]);
+      const r = await api(`/my/deliveries/${deliveryId}`, {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
       setData(r.data);
-      setNotifications(
-        (n.data || [])
-          .filter((x) => x.data?.delivery_id === Number(deliveryId))
-          .slice(0, 5),
-      );
+      api("/notifications", { signal: controller.signal })
+        .then((n) => {
+          if (!controller.signal.aborted)
+            setNotifications(
+              (n.data || [])
+                .filter(
+                  (x) =>
+                    x.data?.context?.delivery_id === Number(deliveryId) ||
+                    x.data?.delivery_id === Number(deliveryId),
+                )
+                .slice(0, 5),
+            );
+        })
+        .catch(() => {});
       setError("");
     } catch (e) {
-      setError(e.message);
+      if (!controller.signal.aborted) setError(e.message);
     }
   }
   useEffect(() => {
+    setData(null);
+    setNotifications([]);
     load();
-    const timer = setInterval(load, 9000);
+    const timer = setInterval(load, 5000);
     let echo = null;
     try {
       echo = privateEcho();
@@ -530,11 +157,12 @@ export function CustomerDeliveryTracking() {
     } catch {}
     return () => {
       clearInterval(timer);
+      trackingRequest.current?.abort();
       echo?.leave(`delivery.${deliveryId}`);
       echo?.disconnect();
     };
   }, [deliveryId]);
-  if (error)
+  if (error && !data)
     return (
       <section className="welcome">
         <Feedback onRetry={load}>{error}</Feedback>
@@ -548,95 +176,337 @@ export function CustomerDeliveryTracking() {
         <Skeleton label="Loading delivery status" />
       </section>
     );
-  const rider = data.location
-      ? [Number(data.location.latitude), Number(data.location.longitude)]
-      : null,
-    dest = data.destination.latitude
-      ? [Number(data.destination.latitude), Number(data.destination.longitude)]
-      : null,
-    route = (data.route || []).map(([lng, lat]) => [lat, lng]);
+  const rider = trackingPoint(data.location),
+    dest = trackingPoint(data.destination),
+    pickup = trackingPoint(data.pickup);
+  const segments = recordedSegments(data.recorded_path);
+  const points = [rider, pickup, dest, ...segments.flat()].filter(Boolean);
+  const route = (data.route || [])
+    .filter(
+      (point) =>
+        Array.isArray(point) &&
+        point.length >= 2 &&
+        Number.isFinite(Number(point[0])) &&
+        Number.isFinite(Number(point[1])),
+    )
+    .map(([lng, lat]) => [Number(lat), Number(lng)]);
+  const pickupPhase = ["accepted", "arrived_at_restaurant"].includes(
+    data.status,
+  );
   return (
     <section className="welcome customer-tracking">
       <span className="eyebrow">DELIVERY TRACKING</span>
       <h1>Order {data.order_number}</h1>
+      {error && (
+        <Feedback onRetry={load}>
+          Updates could not refresh. Showing the last available status. {error}
+        </Feedback>
+      )}
       <div className="track-status">
-        <strong>{title(data.status)}</strong>
-        {data.rider && <span>Rider: {data.rider.name}</span>}
-        {data.eta && (
-          <span>
-            Estimated arrival: {new Date(data.eta).toLocaleTimeString()}
-          </span>
-        )}
-        {data.tracking_stale ? (
-          <span className="stale-note">
+        <span className="tracking-update-chip">
+          <span aria-hidden="true" />
+          {terminal.includes(data.status) ? "Order history" : "Live updates"}
+        </span>
+        {!terminal.includes(data.status) && (
+          <span className={data.tracking_stale ? "stale-note" : ""}>
             {data.last_location_at
-              ? `Last rider location ${new Date(data.last_location_at).toLocaleTimeString()} (may be outdated).`
-              : "Rider location is not available yet."}
-          </span>
-        ) : (
-          <span>
-            Location updated{" "}
-            {new Date(data.last_location_at).toLocaleTimeString()}
+              ? data.tracking_stale
+                ? "Location delayed"
+                : `GPS updated ${arrivalLabel(data.last_location_at)}`
+              : "Waiting for GPS"}
           </span>
         )}
-        {data.failure_reason && <span>{data.failure_reason}</span>}
       </div>
-      {rider && dest ? (
-        <div className="tracking-map">
-          <MapContainer center={rider} zoom={14} scrollWheelZoom>
-            <RecenterMap point={rider} />
-            <TileLayer
-              attribution="&copy; OpenStreetMap contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Marker position={rider} icon={riderPin}>
-              <Popup>Your rider</Popup>
-            </Marker>
-            <Marker position={dest}>
-              <Popup>Delivery destination</Popup>
-            </Marker>
-            {route.length > 1 && (
-              <Polyline
-                positions={route}
-                pathOptions={{ color: "#2e5a43", weight: 5 }}
-              />
-            )}
-          </MapContainer>
-        </div>
-      ) : (
-        <p className="map-help">
-          The rider's location and route will appear once tracking is available.
-        </p>
-      )}
-      {data.map_provider === "geoapify" && (
-        <p className="map-help">
-          Routing powered by{" "}
-          <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">
-            Geoapify
-          </a>
-          .
-        </p>
-      )}
-      <ol className="delivery-timeline">
-        {data.history.map((h, i) => (
-          <li
-            key={`${h.status}-${i}`}
-            className={i === data.history.length - 1 ? "current" : ""}
+      <CustomerOrderProgress data={data}>
+        {terminal.includes(data.status) ? (
+          <CompletedDeliveryMap
+            key={deliveryId}
+            deliveryId={deliveryId}
+            needsRoute={!segments.length && Boolean(pickup && dest)}
           >
-            <strong>{title(h.status)}</strong>
-            <time>{new Date(h.at).toLocaleString()}</time>
-          </li>
-        ))}
-      </ol>
+            {(suggestion, routeError) => (
+              <>
+                <section
+                  className="customer-completed-addresses"
+                  aria-label="Delivery addresses"
+                >
+                  <DeliveryArrivalTimes times={data.arrival_times} />
+                  <div className="tracking-address-pair">
+                    <p>
+                      <strong>Restaurant</strong>
+                      {data.pickup?.address || "Address unavailable"}
+                    </p>
+                    <p>
+                      <strong>Drop-off</strong>
+                      {data.destination?.address || "Address unavailable"}
+                    </p>
+                  </div>
+                  {points.length > 0 && (
+                    <div
+                      className="tracking-map"
+                      role="region"
+                      aria-label="Completed delivery map"
+                    >
+                      <MapContainer
+                        center={points[0]}
+                        zoom={14}
+                        scrollWheelZoom={false}
+                      >
+                        <TrackingViewport
+                          points={[
+                            ...points,
+                            ...(suggestion?.geometry || []).map(
+                              ([lng, lat]) => [lat, lng],
+                            ),
+                          ]}
+                        />
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        {pickup && (
+                          <Marker
+                            position={pickup}
+                            icon={pickupPin}
+                            title="Restaurant pickup"
+                          >
+                            {arrivalLabel(data.arrival_times?.restaurant) && (
+                              <Tooltip
+                                permanent
+                                direction="top"
+                                offset={[0, -12]}
+                              >
+                                At restaurant ·{" "}
+                                {arrivalLabel(data.arrival_times.restaurant)}
+                              </Tooltip>
+                            )}
+                          </Marker>
+                        )}
+                        {dest && (
+                          <Marker
+                            position={dest}
+                            icon={destinationPin}
+                            title="Your delivery destination"
+                          >
+                            {arrivalLabel(data.arrival_times?.delivered) && (
+                              <Tooltip
+                                permanent
+                                direction="bottom"
+                                offset={[0, 12]}
+                              >
+                                Delivered ·{" "}
+                                {arrivalLabel(data.arrival_times.delivered)}
+                              </Tooltip>
+                            )}
+                          </Marker>
+                        )}
+                        <RecordedDeliveryPath segments={segments} />
+                        {!segments.length &&
+                          suggestion?.geometry?.length > 1 && (
+                            <Polyline
+                              positions={suggestion.geometry.map(
+                                ([lng, lat]) => [lat, lng],
+                              )}
+                              pathOptions={{
+                                color: "#795e27",
+                                weight: 4,
+                                dashArray: "8 8",
+                                className: "suggested-delivery-path",
+                              }}
+                            />
+                          )}
+                      </MapContainer>
+                    </div>
+                  )}
+                </section>
+                <DeliveryPathLegend
+                  recorded={segments.length > 0}
+                  suggested={
+                    !segments.length && suggestion?.geometry?.length > 1
+                  }
+                  error={routeError}
+                />
+                {suggestion?.provider === "geoapify" && (
+                  <p className="customer-progress-note map-help">
+                    Suggested routing powered by{" "}
+                    <a
+                      href="https://www.geoapify.com/"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Geoapify
+                    </a>
+                    .
+                  </p>
+                )}
+              </>
+            )}
+          </CompletedDeliveryMap>
+        ) : (
+          <section
+            className="customer-tracking-map"
+            aria-labelledby="delivery-map-heading"
+          >
+            <h2 id="delivery-map-heading">
+              {terminal.includes(data.status)
+                ? "Delivery locations"
+                : pickupPhase
+                  ? "Rider and restaurant"
+                  : "Your delivery map"}
+            </h2>
+            <DeliveryArrivalTimes
+              times={data.arrival_times}
+              eta={data.eta}
+              stale={data.tracking_stale}
+            />
+            {points.length ? (
+              <div
+                className="tracking-map"
+                role="region"
+                aria-label="Restaurant, delivery destination and rider map"
+              >
+                <MapContainer
+                  center={points[0]}
+                  zoom={14}
+                  scrollWheelZoom={false}
+                >
+                  <TrackingViewport points={points} />
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  {pickup && (
+                    <Marker
+                      position={pickup}
+                      icon={pickupPin}
+                      title="Restaurant pickup"
+                      alt="Restaurant pickup"
+                    >
+                      <Popup>Restaurant · {data.pickup.address}</Popup>
+                      {arrivalLabel(data.arrival_times?.restaurant) && (
+                        <Tooltip permanent direction="top" offset={[0, -12]}>
+                          At restaurant ·{" "}
+                          {arrivalLabel(data.arrival_times.restaurant)}
+                        </Tooltip>
+                      )}
+                    </Marker>
+                  )}
+                  {dest && (
+                    <Marker
+                      position={dest}
+                      icon={destinationPin}
+                      title="Your delivery destination"
+                      alt="Your delivery destination"
+                    >
+                      <Popup>
+                        Your destination · {data.destination.address}
+                      </Popup>
+                      {data.eta &&
+                        !data.tracking_stale &&
+                        arrivalLabel(data.eta) && (
+                          <Tooltip
+                            permanent
+                            direction="bottom"
+                            offset={[0, 12]}
+                          >
+                            Estimated arrival · {arrivalLabel(data.eta)}
+                          </Tooltip>
+                        )}
+                    </Marker>
+                  )}
+                  {rider && (
+                    <Marker
+                      position={rider}
+                      icon={riderPin}
+                      title={
+                        data.tracking_stale
+                          ? "Last known rider location"
+                          : "Your rider"
+                      }
+                      alt={
+                        data.tracking_stale
+                          ? "Last known rider location"
+                          : "Your rider"
+                      }
+                    >
+                      <Popup>
+                        {data.tracking_stale
+                          ? "Last known rider location (may be outdated)"
+                          : "Your rider"}
+                      </Popup>
+                    </Marker>
+                  )}
+                  {!pickupPhase && route.length > 1 && (
+                    <Polyline
+                      positions={route}
+                      pathOptions={{
+                        color: "#795e27",
+                        weight: 4,
+                        dashArray: "8 8",
+                      }}
+                    />
+                  )}
+                  <RecordedDeliveryPath segments={segments} />
+                </MapContainer>
+              </div>
+            ) : (
+              <p className="customer-progress-note">
+                Map coordinates are unavailable. Your status and address updates
+                remain available.
+              </p>
+            )}
+            <div className="tracking-map-legend">
+              <span>R · Restaurant</span>
+              <span>D · Your destination</span>
+              <span>
+                Green pin · Rider
+                {data.tracking_stale && rider ? " (last known)" : ""}
+              </span>
+            </div>
+            <DeliveryPathLegend
+              recorded={segments.length > 0}
+              remaining={!pickupPhase && route.length > 1}
+            />
+            {data.map_provider === "geoapify" && (
+              <p className="customer-progress-note map-help">
+                Routing powered by{" "}
+                <a
+                  href="https://www.geoapify.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Geoapify
+                </a>
+                .
+              </p>
+            )}
+          </section>
+        )}
+      </CustomerOrderProgress>
+      {data.status === "delivered" && (
+        <RiderReviewForm
+          key={deliveryId}
+          deliveryId={deliveryId}
+          review={data.review}
+          rating={data.rating}
+          user={user}
+          onSaved={load}
+        />
+      )}
+      {data.status === "delivered" && data.proof_available && (
+        <DeliveryProofPhoto key={deliveryId} deliveryId={deliveryId} />
+      )}
       {notifications.length > 0 && (
-        <div className="delivery-notifications">
-          <strong>Delivery updates</strong>
+        <details className="customer-progress-card delivery-notifications">
+          <TrackingDisclosureSummary meta={`${notifications.length} messages`}>
+            Notifications
+          </TrackingDisclosureSummary>
           {notifications.map((n) => (
             <p key={n.id}>
               {n.data.message} · {new Date(n.created_at).toLocaleTimeString()}
             </p>
           ))}
-        </div>
+        </details>
       )}
       <Link to="/my-orders">Back to my orders</Link>
     </section>

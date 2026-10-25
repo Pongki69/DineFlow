@@ -3,7 +3,7 @@ import { Bell, CheckCheck, X } from "lucide-react";
 import { api } from "../api";
 import { EmptyState, Feedback, Skeleton } from "./ui";
 
-export function Notifications() {
+export function Notifications({ showBadge = true }) {
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -62,7 +62,7 @@ export function Notifications() {
         ref={trigger}
         className="icon-button notification-trigger"
         type="button"
-        aria-label={`Notifications${count ? `, ${count} unread` : ""}`}
+        aria-label={`Notifications${showBadge && count ? `, ${count} unread` : ""}`}
         aria-expanded={open}
         aria-controls="recent-notifications"
         onClick={() => {
@@ -71,7 +71,7 @@ export function Notifications() {
         }}
       >
         <Bell size={21} aria-hidden="true" />
-        {count > 0 && (
+        {showBadge && count > 0 && (
           <span className="notification-count">
             {count > 99 ? "99+" : count}
           </span>

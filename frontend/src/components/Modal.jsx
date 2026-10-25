@@ -1,7 +1,15 @@
 import { useEffect, useId, useRef } from "react";
 import { X } from "lucide-react";
 
-export function Modal({ open, title, description, onClose, children }) {
+export function Modal({
+  open,
+  title,
+  description,
+  onClose,
+  children,
+  eyebrow = "RESTAURANT CATALOG",
+  closeLabel = "Close editor",
+}) {
   const dialog = useRef(null),
     id = useId();
   useEffect(() => {
@@ -21,14 +29,14 @@ export function Modal({ open, title, description, onClose, children }) {
     >
       <div className="modal-heading">
         <div>
-          <span className="eyebrow">RESTAURANT CATALOG</span>
+          <span className="eyebrow">{eyebrow}</span>
           <h2 id={`${id}-title`}>{title}</h2>
           {description && <p id={`${id}-description`}>{description}</p>}
         </div>
         <button
           className="icon-button"
           type="button"
-          aria-label="Close editor"
+          aria-label={closeLabel}
           onClick={onClose}
         >
           <X size={21} aria-hidden="true" />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { api } from "./api";
 import {
@@ -7,9 +7,19 @@ import {
   Field,
   PageHeader,
   StatusBadge,
+  Skeleton,
 } from "./components/ui";
 
-export function Account({ user, onUpdated }) {
+const SavedDeliveryAddresses = lazy(
+  () => import("./components/SavedDeliveryAddresses"),
+);
+
+export function Account({
+  user,
+  onUpdated,
+  embedded = false,
+  showAddresses = true,
+}) {
   const [error, setError] = useState(""),
     [errors, setErrors] = useState({}),
     [notice, setNotice] = useState(""),
@@ -44,11 +54,13 @@ export function Account({ user, onUpdated }) {
   }
   return (
     <section className="account-page">
-      <PageHeader
-        eyebrow="A LITTLE ABOUT YOU"
-        title="My account"
-        description="Keep your details up to date and your account secure."
-      />
+      {!embedded && (
+        <PageHeader
+          eyebrow="A LITTLE ABOUT YOU"
+          title="My account"
+          description="Keep your details up to date and your account secure."
+        />
+      )}
       {error && <Feedback>{error}</Feedback>}
       {notice && <Feedback tone="success">{notice}</Feedback>}
       <div className="account-layout">
@@ -113,6 +125,15 @@ export function Account({ user, onUpdated }) {
           </Button>
         </form>
       </div>
+      {showAddresses && user.roles.includes("customer") && (
+        <Suspense
+          fallback={
+            <Skeleton cards={1} label="Loading your saved delivery addresses" />
+          }
+        >
+          <SavedDeliveryAddresses user={user} />
+        </Suspense>
+      )}
     </section>
   );
 }

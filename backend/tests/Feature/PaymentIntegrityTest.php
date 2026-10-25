@@ -20,6 +20,18 @@ function pendingPaymentFixture($test): Payment
     return Payment::create(['order_id' => $order['id'], 'method' => 'online', 'purpose' => 'order', 'status' => 'pending', 'amount' => $order['total'], 'currency' => 'PHP', 'provider' => 'paymongo', 'reference_number' => 'DF-PAY-TEST', 'checkout_session_id' => 'cs_fixture']);
 }
 
+it('rejects online checkout for completed and cancelled orders without altering payment records', function () {
+    \Illuminate\Support\Facades\Http::preventStrayRequests();
+    $customer = orderingUser('customer');
+    $order = \App\Models\Order::create(['order_number' => 'CLOSED'.uniqid(), 'customer_id' => $customer->id, 'customer_name_snapshot' => $customer->name, 'order_type' => 'delivery', 'status' => 'completed', 'total' => 100, 'subtotal' => 100, 'currency' => 'PHP']);
+    foreach (['completed', 'cancelled'] as $status) {
+        $order->update(['status' => $status]);
+        $this->actingAs($customer)->postJson('/api/v1/orders/'.$order->id.'/payments/checkout')->assertUnprocessable()->assertJsonValidationErrors('order');
+    }
+    expect($order->payments()->count())->toBe(0);
+    \Illuminate\Support\Facades\Http::assertNothingSent();
+});
+
 function paidWebhook(Payment $payment, int $amount = 9000, string $currency = 'PHP', bool $live = false, string $eventId = 'evt_fixture'): array
 {
     return ['data' => ['id' => $eventId, 'attributes' => ['type' => 'checkout_session.payment.paid', 'livemode' => $live, 'data' => [

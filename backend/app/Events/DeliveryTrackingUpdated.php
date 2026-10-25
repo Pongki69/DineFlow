@@ -18,6 +18,6 @@ class DeliveryTrackingUpdated implements ShouldBroadcastNow
     public function broadcastAs(): string { return 'delivery.updated'; }
     public function broadcastWith(): array
     {
-        return ['delivery_id'=>$this->delivery->id,'status'=>$this->delivery->status,'updated_at'=>$this->delivery->updated_at?->toIso8601String()] + $this->tracking;
+        return ['delivery_id'=>$this->delivery->id,'status'=>$this->delivery->status,'order_status'=>$this->delivery->order?->status,'updated_at'=>$this->delivery->updated_at?->toIso8601String()] + $this->tracking;
     }
 }

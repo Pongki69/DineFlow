@@ -1,3 +1,8 @@
+import { AutoTextarea } from "../components/AutoTextarea";
+import { DishPortion } from "../components/DishPortion";
+import { ImagePicker } from "../components/ImagePicker";
+import { loadMenuItems } from "../menuCatalog";
+import { useConfirm } from "../components/ConfirmProvider";
 import { useEffect, useState } from "react";
 import { Pencil, Plus, Search, Trash2, UtensilsCrossed } from "lucide-react";
 import { api } from "../api";
@@ -227,8 +232,32 @@ function ItemEditor({ item, categories, onSaved, onClose }) {
         defaultValue={item?.description || ""}
         maxLength={5000}
       >
-        <textarea rows={3} />
+        <AutoTextarea rows={3} />
       </Field>
+      <div className="form-columns">
+        <Field
+          label="Pieces (optional)"
+          name="pieces"
+          type="number"
+          min="1"
+          max="9999"
+          step="1"
+          defaultValue={item?.pieces ?? ""}
+          error={errors.pieces?.[0]}
+          hint="Number of pieces included in one order."
+        />
+        <Field
+          label="Servings (optional)"
+          name="servings"
+          type="number"
+          min="1"
+          max="1000"
+          step="1"
+          defaultValue={item?.servings ?? ""}
+          error={errors.servings?.[0]}
+          hint="Number of servings included in one order."
+        />
+      </div>
       <div className="form-columns">
         <Field
           label="SKU (optional)"
@@ -237,15 +266,13 @@ function ItemEditor({ item, categories, onSaved, onClose }) {
           maxLength={64}
           error={errors.sku?.[0]}
         />
-        <Field
-          label="Dish photo (optional)"
-          name="image"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          hint="JPG, PNG or WebP, up to 5 MB."
-          error={errors.image?.[0]}
-        />
       </div>
+      <ImagePicker
+        label="Dish photo (optional)"
+        initialUrl={item?.image_url}
+        initialSourceUrl={item?.image_source_url}
+        error={errors.image?.[0] || errors.image_source_url?.[0]}
+      />
       <OptionEditor
         title="Sizes"
         rows={variants}
@@ -273,6 +300,10 @@ function ItemEditor({ item, categories, onSaved, onClose }) {
 }
 
 export function MenuAdmin() {
+  const confirm = useConfirm();
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [sortBy, setSortBy] = useState("category-asc");
+  const [deletionReview, setDeletionReview] = useState(null);
   const [items, setItems] = useState([]),
     [categories, setCategories] = useState([]),
     [loading, setLoading] = useState(true),
@@ -287,7 +318,7 @@ export function MenuAdmin() {
     try {
       const [groups, dishes] = await Promise.all([
         api("/menu/categories"),
-        api("/menu/items"),
+        loadMenuItems(),
       ]);
       setCategories(groups.data || []);
       setItems(dishes.data || []);
@@ -328,6 +359,59 @@ export function MenuAdmin() {
       setBusy(false);
     }
   }
+  async function reviewCategoryDeletion(category = categoryEditor) {
+    setDeletionReview({ category, dishes: [], loading: true, error: "" });
+    try {
+      const result = await api(
+        `/menu/categories/${category.id}/deletion-preview`,
+      );
+      setDeletionReview((current) =>
+        current?.category.id === category.id
+          ? { category, dishes: result.data.dishes, loading: false, error: "" }
+          : current,
+      );
+    } catch (failure) {
+      setDeletionReview((current) =>
+        current?.category.id === category.id
+          ? {
+              ...current,
+              loading: false,
+              needsRefresh: true,
+              error: failure.message,
+            }
+          : current,
+      );
+    }
+  }
+  async function deleteCategory() {
+    const { category, dishes } = deletionReview;
+    setBusy(true);
+    try {
+      await api(`/menu/categories/${category.id}`, {
+        method: "DELETE",
+        body: JSON.stringify({ dish_ids: dishes.map((dish) => dish.id) }),
+      });
+      if (categoryFilter === String(category.id)) setCategoryFilter("");
+      setDeletionReview(null);
+      setCategoryEditor(null);
+      setNotice(
+        `${category.name} category and ${dishes.length} dish${dishes.length === 1 ? "" : "es"} deleted.`,
+      );
+      await load();
+    } catch (failure) {
+      setDeletionReview((current) =>
+        current
+          ? {
+              ...current,
+              error: failure.errors?.dish_ids?.[0] || failure.message,
+              needsRefresh: Boolean(failure.errors?.dish_ids),
+            }
+          : current,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   async function toggle(item, soldOut = false) {
     setBusy(true);
     try {
@@ -349,11 +433,63 @@ export function MenuAdmin() {
       setBusy(false);
     }
   }
-  const filtered = items.filter((item) =>
-    `${item.name} ${item.category?.name}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
+  async function deleteDish(item) {
+    if (
+      !(await confirm(
+        `Remove ${item.name} from the menu? Past orders will keep their dish details.`,
+        {
+          title: "Delete this dish?",
+          confirmLabel: "Delete dish",
+          destructive: true,
+        },
+      ))
+    )
+      return;
+    setBusy(true);
+    setError("");
+    try {
+      await api(`/menu/items/${item.id}`, { method: "DELETE" });
+      setNotice(`${item.name} deleted.`);
+      await load();
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const compareNames = (a, b) =>
+    (a || "").localeCompare(b || "", "en", {
+      numeric: true,
+      sensitivity: "base",
+    });
+  const sortedCategories = [...categories].sort((a, b) =>
+    compareNames(a.name, b.name),
   );
+  const filtered = items
+    .filter(
+      (item) =>
+        (!categoryFilter || String(item.category_id) === categoryFilter) &&
+        `${item.name} ${item.category?.name}`
+          .toLowerCase()
+          .includes(query.trim().toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (sortBy.startsWith("category-")) {
+        return (
+          compareNames(a.category?.name, b.category?.name) *
+            (sortBy === "category-desc" ? -1 : 1) ||
+          compareNames(a.name, b.name)
+        );
+      }
+      if (sortBy.startsWith("price-")) {
+        return (
+          (Number(a.base_price) - Number(b.base_price)) *
+            (sortBy === "price-desc" ? -1 : 1) || compareNames(a.name, b.name)
+        );
+      }
+      return compareNames(a.name, b.name);
+    });
+  const hasFilters = Boolean(query.trim() || categoryFilter);
   return (
     <section className="catalog-admin">
       <PageHeader
@@ -399,28 +535,80 @@ export function MenuAdmin() {
           </button>
         ))}
       </div>
-      <div className="search-field">
-        <Search size={18} aria-hidden="true" />
-        <input
-          aria-label="Search menu management"
-          placeholder="Find a dish or category"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+      <div className="catalog-filter-bar">
+        <div className="search-field">
+          <Search size={18} aria-hidden="true" />
+          <input
+            aria-label="Search menu management"
+            placeholder="Find a dish or category"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+        <label className="catalog-filter-field">
+          Category
+          <select
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+          >
+            <option value="">All categories</option>
+            {sortedCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="catalog-filter-field">
+          Sort by
+          <select
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value)}
+          >
+            <option value="category-asc">Category: A–Z</option>
+            <option value="category-desc">Category: Z–A</option>
+            <option value="name-asc">Dish name: A–Z</option>
+            <option value="price-asc">Price: low to high</option>
+            <option value="price-desc">Price: high to low</option>
+          </select>
+        </label>
+        {hasFilters && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setQuery("");
+              setCategoryFilter("");
+            }}
+          >
+            Clear filters
+          </Button>
+        )}
       </div>
+      {!loading && (
+        <p className="catalog-result-count" role="status">
+          Showing {filtered.length} of {items.length} dishes
+        </p>
+      )}
       {loading ? (
         <Skeleton label="Loading your menu" />
       ) : !filtered.length ? (
         <EmptyState
           icon={UtensilsCrossed}
           title={
-            query ? "No dishes match this search" : "Make the menu your own"
+            hasFilters
+              ? "No dishes match these filters"
+              : "Make the menu your own"
           }
           description={
-            query
-              ? "Try a different dish or category name."
+            hasFilters
+              ? "Try another category or search term."
               : "Start with a category, then add your first dish."
           }
+          action={hasFilters ? "Clear filters" : undefined}
+          onAction={() => {
+            setQuery("");
+            setCategoryFilter("");
+          }}
         />
       ) : (
         <div className="catalog-list">
@@ -428,7 +616,11 @@ export function MenuAdmin() {
             <article key={item.id}>
               <div className="catalog-dish-icon">
                 {item.image_url ? (
-                  <img src={item.image_url} alt="" />
+                  <img
+                    src={item.image_url}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                  />
                 ) : (
                   <UtensilsCrossed size={25} aria-hidden="true" />
                 )}
@@ -436,6 +628,7 @@ export function MenuAdmin() {
               <div className="catalog-dish-info">
                 <span className="eyebrow">{item.category?.name}</span>
                 <h2>{item.name}</h2>
+                <DishPortion item={item} />
                 <p>
                   ₱{Number(item.base_price).toFixed(2)}
                   {Number(item.discount_percent) > 0 &&
@@ -468,6 +661,14 @@ export function MenuAdmin() {
                   onClick={() => toggle(item)}
                 >
                   {item.is_active ? "Deactivate" : "Activate"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="dish-delete"
+                  disabled={busy}
+                  onClick={() => deleteDish(item)}
+                >
+                  <Trash2 size={15} aria-hidden="true" /> Delete dish
                 </Button>
               </div>
             </article>
@@ -519,11 +720,22 @@ export function MenuAdmin() {
               name="description"
               defaultValue={categoryEditor.description || ""}
             >
-              <textarea rows={3} />
+              <AutoTextarea rows={3} />
             </Field>
             <div className="dialog-actions">
+              {categoryEditor.id && (
+                <Button
+                  variant="secondary"
+                  className="category-delete"
+                  disabled={busy}
+                  onClick={() => reviewCategoryDeletion()}
+                >
+                  <Trash2 size={15} aria-hidden="true" /> Delete category
+                </Button>
+              )}
               <Button
                 variant="secondary"
+                disabled={busy}
                 onClick={() => setCategoryEditor(null)}
               >
                 Cancel
@@ -533,6 +745,94 @@ export function MenuAdmin() {
               </Button>
             </div>
           </form>
+        )}
+      </Modal>
+      <Modal
+        open={deletionReview !== null}
+        title="Delete category and dishes?"
+        description="Review everything that will be removed from the menu. Past orders and receipts will remain intact."
+        onClose={() => {
+          if (!busy) setDeletionReview(null);
+        }}
+      >
+        {deletionReview && (
+          <div
+            className="category-deletion-review"
+            aria-busy={busy || deletionReview.loading}
+          >
+            <strong>{deletionReview.category.name}</strong>
+            {deletionReview.error && (
+              <Feedback>{deletionReview.error}</Feedback>
+            )}
+            {deletionReview.loading ? (
+              <Skeleton label="Loading affected dishes" />
+            ) : (
+              <>
+                <p>
+                  {deletionReview.dishes.length} dish
+                  {deletionReview.dishes.length === 1 ? "" : "es"} will be
+                  deleted with this category.
+                </p>
+                {deletionReview.dishes.length ? (
+                  <ul
+                    className="category-deletion-list"
+                    aria-label="Dishes affected by category deletion"
+                  >
+                    {deletionReview.dishes.map((dish) => (
+                      <li key={dish.id}>
+                        <span>
+                          <strong>{dish.name}</strong>
+                          <small>
+                            {!dish.is_active
+                              ? "Inactive"
+                              : dish.is_sold_out
+                                ? "Sold out"
+                                : "Available"}
+                          </small>
+                        </span>
+                        <span>₱{Number(dish.base_price).toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>This category has no dishes.</p>
+                )}
+              </>
+            )}
+            <div className="dialog-actions">
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => setDeletionReview(null)}
+              >
+                Cancel
+              </Button>
+              {deletionReview.needsRefresh && (
+                <Button
+                  variant="secondary"
+                  disabled={busy || deletionReview.loading}
+                  onClick={() =>
+                    reviewCategoryDeletion(deletionReview.category)
+                  }
+                >
+                  Refresh list
+                </Button>
+              )}
+              <Button
+                className="category-delete"
+                disabled={
+                  busy || deletionReview.loading || deletionReview.needsRefresh
+                }
+                busy={busy}
+                onClick={deleteCategory}
+              >
+                Delete category
+                {deletionReview.dishes.length
+                  ? ` and ${deletionReview.dishes.length} dish${deletionReview.dishes.length === 1 ? "" : "es"}`
+                  : ""}
+              </Button>
+            </div>
+          </div>
         )}
       </Modal>
     </section>

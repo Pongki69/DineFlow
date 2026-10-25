@@ -1,0 +1,439 @@
+.rider-active-switcher,
+.dispatch-queues {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 22px 0 16px;
+}
+.rider-active-switcher .ui-button,
+.dispatch-queues .ui-button {
+  min-height: 48px;
+  gap: 10px;
+}
+.rider-active-switcher .ui-button {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.rider-active-switcher small {
+  font-size: var(--text-caption);
+  color: var(--muted);
+  font-weight: 400;
+}
+.rider-route-planner .rider-route-switcher {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rider-route-switcher-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.rider-route-switcher-label > span {
+  color: var(--muted);
+  font-weight: 400;
+}
+.rider-route-switcher-items {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  min-width: 0;
+  padding: 2px;
+}
+.rider-route-switcher .ui-button {
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 44px;
+  gap: 8px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.rider-route-switcher-number {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--neutral-soft);
+  font-size: var(--text-caption);
+}
+.rider-route-switcher [aria-pressed="true"] .rider-route-switcher-number {
+  background: var(--primary);
+  color: var(--surface);
+}
+.rider-route-switcher small {
+  text-transform: capitalize;
+}
+.rider-route-summary > strong {
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .rider-route-planner .rider-route-switcher {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .rider-route-switcher .ui-button {
+    overflow-wrap: normal;
+  }
+  .rider-route-switcher small {
+    display: none;
+  }
+}
+.app-content
+  :is(.rider-active-switcher, .dispatch-queues)
+  [aria-pressed="true"] {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.dispatch-queues strong {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--neutral-soft);
+  font-size: var(--text-xs);
+}
+.dispatch-search {
+  display: grid;
+  gap: 8px;
+  max-width: 620px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.rider-data-freshness {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin: 10px 0 18px;
+}
+.rider-workspace fieldset.rider-actions {
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+fieldset.dispatch-assign {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+fieldset:disabled {
+  opacity: 0.75;
+}
+.rider-route-apply {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+}
+.rider-route-apply p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+.rider-route-apply .ui-button {
+  justify-self: start;
+}
+.rider-route-footnote summary,
+.dispatch-search-details summary {
+  min-height: 44px;
+  cursor: pointer;
+  align-content: center;
+}
+.rider-presence-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rider-presence-controls .ui-button {
+  min-height: 40px;
+  font-size: var(--text-xs);
+  padding: 8px 10px;
+}
+@media (max-width: 600px) {
+  .rider-active-switcher {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rider-active-switcher .ui-button {
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  .rider-presence-controls {
+    gap: 4px;
+  }
+  .rider-presence-controls .ui-button {
+    max-width: 100px;
+  }
+}
+.rider-workbench-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.rider-workbench-tabs [aria-pressed="true"] {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.rider-selected-workbench .rider-delivery-card {
+  border: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+.rider-selected-workbench .rider-delivery-head {
+  padding: 0 0 16px;
+  align-items: flex-start;
+}
+.rider-selected-workbench .rider-delivery-head > div {
+  flex-wrap: wrap;
+}
+.rider-selected-workbench {
+  --rider-order-size: var(--text-body);
+  --rider-order-weight: 500;
+}
+.rider-selected-workbench .rider-card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) !important;
+  padding: 16px 0 !important;
+  gap: 16px;
+}
+.rider-selected-workbench .rider-card-completion {
+  border-left: 0;
+  padding-left: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.rider-selected-workbench fieldset.rider-actions {
+  padding: 16px 0 !important;
+}
+.rider-selected-workbench .rider-card-total {
+  font-size: var(--text-body);
+}
+.rider-selected-workbench .rider-card-stop p {
+  font-size: var(--text-body);
+}
+.rider-route-itinerary {
+  min-width: 0;
+}
+.rider-route-itinerary [hidden] {
+  display: none !important;
+}
+.rider-route-planner.is-expanded .rider-route-itinerary {
+  overflow: auto;
+}
+.app-shell[data-workspace="delivery"]
+  .rider-content
+  :is(.rider-workbench-tabs, .rider-active-switcher)
+  .ui-button[aria-pressed="true"] {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.rider-location-help {
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--muted);
+}
+.rider-location-help summary {
+  min-height: 44px;
+  cursor: pointer;
+  align-content: center;
+}
+.rider-workspace .rider-actions .ui-button {
+  min-height: 48px;
+}
+.rider-workspace
+  :is(
+    .state-accepted,
+    .state-arrived_at_restaurant,
+    .state-picked_up,
+    .state-in_transit
+  ) {
+  background: var(--progress-soft);
+  color: var(--progress);
+}
+.rider-route-draft {
+  padding: 12px;
+  border: 1px solid #e5d4ad;
+  border-radius: 9px;
+  background: var(--warning-soft);
+  color: var(--warning) !important;
+}
+.dispatch-dashboard :is(.state-pending_assignment, .state-assigned) {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+.dispatch-dashboard
+  :is(
+    .state-accepted,
+    .state-arrived_at_restaurant,
+    .state-picked_up,
+    .state-in_transit
+  ) {
+  color: var(--progress);
+  background: var(--progress-soft);
+}
+@media (max-width: 650px) {
+  .rider-presence-controls:has(> .ui-button) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+  }
+  .rider-presence-controls:has(> .ui-button) .rider-header-presence {
+    min-height: 34px;
+    justify-content: center;
+  }
+  .rider-presence-controls:has(> .ui-button) .ui-button {
+    min-height: 34px;
+    padding: 5px 8px;
+  }
+}
+.ui-feedback--warning {
+  color: var(--warning);
+  background: var(--warning-soft);
+  border-color: #e5d4ad;
+}
+.rider-content .rider-route-reorder button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+}
+.rider-route-map .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+.app-content .rider-workspace .page-actions > .ui-button {
+  justify-content: center;
+}
+.rider-sharing-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary);
+  font-size: var(--text-sm);
+}
+.dispatch-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-block: 20px;
+  font-size: var(--text-sm);
+}
+.dispatch-pagination > span:first-child {
+  margin-right: auto;
+}
+.dispatch-recovery {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--neutral-soft);
+  margin-block: 12px;
+}
+
+/* Keep the operational workspace in view; each pane owns its overflow. */
+@media (min-width: 1000px) and (min-height: 600px) {
+  .app-shell[data-page="rider-deliveries"] .app-body {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .app-shell[data-page="rider-deliveries"] :is(.app-topbar, .app-footer) {
+    flex-shrink: 0;
+  }
+  .app-shell[data-page="rider-deliveries"] .app-footer {
+    padding-block: 8px;
+  }
+  .app-shell[data-page="rider-deliveries"] .app-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-block: 16px 10px;
+    overflow: auto;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-workspace {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 8px;
+  }
+  .app-shell[data-page="rider-deliveries"]
+    .rider-workspace
+    > :not(.rider-route-planner) {
+    flex-shrink: 0;
+  }
+  .app-shell[data-page="rider-deliveries"] .page-heading {
+    margin-bottom: 0;
+  }
+  .app-shell[data-page="rider-deliveries"] .page-heading h1 {
+    margin-block: 4px 6px;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-data-freshness {
+    margin: 0 !important;
+    font-size: var(--text-caption);
+  }
+  .app-shell[data-page="rider-deliveries"]
+    .rider-route-planner:not(.is-expanded) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-route-heading {
+    padding: 12px 16px;
+    flex-shrink: 0;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-route-layout {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-route-map-area {
+    min-height: 0;
+    padding: 12px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-route-map {
+    flex: 1;
+    min-height: 160px;
+    height: auto;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-route-itinerary {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    padding: 16px;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-route-itinerary ol {
+    max-height: none;
+    overflow: visible;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-route-map-tools {
+    margin-top: 6px;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-route-location-note {
+    margin-block: 6px 0;
+  }
+  .app-shell[data-page="rider-deliveries"] .rider-route-legend {
+    padding-top: 6px;
+    gap: 8px 12px;
+  }
+}

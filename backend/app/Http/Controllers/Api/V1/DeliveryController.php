@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DeliveryAddress;
 use App\Models\MenuItem;
 use App\Models\RestaurantSetting;
+use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\DeliveryQuoteService;
 use App\Services\MapProviderService;
@@ -36,6 +37,14 @@ class DeliveryController extends Controller
         catch (RuntimeException $exception) { return response()->json(['message' => $exception->getMessage()], 503); }
     }
 
+    public function reverse(Request $request, MapProviderService $maps): JsonResponse
+    {
+        $data = $request->validate(['latitude' => ['required', 'numeric', 'between:-90,90'], 'longitude' => ['required', 'numeric', 'between:-180,180']]);
+        try { return response()->json(['data' => $maps->reverse((float) $data['latitude'], (float) $data['longitude'])]); }
+        catch (\Illuminate\Http\Client\ConnectionException $exception) { return response()->json(['message' => 'Automatic address lookup could not connect. Enter the address manually or try moving the pin again.'], 503); }
+        catch (RuntimeException $exception) { return response()->json(['message' => $exception->getMessage()], 503); }
+    }
+
     public function addresses(Request $request): JsonResponse
     {
         return response()->json(['data' => DeliveryAddress::where('user_id', $request->user()->id)->orderByDesc('is_default')->latest()->get()]);
@@ -46,7 +55,11 @@ class DeliveryController extends Controller
         if ($address) abort_unless($address->user_id === $request->user()->id, 404);
         $data = $request->validate(['label' => ['required', 'string', 'max:60'], 'recipient_name' => ['required', 'string', 'max:120'], 'phone' => ['required', 'string', 'max:32'], 'formatted_address' => ['required', 'string', 'max:500'], 'latitude' => ['required', 'numeric', 'between:-90,90'], 'longitude' => ['required', 'numeric', 'between:-180,180'], 'delivery_instructions' => ['nullable', 'string', 'max:1000'], 'is_default' => ['sometimes', 'boolean']]);
         $saved = DB::transaction(function () use ($request, $data, $address) {
-            if (! empty($data['is_default'])) DeliveryAddress::where('user_id', $request->user()->id)->update(['is_default' => false]);
+            // Serialize default changes for this customer, including first saves.
+            User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            if (! empty($data['is_default'])) DeliveryAddress::where('user_id', $request->user()->id)
+                ->when($address, fn ($query) => $query->where('id', '!=', $address->id))
+                ->update(['is_default' => false]);
             if ($address) { $address->update($data); return $address->fresh(); }
             return DeliveryAddress::create($data + ['user_id' => $request->user()->id]);
         });

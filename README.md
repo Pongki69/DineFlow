@@ -10,11 +10,15 @@ The architecture, schema, API plan, setup variables, release/backup guidance, an
 
 ## Local development
 
+On Windows, double-click `Start-DineFlow.bat` to start the local database, Laravel API, React frontend, realtime server, and scheduler in one launcher window. The browser opens when the services are ready. A second launch is blocked while the first launcher is running. Press **Enter** or close the launcher window to stop its services; it stops PostgreSQL only if it started it. Windows automatically terminates its web services even if the launcher is forcibly closed. Logs are saved in `.local/run-logs/`. Local dependencies and `.env` files must already be configured. The launcher applies pending database migrations before starting the app, then prepares roles and the optional first administrator from your local environment settings.
+
 For Render Free with Neon PostgreSQL, use the root Dockerfile and follow [deploy/README.md](deploy/README.md). It builds React and Laravel into one web service and documents the required private environment settings.
 
 The layout is `backend/` for Laravel and `frontend/` for React/Vite. Local-only PHP settings, Composer, PostgreSQL binaries/data, and database credentials are kept in ignored files. Start PostgreSQL from the project root with:
 
 For the free portfolio map integration, set `MAP_PROVIDER=geoapify` and `GEOAPIFY_API_KEY` in `backend/.env`. The key is read only by Laravel. The customer map uses OpenStreetMap tiles and includes attribution. Configure restaurant coordinates and weekly hours in **Delivery settings** before accepting delivery orders. Mapbox remains available with `MAP_PROVIDER=mapbox` and `MAPBOX_SERVER_TOKEN`. See [docs/PORTFOLIO_SETUP.md](docs/PORTFOLIO_SETUP.md) for free-service setup and hosting boundaries.
+
+For Google restaurant search on the admin delivery page, set `VITE_GOOGLE_MAPS_BROWSER_KEY` in `frontend/.env` and restart Vite. Enable Maps JavaScript API, Places API (New), and Geocoding API in a Google Cloud project with billing enabled. Restrict this browser key to your website URLs and these APIs. Set `VITE_GOOGLE_MAPS_MAP_ID` to your own map ID for production (development uses `DEMO_MAP_ID`). The admin picker switches to Google Maps, supports Google Places text search, draggable pins and automatic address lookup; without the key it keeps the existing Leaflet picker. Customer delivery maps and route pricing continue to use the existing backend provider. Google configuration is not required for those features.
 
 ```powershell
 .local\pg17\pgsql\bin\pg_ctl.exe -D .local\pgdata17 -l .local\postgres17.log -o "-p 5432 -h 127.0.0.1" start
