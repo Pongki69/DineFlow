@@ -1,4 +1,182 @@
 /* Dashboard layout only. Uses the existing palette and type tokens. */
+.rider-dashboard-skeleton {
+  display: grid;
+  gap: 16px;
+  animation: dashboard-skeleton-pulse 1.4s ease-in-out infinite alternate;
+}
+.dashboard-skeleton-summary,
+.dashboard-skeleton-day,
+.dashboard-skeleton-status,
+.dashboard-skeleton-tools {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.dashboard-skeleton-title,
+.dashboard-skeleton-copy,
+.dashboard-skeleton-metric i,
+.dashboard-skeleton-metric b,
+.dashboard-skeleton-metric span,
+.dashboard-skeleton-banner,
+.dashboard-skeleton-delivery,
+.dashboard-skeleton-link,
+.dashboard-skeleton-button,
+.dashboard-skeleton-tool i,
+.dashboard-skeleton-tool b,
+.dashboard-skeleton-tool em {
+  display: block;
+  border-radius: 999px;
+  background: #e8ede8;
+}
+.dashboard-skeleton-title {
+  width: 180px;
+  height: 17px;
+  margin-bottom: 9px;
+}
+.dashboard-skeleton-title.short {
+  width: 42%;
+  max-width: 150px;
+}
+.dashboard-skeleton-copy {
+  width: 48%;
+  height: 10px;
+  margin-bottom: 16px;
+}
+.dashboard-skeleton-copy.narrow {
+  width: 62%;
+}
+.dashboard-skeleton-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.dashboard-skeleton-metric {
+  display: grid;
+  grid-template-columns: 1fr 18px;
+  gap: 10px;
+  align-content: start;
+  min-height: 96px;
+  padding: 14px;
+  border: 1px solid #e5ebe5;
+  border-radius: 10px;
+}
+.dashboard-skeleton-metric i {
+  grid-column: 2;
+  width: 17px;
+  height: 17px;
+}
+.dashboard-skeleton-metric b {
+  grid-column: 1 / -1;
+  width: 42%;
+  height: 25px;
+}
+.dashboard-skeleton-metric span {
+  grid-column: 1 / -1;
+  width: 75%;
+  height: 9px;
+}
+.dashboard-skeleton-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(270px, 1fr);
+  gap: 16px;
+}
+.dashboard-skeleton-day,
+.dashboard-skeleton-status {
+  min-height: 210px;
+}
+.dashboard-skeleton-banner {
+  width: 100%;
+  height: 42px;
+  margin: 12px 0;
+  border-radius: 9px;
+}
+.dashboard-skeleton-banner.tall {
+  height: 54px;
+}
+.dashboard-skeleton-delivery {
+  height: 54px;
+  margin: 12px 0 8px;
+  border-radius: 8px;
+  background: #f0f3ef;
+}
+.dashboard-skeleton-link {
+  width: 42%;
+  height: 10px;
+  margin-top: 14px;
+}
+.dashboard-skeleton-button {
+  width: 96px;
+  height: 40px;
+  margin-bottom: 14px;
+  border-radius: 9px;
+  background: #e4ece5;
+}
+.dashboard-skeleton-tools {
+  padding: 16px 20px;
+}
+.dashboard-skeleton-tool-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.dashboard-skeleton-tool {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
+  padding: 10px;
+  border: 1px solid #e5ebe5;
+  border-radius: 10px;
+}
+.dashboard-skeleton-tool i {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+.dashboard-skeleton-tool span {
+  display: grid;
+  flex: 1;
+  gap: 7px;
+}
+.dashboard-skeleton-tool b {
+  width: 58%;
+  height: 10px;
+}
+.dashboard-skeleton-tool em {
+  width: 85%;
+  height: 8px;
+}
+@keyframes dashboard-skeleton-pulse {
+  to {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rider-dashboard-skeleton {
+    animation: none;
+  }
+}
+@media (max-width: 900px) {
+  .dashboard-skeleton-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 699px) {
+  .dashboard-skeleton-summary,
+  .dashboard-skeleton-day,
+  .dashboard-skeleton-status,
+  .dashboard-skeleton-tools {
+    padding: 16px;
+  }
+  .dashboard-skeleton-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-skeleton-tool-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .rider-content .rider-home > .page-heading {
   margin-bottom: 24px;
 }
@@ -344,17 +522,10 @@
 .app-shell[data-page="rider-dashboard"]
   :is(
     .topbar-actions .icon-button,
-    .topbar-actions .avatar-link,
     .mobile-menu-button
   ) {
   min-width: 44px;
   min-height: 44px;
-}
-.app-shell[data-page="rider-dashboard"] .topbar-location > a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding-inline: 6px;
 }
 @media (max-width: 1199px) {
   .rider-dashboard-main {
@@ -396,9 +567,6 @@
   .rider-home .rider-next-addresses > section {
     padding: 14px;
   }
-  .app-shell[data-page="rider-dashboard"] .topbar-location > a {
-    display: none;
-  }
 }
 
 .rider-dashboard-summary > header {
@@ -415,6 +583,453 @@
 @media (max-width: 699px) {
   .rider-content .rider-home .rider-metrics article > span {
     min-height: 40px;
+  }
+}
+
+/* Dashboard composition from the rider workspace reference. */
+.rider-dashboard-date {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+@media (min-width: 1200px) {
+  .rider-dashboard-main {
+    grid-template-columns: minmax(0, 2.1fr) minmax(270px, 0.9fr);
+    gap: 16px;
+  }
+}
+.rider-day-overview,
+.rider-status-card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.rider-day-overview > header,
+.rider-status-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rider-content .rider-day-overview h2,
+.rider-content .rider-status-card h2 {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.4;
+  font-weight: 650;
+}
+.rider-content .rider-day-overview > header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+.rider-day-overview-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.rider-day-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 14px 0;
+  padding: 12px;
+  border-radius: 9px;
+  background: #f4f7f3;
+  color: var(--ink);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+.rider-day-summary svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--primary);
+}
+.rider-day-delivery-row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 12px;
+  min-height: 74px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+  text-decoration: none;
+}
+.rider-day-delivery-row:hover .rider-day-delivery-copy > strong {
+  color: var(--primary);
+}
+.rider-day-delivery-time,
+.rider-day-delivery-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.rider-day-delivery-time strong,
+.rider-day-delivery-copy strong {
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+.rider-day-delivery-time small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+.rider-day-delivery-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rider-day-delivery-status {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.rider-day-history-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+}
+.rider-status-badge {
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--text-caption);
+  font-weight: 650;
+}
+.rider-status-badge.online {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.rider-status-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 9px;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.rider-status-message.online {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.rider-status-message svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.rider-content .rider-status-message p {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+.rider-status-action {
+  min-height: 44px;
+}
+.rider-status-details {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.rider-status-details > p {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  color: var(--muted);
+}
+.rider-status-details > p > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.rider-status-details > p > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.rider-status-details strong {
+  color: var(--ink);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+.rider-status-details small {
+  overflow-wrap: anywhere;
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+.rider-home .rider-dashboard-links {
+  margin-top: 16px;
+  padding: 16px 20px;
+  border-radius: 14px;
+}
+.rider-content .rider-home .rider-dashboard-links h2 {
+  margin-bottom: 10px;
+}
+.rider-content .rider-home .rider-shortcuts {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.rider-content .rider-home .rider-shortcuts a {
+  min-height: 54px;
+  padding: 9px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+}
+.rider-content .rider-home .rider-shortcuts a:last-child {
+  border-bottom: 0;
+}
+.rider-content .rider-home .rider-shortcuts a:hover {
+  background: transparent;
+}
+.rider-content .rider-home .rider-shortcuts a > svg:first-child {
+  padding: 5px;
+  box-sizing: content-box;
+  border-radius: 8px;
+  background: #f4f7f3;
+}
+@media (max-width: 699px) {
+  .rider-day-delivery-row {
+    grid-template-columns: 64px minmax(0, 1fr) 18px;
+    gap: 8px;
+  }
+  .rider-day-delivery-status {
+    display: none;
+  }
+  .rider-dashboard-date {
+    min-height: 38px;
+    font-size: var(--text-caption);
+  }
+}
+
+/* Desktop dashboard: keep all primary panels and the tools row in one view. */
+@media (min-width: 1024px) {
+  .app-shell[data-page="rider-dashboard"] .app-body {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .app-shell[data-page="rider-dashboard"] .app-content.rider-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    align-items: stretch;
+    justify-content: flex-start;
+    min-height: 0;
+    overflow: hidden;
+    padding: 12px clamp(20px, 2.2vw, 36px) 8px;
+  }
+  .app-shell[data-page="rider-dashboard"] .app-footer {
+    flex: 0 0 auto;
+    margin-inline: 18px;
+    padding-block: 8px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-home {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    gap: 12px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-dashboard-summary {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: 13px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-home > .rider-dashboard-summary > header {
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-dashboard-summary header p {
+    margin-top: 2px;
+    font-size: var(--text-xs);
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-metrics {
+    gap: 10px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-metrics article {
+    gap: 5px 8px;
+    padding: 10px 12px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-metrics article > strong,
+  .app-shell[data-page="rider-dashboard"] .rider-metrics article strong {
+    font-size: 25px;
+    line-height: 1.1;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-metrics .rider-metric-context {
+    margin-top: 1px;
+    font-size: var(--text-caption);
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-dashboard-main {
+    flex: 1 1 0;
+    min-height: 170px;
+    grid-template-columns: minmax(0, 2.1fr) minmax(240px, 0.9fr);
+    align-items: stretch;
+    gap: 12px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-dashboard-side {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: stretch;
+    gap: 0;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-day-overview,
+  .app-shell[data-page="rider-dashboard"] .rider-status-card {
+    height: 100%;
+    padding: 14px 16px;
+    border-radius: 13px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-day-summary {
+    margin: 8px 0;
+    padding: 9px 10px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-day-delivery-row {
+    min-height: 52px;
+    padding-block: 6px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-day-history-link {
+    min-height: 34px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-status-message {
+    margin: 9px 0;
+    padding: 9px 10px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-status-action {
+    min-height: 38px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-status-details {
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-home .rider-dashboard-links {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 10px 16px;
+    border-radius: 13px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-dashboard-links h2 {
+    margin-bottom: 6px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-shortcuts {
+    gap: 10px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-shortcuts a {
+    min-height: 46px;
+    padding: 7px 9px;
+  }
+}
+
+/* Short desktop viewports need tighter spacing, while preserving every panel. */
+@media (min-width: 1024px) and (max-height: 700px) {
+  .app-shell[data-page="rider-dashboard"] .app-footer {
+    padding-block: 5px;
+    font-size: 10px;
+  }
+  .app-shell[data-page="rider-dashboard"] .app-content.rider-content {
+    padding-block: 7px 5px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-home {
+    gap: 8px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-dashboard-summary {
+    padding: 8px 12px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-home > .rider-dashboard-summary > header {
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-metrics {
+    gap: 7px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-metrics article {
+    gap: 3px 6px;
+    padding: 7px 9px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-metrics article > span {
+    font-size: 11px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-metrics article > strong,
+  .app-shell[data-page="rider-dashboard"] .rider-metrics article strong {
+    font-size: 21px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-metrics .rider-metric-context {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-dashboard-main {
+    min-height: 130px;
+    gap: 8px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-day-overview,
+  .app-shell[data-page="rider-dashboard"] .rider-status-card {
+    padding: 9px 11px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-day-summary {
+    margin: 5px 0;
+    padding: 6px 8px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-day-delivery-row {
+    min-height: 42px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-day-history-link {
+    min-height: 28px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-status-message {
+    margin: 5px 0;
+    padding: 6px 8px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-status-details {
+    gap: 5px;
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-home .rider-dashboard-links {
+    padding: 7px 11px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-dashboard-links h2 {
+    margin-bottom: 3px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-shortcuts {
+    gap: 7px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-shortcuts a {
+    min-height: 38px;
+    padding: 5px 7px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-shortcuts a > div > span {
+    margin-top: 0;
   }
 }
 /* Reference layout: overview first, then delivery and supporting tasks. */
@@ -605,5 +1220,62 @@
   }
   .rider-home .rider-dashboard-links {
     padding: 18px 16px;
+  }
+}
+
+/* Keep the desktop fit rules last so the reference styling above cannot undo them. */
+@media (min-width: 1024px) {
+  .app-shell[data-page="rider-dashboard"] .app-content.rider-content {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    box-sizing: border-box;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+  .app-shell[data-page="rider-dashboard"] .app-content.rider-content > .rider-home {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    align-self: stretch;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-content .rider-home .rider-metrics {
+    gap: 10px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-content .rider-home .rider-metrics article {
+    gap: 5px 8px;
+    padding: 10px 12px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-home .rider-dashboard-links h2 {
+    margin-bottom: 6px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-content .rider-home .rider-shortcuts {
+    gap: 10px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-content .rider-home .rider-shortcuts a {
+    min-height: 46px;
+    padding: 7px 9px;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 700px) {
+  .app-shell[data-page="rider-dashboard"] .rider-content .rider-home .rider-metrics {
+    gap: 7px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-content .rider-home .rider-metrics article {
+    gap: 3px 6px;
+    padding: 7px 9px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-home .rider-dashboard-links h2 {
+    margin-bottom: 3px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-content .rider-home .rider-shortcuts {
+    gap: 7px;
+  }
+  .app-shell[data-page="rider-dashboard"] .rider-content .rider-home .rider-shortcuts a {
+    min-height: 38px;
+    padding: 5px 7px;
   }
 }

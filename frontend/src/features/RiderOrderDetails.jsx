@@ -28,6 +28,7 @@ import {
   StatusBadge,
 } from "../components/ui";
 import { DeliveryProofPhoto } from "../components/DeliveryProof";
+import { RiderScreenSkeleton } from "../components/RiderScreenSkeleton";
 import { OrderItemDetails } from "../components/OrderItemDetails";
 import { Modal } from "../components/Modal";
 import { deliveryLabels } from "../components/CustomerOrderProgress";
@@ -182,11 +183,10 @@ export function RiderOrderDetails() {
         Back to history
       </Link>
       <PageHeader
-        eyebrow="DELIVERY RECORD"
         title={data ? `Order ${data.order.order_number}` : "Order details"}
       />
       {loading ? (
-        <Skeleton label="Loading order details" />
+        <RiderScreenSkeleton variant="details" label="Loading order details" />
       ) : error ? (
         <Feedback onRetry={() => setRetry((value) => value + 1)}>
           {error}

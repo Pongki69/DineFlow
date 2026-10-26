@@ -15,10 +15,13 @@ class RiderWorkOrder
         return RiderProfile::where('user_id', $rider->id)->first()?->planned_delivery_ids ?? [];
     }
 
-    public function ordered(User $rider)
+    public function ordered(User $rider, bool $summaryOnly = false)
     {
         $ids = $this->ids($rider);
-        $items = Delivery::with(['order.items.addons', 'statusHistory'])->where('rider_user_id', $rider->id)->whereNotIn('status', Delivery::TERMINAL)->orderBy('assigned_at')->orderBy('id')->get();
+        $query = $summaryOnly
+            ? Delivery::query()->select(['id', 'order_id', 'status', 'batch_key', 'batch_sequence', 'assigned_at'])->with('order:id,order_number,delivery_address')
+            : Delivery::with(['order.items.addons', 'statusHistory']);
+        $items = $query->where('rider_user_id', $rider->id)->whereNotIn('status', Delivery::TERMINAL)->orderBy('assigned_at')->orderBy('id')->get();
         $items = $items->sortBy(fn ($d) => array_search($d->id, $ids, true) !== false ? array_search($d->id, $ids, true) : count($ids) + $items->search(fn ($v) => $v->id === $d->id))->values();
         // Repair stale preferences without ever reversing a paired delivery's required sequence.
         foreach ($items->filter(fn ($d) => $d->batch_key)->groupBy('batch_key') as $batch) {
@@ -36,6 +39,24 @@ class RiderWorkOrder
         $items = $this->ordered($rider);
 
         return $items->first(fn ($d) => ! in_array($d->status, ['picked_up', 'in_transit'], true)) ?? $items->first();
+    }
+
+    public function nextSummary(User $rider): ?array
+    {
+        $items = $this->ordered($rider, true);
+        $delivery = $items->first(fn ($item) => ! in_array($item->status, ['picked_up', 'in_transit'], true)) ?? $items->first();
+        if (! $delivery || ! $delivery->order) {
+            return null;
+        }
+
+        return [
+            'id' => $delivery->id,
+            'status' => $delivery->status,
+            'order' => [
+                'order_number' => $delivery->order->order_number,
+                'destination' => ['address' => $delivery->order->delivery_address],
+            ],
+        ];
     }
 
     public function save(User $rider, array $ids): array

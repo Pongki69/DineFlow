@@ -4,12 +4,14 @@ import { api } from "./api";
 import { visibleNavigation } from "./navigation";
 import { Account } from "./Account";
 import { AppShell } from "./components/AppShell";
+import { RiderScreenSkeleton } from "./components/RiderScreenSkeleton";
 import { AuthScreen } from "./components/AuthScreen";
 import { ConfirmProvider } from "./components/ConfirmProvider";
 import { EmptyState, Feedback, Skeleton } from "./components/ui";
 import { MenuBrowser } from "./features/Menu";
 import { RiderDispatchPanel } from "./components/RiderDispatchPanel";
 import "./features/workspaceSettings.css";
+import "./components/RiderScreenSkeleton.css";
 const WorkspaceSettings = screen(
   () => import("./features/WorkspaceSettings"),
   "WorkspaceSettings",
@@ -138,6 +140,18 @@ class ScreenBoundary extends Component {
 function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
   const links = visibleNavigation(user.permissions, user.roles);
   const location = useLocation();
+  const riderLoadingVariant =
+    location.pathname === "/rider"
+      ? "dashboard"
+      : location.pathname === "/rider/deliveries"
+        ? "deliveries"
+        : location.pathname === "/rider/history"
+          ? "history"
+          : location.pathname === "/rider/reviews"
+            ? "reviews"
+            : location.pathname.startsWith("/rider/deliveries/")
+              ? "details"
+              : null;
   const screens = {
     "/account": <Account user={user} onUpdated={onUserUpdated} />,
     "/settings": <WorkspaceSettings user={user} onUpdated={onUserUpdated} />,
@@ -180,10 +194,10 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
         user.permissions.includes("deliveries.assigned") && (
           <div className="rider-availability">
             {location.pathname === "/rider/offers" && (
-              <header className="page-heading">
+              <header className="page-heading rider-offers-page-heading">
                 <div>
-                  <span className="eyebrow">RIDER WORKSPACE</span>
                   <h1>Delivery offers</h1>
+                  <p>Find nearby deliveries and review each offer before accepting.</p>
                 </div>
               </header>
             )}
@@ -197,7 +211,18 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
           </div>
         )}
       <ScreenBoundary key={location.pathname}>
-        <Suspense fallback={<Skeleton label="Loading your page" />}>
+        <Suspense
+          fallback={
+            riderLoadingVariant ? (
+              <RiderScreenSkeleton
+                variant={riderLoadingVariant}
+                showHeading
+              />
+            ) : (
+              <Skeleton label="Loading your page" />
+            )
+          }
+        >
           <Routes>
             <Route
               path="/"
@@ -207,7 +232,9 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
                     user.preferences?.home_page === "/account" ||
                     links.some(([, , to]) => to === user.preferences?.home_page)
                       ? user.preferences.home_page
-                      : links[0]?.[2] || "/account"
+                      : links.find(([, , to]) => to === "/dashboard")?.[2] ||
+                        links[0]?.[2] ||
+                        "/account"
                   }
                   replace
                 />

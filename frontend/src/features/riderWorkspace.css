@@ -1,52 +1,203 @@
 /* Shared with delivery records so all rider screens use one type scale. */
 .rider-assignments-loading {
-  min-height: 220px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 32px 20px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: #fff;
-  text-align: center;
+}
+.rider-assignments-loading-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
   color: var(--primary);
 }
-.rider-assignments-loading p {
-  margin: 0;
-  color: var(--muted);
+.rider-assignments-loading-status .spin {
+  flex: 0 0 auto;
+  margin-top: 2px;
 }
-.rider-assignments-loading-bar {
-  width: 160px;
-  height: 4px;
-  margin-top: 4px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: #e9edef;
-}
-.rider-assignments-loading-bar::after {
-  content: "";
+.rider-assignments-loading-status strong {
   display: block;
-  width: 45%;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--primary);
-  animation: rider-assignment-progress 1.2s ease-in-out infinite alternate;
 }
-@keyframes rider-assignment-progress {
-  from {
-    transform: translateX(-100%);
-  }
+.rider-assignments-loading-status p {
+  margin: 0;
+  padding-top: 3px;
+  color: var(--muted);
+  font-size: var(--text-sm, 13px);
+}
+.rider-assignments-loading-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
+  min-height: 260px;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f7f9f6;
+}
+.rider-assignments-map-skeleton {
+  position: relative;
+  min-height: 260px;
+  overflow: hidden;
+  background-color: #f0f3ee;
+  background-image: linear-gradient(35deg, transparent 46%, #e1e8df 47%, #e1e8df 49%, transparent 50%), linear-gradient(145deg, transparent 46%, #e5ebe3 47%, #e5ebe3 49%, transparent 50%), repeating-linear-gradient(0deg, transparent 0 30px, rgb(219 227 216 / 55%) 31px 33px), repeating-linear-gradient(90deg, transparent 0 38px, rgb(219 227 216 / 45%) 39px 41px);
+}
+.rider-assignments-map-skeleton::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 46%) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: rider-skeleton-shimmer 2.1s ease-in-out infinite;
+}
+.route-skeleton-road {
+  position: absolute;
+  display: block;
+  height: 11px;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  background: #e9d4ad;
+  opacity: .75;
+}
+.route-skeleton-road-one {
+  top: 28%;
+  left: -5%;
+  width: 110%;
+  transform: rotate(-13deg);
+}
+.route-skeleton-road-two {
+  top: 63%;
+  left: 5%;
+  width: 100%;
+  transform: rotate(24deg);
+}
+.route-skeleton-road-three {
+  top: 42%;
+  left: 34%;
+  width: 78%;
+  transform: rotate(68deg);
+}
+.route-skeleton-path {
+  position: absolute;
+  width: 48%;
+  height: 2px;
+  top: 52%;
+  left: 22%;
+  border-top: 3px dashed #6e91d6;
+  transform: rotate(-28deg);
+}
+.route-skeleton-pin {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 1px 5px #0003;
+}
+.route-skeleton-pin-one { top: 68%; left: 21%; }
+.route-skeleton-pin-two { top: 35%; left: 68%; background: #4c70d5; }
+.rider-assignments-route-skeleton {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  border-left: 1px solid var(--border);
+  background: #fff;
+}
+.route-skeleton-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.route-skeleton-tabs i,
+.route-skeleton-heading,
+.route-skeleton-stop i,
+.route-skeleton-stop b,
+.route-skeleton-stop em {
+  display: block;
+  border-radius: 999px;
+  background: #e9eeea;
+  animation: rider-skeleton-pulse 1.5s ease-in-out infinite alternate;
+}
+.route-skeleton-tabs i {
+  width: 90px;
+  height: 32px;
+}
+.route-skeleton-tabs i:first-child {
+  width: 100px;
+  background: #e4eee4;
+}
+.route-skeleton-heading {
+  width: 48%;
+  height: 12px;
+  margin: 3px 0;
+}
+.route-skeleton-stop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 10px;
+  border: 1px solid #e5ebe5;
+  border-radius: 10px;
+}
+.route-skeleton-stop i {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+}
+.route-skeleton-stop span {
+  display: grid;
+  flex: 1;
+  gap: 7px;
+}
+.route-skeleton-stop b {
+  width: 55%;
+  height: 10px;
+}
+.route-skeleton-stop em {
+  width: 78%;
+  height: 8px;
+}
+@keyframes rider-skeleton-shimmer {
   to {
-    transform: translateX(230%);
+    transform: translateX(100%);
+  }
+}
+@keyframes rider-skeleton-pulse {
+  to {
+    opacity: 0.48;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .rider-assignments-loading .spin,
-  .rider-workspace .ui-button .spin,
-  .rider-assignments-loading-bar::after {
+  .rider-workspace .ui-button .spin {
     animation: none;
+  }
+  .rider-assignments-loading-preview * {
+    animation: none !important;
+  }
+  .rider-assignments-map-skeleton::after {
+    animation: none !important;
+  }
+}
+@media (max-width: 720px) {
+  .rider-assignments-loading {
+    padding: 12px;
+  }
+  .rider-assignments-loading-preview {
+    grid-template-columns: 1fr;
+  }
+  .rider-assignments-map-skeleton {
+    min-height: 220px;
+  }
+  .rider-assignments-route-skeleton {
+    border-top: 1px solid var(--border);
+    border-left: 0;
   }
 }
 .app-content.rider-content
@@ -121,8 +272,6 @@
   --rider-item-size: var(--text-emphasis);
 }
 .app-content.rider-content {
-  max-width: none;
-  padding-inline: clamp(16px, 1.5vw, 28px);
   font-size: var(--rider-body-size);
   line-height: 1.6;
 }
@@ -322,6 +471,25 @@
 .rider-content .empty-state {
   margin-top: 20px;
   padding: 40px 24px;
+}
+.rider-content .rider-deliveries-empty {
+  margin: 8px 0 20px;
+  overflow: hidden;
+  border: 1px solid var(--primary-border);
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 10% 0%, rgb(255 255 255 / 90%), transparent 58%),
+    var(--primary-soft);
+}
+.rider-content .rider-deliveries-empty .empty-state {
+  min-height: 0;
+  margin: 0;
+  padding: clamp(30px, 4vw, 48px) 24px;
+  border: 0;
+  background: transparent;
+}
+.rider-content .rider-deliveries-empty .empty-state p {
+  max-width: 440px;
 }
 .rider-content .offers-empty {
   padding: 40px 24px;

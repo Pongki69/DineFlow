@@ -52,17 +52,30 @@ class DeliveryService
     public function riderSummary(User $rider): array
     {
         $this->assertRider($rider);
-        $query = Delivery::where('rider_user_id', $rider->id);
-        $next = app(RiderWorkOrder::class)->next($rider);
-        $ratings = DB::table('delivery_ratings')->where('rider_user_id', $rider->id);
         $timezone = config('restaurant.timezone', 'Asia/Manila');
+        $now = now($timezone);
+        $metrics = DB::table('deliveries')
+            ->where('rider_user_id', $rider->id)
+            ->selectRaw('SUM(CASE WHEN status NOT IN (?, ?, ?) THEN 1 ELSE 0 END) AS active_count', Delivery::TERMINAL)
+            ->selectRaw('SUM(CASE WHEN status = ? AND delivered_at BETWEEN ? AND ? THEN 1 ELSE 0 END) AS completed_today', [
+                'delivered',
+                $now->copy()->startOfDay()->utc(),
+                $now->copy()->endOfDay()->utc(),
+            ])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS delivered_total', ['delivered'])
+            ->first();
+        $ratings = DB::table('delivery_ratings')
+            ->where('rider_user_id', $rider->id)
+            ->selectRaw('AVG(rating) AS rating_average, COUNT(*) AS rating_count')
+            ->first();
 
         return [
-            'active_count' => (clone $query)->whereNotIn('status', Delivery::TERMINAL)->count(),
-            'completed_today' => (clone $query)->where('status', 'delivered')->whereBetween('delivered_at', [now($timezone)->startOfDay()->utc(), now($timezone)->endOfDay()->utc()])->count(),
-            'delivered_total' => (clone $query)->where('status', 'delivered')->count(),
-            'rating_average' => $ratings->avg('rating'), 'rating_count' => $ratings->count(),
-            'next_delivery' => $next ? $this->riderPayload($next) : null,
+            'active_count' => (int) ($metrics->active_count ?? 0),
+            'completed_today' => (int) ($metrics->completed_today ?? 0),
+            'delivered_total' => (int) ($metrics->delivered_total ?? 0),
+            'rating_average' => $ratings->rating_average ?? null,
+            'rating_count' => (int) ($ratings->rating_count ?? 0),
+            'next_delivery' => app(RiderWorkOrder::class)->nextSummary($rider),
         ];
     }
 

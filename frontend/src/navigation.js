@@ -13,7 +13,7 @@ export const navigationByPermission = [
   ["Service tables", "service.tables.view", "/service"],
   ["Deliveries", "deliveries.manage", "/admin/deliveries"],
   ["Dashboard", "deliveries.assigned", "/rider"],
-  ["My deliveries", "deliveries.assigned", "/rider/deliveries"],
+  ["My Deliveries", "deliveries.assigned", "/rider/deliveries"],
   ["Delivery offers", "deliveries.assigned", "/rider/offers"],
   ["Delivery history", "deliveries.assigned", "/rider/history"],
   ["Ratings & reviews", "deliveries.assigned", "/rider/reviews"],

@@ -12,7 +12,7 @@ import "../components/riderDeliveryCards.css";
 import "../components/deliveryWorkbench.css";
 const terminal = ["delivered", "failed", "cancelled"];
 const title = (value) => String(value || "").replaceAll("_", " ");
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   RefreshCw,
   Radio,
@@ -246,7 +246,8 @@ export function RiderDeliveries() {
                   ? "delivered"
                   : null;
         const canPick = next !== "picked_up" || o.status === "ready_to_serve";
-        const progressAction = next && (
+        const waitingForKitchen = next === "picked_up" && !canPick;
+        const progressAction = next && !waitingForKitchen && (
           <Button
             busy={!!pending[d.id]}
             disabled={
@@ -263,10 +264,8 @@ export function RiderDeliveries() {
             )}
             {next === "arrived_at_restaurant"
               ? "Arrived at restaurant"
-              : next === "picked_up"
-                ? canPick
+                : next === "picked_up"
                   ? "Pick up order"
-                  : "Waiting for kitchen to mark order ready"
                 : next === "in_transit"
                   ? "Start delivery"
                   : "Mark delivered"}
@@ -301,13 +300,17 @@ export function RiderDeliveries() {
                   {title(d.status)}
                 </span>
               </div>
-              <strong className="rider-card-total">
-                <small>Order total</small>
-                {new Intl.NumberFormat("en-PH", {
-                  style: "currency",
-                  currency: "PHP",
-                }).format(Number(o.total || 0))}
-              </strong>
+              <span className="rider-card-priority-label">
+                {d.status === "in_transit"
+                  ? "Current stop · customer"
+                  : d.status === "picked_up"
+                    ? "Next stop · customer"
+                    : d.status === "arrived_at_restaurant"
+                      ? "Current stop · restaurant"
+                      : d.status === "accepted"
+                        ? "Next stop · restaurant"
+                        : "Assignment awaiting acceptance"}
+              </span>
             </div>
             <div
               className={`rider-card-body${d.status === "in_transit" ? " has-proof" : ""}`}
@@ -340,120 +343,142 @@ export function RiderDeliveries() {
               )}
             </div>
             <fieldset className="rider-actions" disabled={!!pending[d.id]}>
-              {d.status === "assigned" && (
-                <>
+              <div
+                className="rider-primary-actions"
+                role="group"
+                aria-label="Next step"
+              >
+                {waitingForKitchen ? (
+                  <p className="rider-action-status" role="status">
+                    Waiting for the kitchen to mark this order ready
+                  </p>
+                ) : d.status === "assigned" ? (
                   <Button
-                    onClick={async () =>
-                      act(d, `/rider/deliveries/${d.id}/accept`)
-                    }
+                    busy={!!pending[d.id]}
+                    onClick={() => act(d, `/rider/deliveries/${d.id}/accept`)}
                   >
                     Accept assignment
                   </Button>
-                  <Button
-                    variant="secondary"
-                    className="danger-button"
-                    onClick={async () => {
-                      const reason = await ask(
-                        "Why are you rejecting this assignment?",
-                      );
-                      if (reason)
-                        act(d, `/rider/deliveries/${d.id}/reject`, {
-                          reason,
-                        });
-                    }}
-                  >
-                    Reject
-                  </Button>
-                </>
-              )}
-              {d.status !== "in_transit" && progressAction}
-              <RiderDeliveryNavigation order={o} status={d.status} />
-              {["picked_up", "in_transit"].includes(d.status) &&
-                presence.state !== "online" && (
-                  <Button
-                    variant="secondary"
-                    className={trackingId === d.id ? "tracking-on" : ""}
-                    onClick={async () => {
-                      setGeoError("");
-                      setTrackingId(trackingId === d.id ? null : d.id);
-                    }}
-                  >
-                    <Radio size={16} aria-hidden="true" />
-                    {trackingId === d.id
-                      ? "Stop location sharing"
-                      : "Share delivery location"}
-                  </Button>
+                ) : (
+                  d.status !== "in_transit" && progressAction
                 )}
-              {["picked_up", "in_transit"].includes(d.status) &&
-                presence.state === "online" && (
-                  <span className="rider-sharing-status">
-                    <Radio size={16} aria-hidden="true" /> Customer tracking
-                    uses your online GPS
-                  </span>
-                )}
-              {restaurantContact?.phone ? (
-                <a
-                  className="rider-page-link"
-                  href={`tel:${restaurantContact.phone}`}
-                >
-                  <Phone size={16} aria-hidden="true" /> Contact restaurant
-                </a>
-              ) : restaurantContact?.contact_email ? (
-                <a
-                  className="rider-page-link"
-                  href={`mailto:${restaurantContact.contact_email}`}
-                >
-                  <Mail size={16} aria-hidden="true" /> Contact restaurant
-                </a>
-              ) : null}
-              {[
-                "accepted",
-                "arrived_at_restaurant",
-                "picked_up",
-                "in_transit",
-              ].includes(d.status) && (
-                <Button
-                  variant="secondary"
-                  className="danger-button"
-                  onClick={async () => {
-                    const reason = await ask(
-                      "Mark delivery unsuccessful?",
-                      "",
-                      {
-                        description: `This removes ${o.order_number} from your active deliveries and records the unsuccessful result for the restaurant. For a delay or address question, contact the restaurant instead. Only a manager can restore this delivery after checking the order and rider.`,
-                        label: "Reason the delivery cannot be completed",
-                        confirmLabel: "Mark unsuccessful",
-                        destructive: true,
-                        required: true,
-                        minLength: 3,
-                        maxLength: 1000,
-                        multiline: true,
-                      },
-                    );
-                    if (reason?.trim().length >= 3)
-                      act(d, `/rider/deliveries/${d.id}/status`, {
-                        status: "failed",
-                        reason: reason.trim(),
-                      });
-                  }}
-                >
-                  <TriangleAlert size={16} aria-hidden="true" />
-                  Mark delivery unsuccessful
-                </Button>
-              )}
-              {!!d.history?.length && (
-                <details className="rider-card-activity">
-                  <summary>Delivery activity</summary>
-                  <small>
-                    {d.history
-                      ?.map(
-                        (h) =>
-                          `${title(h.to_status)} · ${new Date(h.created_at).toLocaleString()}`,
-                      )
-                      .join("  /  ")}
-                  </small>
-                </details>
-              )}
+                <RiderDeliveryNavigation order={o} status={d.status} />
+              </div>
+              <details className="rider-secondary-actions">
+                <summary>More actions and details</summary>
+                <div className="rider-secondary-actions-content">
+                  {d.status === "assigned" && (
+                    <Button
+                      variant="secondary"
+                      className="danger-button"
+                      onClick={async () => {
+                        const reason = await ask(
+                          "Why are you rejecting this assignment?",
+                        );
+                        if (reason)
+                          act(d, `/rider/deliveries/${d.id}/reject`, {
+                            reason,
+                          });
+                      }}
+                    >
+                      Reject assignment
+                    </Button>
+                  )}
+                  {["picked_up", "in_transit"].includes(d.status) &&
+                    presence.state !== "online" && (
+                      <Button
+                        variant="secondary"
+                        className={trackingId === d.id ? "tracking-on" : ""}
+                        onClick={async () => {
+                          setGeoError("");
+                          setTrackingId(trackingId === d.id ? null : d.id);
+                        }}
+                      >
+                        <Radio size={16} aria-hidden="true" />
+                        {trackingId === d.id
+                          ? "Stop location sharing"
+                          : "Share delivery location"}
+                      </Button>
+                    )}
+                  {["picked_up", "in_transit"].includes(d.status) &&
+                    presence.state === "online" && (
+                      <span className="rider-sharing-status">
+                        <Radio size={16} aria-hidden="true" /> Customer tracking
+                        uses your online GPS
+                      </span>
+                    )}
+                  {restaurantContact?.phone ? (
+                    <a
+                      className="rider-page-link"
+                      href={`tel:${restaurantContact.phone}`}
+                    >
+                      <Phone size={16} aria-hidden="true" /> Contact restaurant
+                    </a>
+                  ) : restaurantContact?.contact_email ? (
+                    <a
+                      className="rider-page-link"
+                      href={`mailto:${restaurantContact.contact_email}`}
+                    >
+                      <Mail size={16} aria-hidden="true" /> Contact restaurant
+                    </a>
+                  ) : null}
+                  {[
+                    "accepted",
+                    "arrived_at_restaurant",
+                    "picked_up",
+                    "in_transit",
+                  ].includes(d.status) && (
+                    <Button
+                      variant="secondary"
+                      className="danger-button"
+                      onClick={async () => {
+                        const reason = await ask(
+                          "Mark delivery unsuccessful?",
+                          "",
+                          {
+                            description: `This removes ${o.order_number} from your active deliveries and records the unsuccessful result for the restaurant. For a delay or address question, contact the restaurant instead. Only a manager can restore this delivery after checking the order and rider.`,
+                            label: "Reason the delivery cannot be completed",
+                            confirmLabel: "Mark unsuccessful",
+                            destructive: true,
+                            required: true,
+                            minLength: 3,
+                            maxLength: 1000,
+                            multiline: true,
+                          },
+                        );
+                        if (reason?.trim().length >= 3)
+                          act(d, `/rider/deliveries/${d.id}/status`, {
+                            status: "failed",
+                            reason: reason.trim(),
+                          });
+                      }}
+                    >
+                      <TriangleAlert size={16} aria-hidden="true" />
+                      Mark delivery unsuccessful
+                    </Button>
+                  )}
+                  {!!d.history?.length && (
+                    <details className="rider-card-activity">
+                      <summary>Delivery activity</summary>
+                      <small>
+                        {d.history
+                          ?.map(
+                            (h) =>
+                              `${title(h.to_status)} · ${new Date(h.created_at).toLocaleString()}`,
+                          )
+                          .join("  /  ")}
+                      </small>
+                    </details>
+                  )}
+                  <strong className="rider-secondary-total">
+                    Order total ·{" "}
+                    {new Intl.NumberFormat("en-PH", {
+                      style: "currency",
+                      currency: "PHP",
+                    }).format(Number(o.total || 0))}
+                  </strong>
+                </div>
+              </details>
             </fieldset>
           </article>
         );
@@ -461,10 +486,9 @@ export function RiderDeliveries() {
     </div>
   );
   return (
-    <section className="welcome rider-workspace">
+    <section className="welcome rider-workspace has-delivery-queue">
       <PageHeader
-        eyebrow="RIDER WORKSPACE"
-        title="My deliveries"
+        title="My Deliveries"
         description="Your current pickups and drop-offs. Keep GPS online during a delivery."
         actions={
           <Button
@@ -482,18 +506,42 @@ export function RiderDeliveries() {
           </Button>
         }
       />
-      {loading && (
+      {loading && deliveries.length === 0 && (
         <div
           className="rider-assignments-loading"
           role="status"
           aria-live="polite"
+          aria-busy="true"
         >
-          <RefreshCw className="spin" size={26} aria-hidden="true" />
-          <strong>
-            {refreshing ? "Refreshing assignments" : "Loading assignments"}
-          </strong>
-          <p>Checking for your latest pickups and drop-offs…</p>
-          <div className="rider-assignments-loading-bar" aria-hidden="true" />
+          <div className="rider-assignments-loading-status">
+            <RefreshCw className="spin" size={18} aria-hidden="true" />
+            <div>
+              <strong>
+                {refreshing ? "Refreshing assignments" : "Loading assignments"}
+              </strong>
+              <p>Checking for your latest pickups and drop-offs…</p>
+            </div>
+          </div>
+          <div className="rider-assignments-loading-preview" aria-hidden="true">
+            <div className="rider-assignments-map-skeleton">
+              <span className="route-skeleton-road route-skeleton-road-one" />
+              <span className="route-skeleton-road route-skeleton-road-two" />
+              <span className="route-skeleton-road route-skeleton-road-three" />
+              <span className="route-skeleton-path" />
+              <i className="route-skeleton-pin route-skeleton-pin-one" />
+              <i className="route-skeleton-pin route-skeleton-pin-two" />
+            </div>
+            <div className="rider-assignments-route-skeleton">
+              <div className="route-skeleton-tabs"><i /><i /></div>
+              <div className="route-skeleton-heading" />
+              {[0, 1, 2].map((item) => (
+                <div className="route-skeleton-stop" key={item}>
+                  <i />
+                  <span><b /><em /></span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
       {!loading &&
@@ -501,15 +549,19 @@ export function RiderDeliveries() {
         !error &&
         !refreshError &&
         deliveries.length === 0 && (
-          <EmptyState
-            title="Ready for your next delivery"
-            description="Your assigned deliveries will appear here."
-          />
+          <div className="rider-deliveries-empty">
+            <EmptyState
+              title="Ready for your next delivery"
+              description="New assignments will appear here. Go online to see nearby offers and choose your next pickup."
+              action="Browse delivery offers"
+              to="/rider/offers"
+            />
+          </div>
         )}
       {(error || refreshError) && (
         <Feedback onRetry={load}>{error || refreshError}</Feedback>
       )}
-      {!loading && (
+      {!loading && (updatedAt || refreshing || error || refreshError) && (
         <p className="rider-data-freshness" role="status">
           {refreshing
             ? "Refreshing assignments; your current deliveries remain available."
@@ -526,23 +578,83 @@ export function RiderDeliveries() {
         </div>
       )}
       {notice && <Feedback tone="success">{notice}</Feedback>}
-      <RiderRoutePlanner
-        deliveries={deliveries}
-        deliveryOrder={routeOrder}
-        onOrderChange={(ids) => {
-          if (routeSaveLock.current) return;
-          routeRevision.current += 1;
-          orderDirty.current = true;
-          setDirtyOrder(true);
-          setRouteOrder(ids);
-        }}
-        onApplyOrder={applyOrder}
-        orderDirty={dirtyOrder}
-        savingOrder={savingOrder}
-        onSelectDelivery={setSelectedId}
-        selectedDeliveryId={selectedId}
-        selectedDeliveryPanel={deliveries.length ? selectedDeliveryPanel : null}
-      />
+      {deliveries.length > 0 && (
+        <>
+          <RiderRoutePlanner
+            deliveries={deliveries}
+            deliveryOrder={routeOrder}
+            onOrderChange={(ids) => {
+              if (routeSaveLock.current) return;
+              routeRevision.current += 1;
+              orderDirty.current = true;
+              setDirtyOrder(true);
+              setRouteOrder(ids);
+            }}
+            onApplyOrder={applyOrder}
+            orderDirty={dirtyOrder}
+            savingOrder={savingOrder}
+            onSelectDelivery={setSelectedId}
+            selectedDeliveryId={selectedId}
+            selectedDeliveryPanel={selectedDeliveryPanel}
+          />
+          <div className="rider-delivery-lower-grid">
+            <section className="rider-delivery-queue" aria-labelledby="rider-queue-heading">
+              <header>
+                <div>
+                  <h2 id="rider-queue-heading">Your delivery queue</h2>
+                  <span>{deliveries.length} active</span>
+                </div>
+                <a href="#rider-route-heading">Route tools</a>
+              </header>
+              <div className="rider-delivery-queue-list">
+                {orderedRouteDeliveries(deliveries, routeOrder).map((delivery, index) => {
+                  const statusLabel = title(delivery.status);
+                  const nextStop = ["picked_up", "in_transit"].includes(delivery.status)
+                    ? delivery.order.destination?.address
+                    : delivery.order.pickup?.address;
+                  return (
+                    <button
+                      className="rider-delivery-queue-row"
+                      type="button"
+                      key={delivery.id}
+                      aria-pressed={selectedId === delivery.id}
+                      onClick={() => setSelectedId(delivery.id)}
+                    >
+                      <span className="rider-queue-number">{index + 1}</span>
+                      <span className="rider-queue-order">
+                        <strong>{delivery.order.order_number}</strong>
+                        <small>{nextStop || "Stop address not recorded"}</small>
+                      </span>
+                      <span className={`rider-route-stop-state state-${delivery.status}`}>{statusLabel}</span>
+                      <span className="rider-queue-action">{selectedId === delivery.id ? "Viewing" : "View"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="rider-queue-hint">Select a delivery to focus it on the map. Change stop order from Route order in the route panel.</p>
+            </section>
+            <aside className="rider-before-pickup" aria-labelledby="rider-before-pickup-heading">
+              <header>
+                <h2 id="rider-before-pickup-heading">Before pickup</h2>
+                <span>{presence.state === "online" ? "Online" : "Offline"}</span>
+              </header>
+              <div className="rider-before-pickup-message">
+                <Radio size={17} aria-hidden="true" />
+                <p>{presence.state === "online" ? "You’re ready to receive nearby offers." : "Offers are paused. Go online to refresh your assignments before your next pickup."}</p>
+              </div>
+              <Link className="ui-button ui-button--primary" to="/rider/offers">
+                {presence.state === "online" ? "View delivery offers" : "Go online"}
+              </Link>
+              <h3>Pickup checklist</h3>
+              <ol>
+                <li>Check the restaurant and order number.</li>
+                <li>Wait for the kitchen to mark the order ready.</li>
+                <li>Confirm pickup before starting the drop-off.</li>
+              </ol>
+            </aside>
+          </div>
+        </>
+      )}
     </section>
   );
 }

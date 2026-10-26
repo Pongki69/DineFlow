@@ -46,7 +46,8 @@ function RouteViewport({
   const stopKey = JSON.stringify(stops.map((s) => [s.latitude, s.longitude]));
   useEffect(() => {
     const points = JSON.parse(stopKey);
-    if (position) points.push([position.latitude, position.longitude]);
+    if (position && Number(position.accuracy || 0) <= 1000)
+      points.push([position.latitude, position.longitude]);
     if (points.length)
       map.fitBounds(points, {
         paddingTopLeft: [40, 64],
@@ -56,7 +57,8 @@ function RouteViewport({
     // Live updates move only the marker unless Follow me is selected.
   }, [map, stopKey, fitVersion]);
   useEffect(() => {
-    if (follow && position) map.panTo([position.latitude, position.longitude]);
+    if (follow && position && Number(position.accuracy || 0) <= 1000)
+      map.panTo([position.latitude, position.longitude]);
   }, [map, position, follow]);
   useEffect(() => {
     if (!focusTarget) return;
@@ -87,6 +89,10 @@ const locationIcon = L.divIcon({
   iconSize: [22, 22],
   iconAnchor: [11, 11],
 });
+const readableStatus = (status) =>
+  String(status || "Waiting")
+    .replaceAll("_", " ")
+    .replace(/^./, (c) => c.toUpperCase());
 const stopIcon = (number, kind, selected = false) =>
   L.divIcon({
     className: `rider-customer-marker ${kind}${selected ? " is-selected" : ""}`,
@@ -107,10 +113,19 @@ export function RiderRoutePlanner({
   selectedDeliveryPanel,
 }) {
   const [localOrder, setLocalOrder] = useState([]);
-  const [showSelected, setShowSelected] = useState(false);
+  // The selected delivery is the rider's immediate task; keep its actions in
+  // view first and leave route editing available as the secondary tab.
+  const [showSelected, setShowSelected] = useState(true);
+  const [showDraftToast, setShowDraftToast] = useState(false);
   useEffect(() => {
     if (selectedDeliveryId) setShowSelected(true);
   }, [selectedDeliveryId]);
+  useEffect(() => {
+    if (!orderDirty) return;
+    setShowDraftToast(true);
+    const timeout = window.setTimeout(() => setShowDraftToast(false), 4800);
+    return () => window.clearTimeout(timeout);
+  }, [orderDirty]);
   const presence = useRiderPresence();
   const order = deliveryOrder ?? localOrder;
   const updateOrder = onOrderChange ?? setLocalOrder;
@@ -143,6 +158,16 @@ export function RiderRoutePlanner({
   );
   const ordered = orderedRouteDeliveries(available, order);
   const ids = ordered.map((d) => d.id);
+  useEffect(() => {
+    const delivery = ordered.find((item) => item.id === selectedDeliveryId);
+    if (!delivery || !validRoutePoint(delivery.order.destination)) return;
+    setFollow(false);
+    setFocusTarget({
+      id: delivery.id,
+      latitude: Number(delivery.order.destination.latitude),
+      longitude: Number(delivery.order.destination.longitude),
+    });
+  }, [selectedDeliveryId, deliveries, order]);
   const requestKey = JSON.stringify({
     delivery_ids: ids,
     origin,
@@ -344,6 +369,9 @@ export function RiderRoutePlanner({
     else customerMarkers.current.delete(id);
   }
   const stops = plan?.stops || [];
+  const hasRoadGeometry = (plan?.legs || []).some(
+    (leg) => (leg.geometry || []).length > 1,
+  );
   const fallbackStores = deliveries
     .map((d) => d.order.pickup)
     .filter(validRoutePoint)
@@ -363,6 +391,11 @@ export function RiderRoutePlanner({
   const fallbackPoints = ordered
     .flatMap((d) => [d.order.pickup, d.order.destination])
     .filter(validRoutePoint);
+  const approximateRoute = hasRoadGeometry
+    ? []
+    : (stops.length ? stops : fallbackPoints)
+        .filter(validRoutePoint)
+        .map((point) => [Number(point.latitude), Number(point.longitude)]);
   const first = stops[0] || stores[0] || fallbackPoints[0];
 
   return (
@@ -373,15 +406,26 @@ export function RiderRoutePlanner({
       aria-modal={expanded || undefined}
       aria-labelledby="rider-route-heading"
     >
+      {showDraftToast && orderDirty && (
+        <div className="rider-route-draft-toast" role="status" aria-live="polite">
+          Unsaved route preview. Apply it in Route order to update your
+          dashboard.
+        </div>
+      )}
       <header className="rider-route-heading">
         <div>
           <h2 id="rider-route-heading">
-            <Route size={21} aria-hidden="true" /> Your delivery route
+            <Route size={21} aria-hidden="true" /> Route & tracking
           </h2>
-          <p>Plan your drop-offs and keep the whole trip in view.</p>
+          <p>Keep your current route and next stop in view.</p>
         </div>
         <div className="rider-route-heading-actions">
-          <Button variant="secondary" onClick={toggleLocation}>
+          <Button
+            variant="secondary"
+            onClick={toggleLocation}
+            aria-label={locating ? "Stop live location" : "Use live location"}
+            title={locating ? "Stop live location" : "Use live location"}
+          >
             <LocateFixed size={16} aria-hidden="true" />
             {locating ? "Stop live location" : "Use live location"}
           </Button>
@@ -390,6 +434,8 @@ export function RiderRoutePlanner({
             variant="secondary"
             onClick={toggleFullscreen}
             aria-expanded={expanded}
+            aria-label={expanded ? "Exit fullscreen" : "Enter fullscreen"}
+            title={expanded ? "Exit fullscreen" : "Enter fullscreen"}
           >
             {expanded ? (
               <Minimize2 size={16} aria-hidden="true" />
@@ -421,13 +467,15 @@ export function RiderRoutePlanner({
               >
                 <span className="rider-route-switcher-number">{index + 1}</span>
                 <span>{delivery.order.order_number}</span>
-                <small>{delivery.status.replaceAll("_", " ")}</small>
+                <small>{readableStatus(delivery.status)}</small>
               </Button>
             ))}
           </div>
         </nav>
       )}
-      <div className="rider-route-layout">
+      <div
+        className={`rider-route-layout${showSelected && selectedDeliveryPanel ? " is-selected-focus" : ""}`}
+      >
         <div className="rider-route-map-area">
           {first ? (
             <MapContainer
@@ -556,7 +604,7 @@ export function RiderRoutePlanner({
                 <Fragment key={i}>
                   <Polyline
                     positions={(leg.geometry || []).map((p) => [p[1], p[0]])}
-                    pathOptions={{ color: "#ffffff", weight: 9, opacity: 0.9 }}
+                    pathOptions={{ color: "#ffffff", weight: 10, opacity: 0.82 }}
                   />
                   <Polyline
                     positions={(leg.geometry || []).map((p) => [p[1], p[0]])}
@@ -565,8 +613,8 @@ export function RiderRoutePlanner({
                         stops[leg.stop_index]?.kind === "return"
                           ? "#8056b3"
                           : "#2563eb",
-                      weight: 5,
-                      opacity: 0.95,
+                      weight: 6,
+                      opacity: 0.82,
                       ...(stops[leg.stop_index]?.kind === "return"
                         ? { dashArray: "9 7" }
                         : {}),
@@ -587,6 +635,28 @@ export function RiderRoutePlanner({
                   ))}
                 </Fragment>
               ))}
+              {!hasRoadGeometry && approximateRoute.length > 1 && (
+                <>
+                  <Polyline
+                    positions={approximateRoute}
+                    pathOptions={{
+                      color: "#fff",
+                      weight: 8,
+                      opacity: 0.76,
+                      dashArray: "6 9",
+                    }}
+                  />
+                  <Polyline
+                    positions={approximateRoute}
+                    pathOptions={{
+                      color: "#2563eb",
+                      weight: 4,
+                      opacity: 0.78,
+                      dashArray: "6 9",
+                    }}
+                  />
+                </>
+              )}
               {position && (
                 <>
                   <Circle
@@ -623,7 +693,8 @@ export function RiderRoutePlanner({
               <i className="dropoff" /> Customer
             </span>
             <span>
-              <i className="route" /> Delivery route
+              <i className={`route${hasRoadGeometry ? "" : " approximate"}`} />
+              {hasRoadGeometry ? "Delivery route" : "Approximate route"}
             </span>
             {plan?.return_to_store && (
               <span>
@@ -700,13 +771,12 @@ export function RiderRoutePlanner({
             </div>
           )}
         </div>
-        <div className="rider-route-itinerary">
-          {orderDirty && (
-            <p className="rider-route-draft" role="status">
-              Unsaved route preview. Apply it in Route order to update your
-              dashboard.
-            </p>
-          )}
+        <div
+          className="rider-route-itinerary"
+          role="region"
+          aria-label="Route details and stop order"
+          tabIndex={0}
+        >
           {selectedDeliveryPanel && (
             <div
               className="rider-workbench-tabs"
@@ -828,6 +898,11 @@ export function RiderRoutePlanner({
                     </span>
                     <span className="rider-route-stop-copy">
                       <strong>{d.order.order_number}</strong>
+                      <span
+                        className={`rider-route-stop-state state-${d.status}`}
+                      >
+                        {readableStatus(d.status)}
+                      </span>
                       <span className="rider-route-stop-address">
                         {d.order.destination.address || "No delivery address"}
                       </span>
@@ -847,14 +922,18 @@ export function RiderRoutePlanner({
                   </button>
                   <div className="rider-route-reorder">
                     <button
+                      type="button"
                       aria-label={`Move ${d.order.order_number} earlier`}
+                      title="Move earlier"
                       disabled={savingOrder || !canMove(i, -1)}
                       onClick={() => move(i, -1)}
                     >
                       <ArrowUp size={16} />
                     </button>
                     <button
+                      type="button"
                       aria-label={`Move ${d.order.order_number} later`}
+                      title="Move later"
                       disabled={savingOrder || !canMove(i, 1)}
                       onClick={() => move(i, 1)}
                     >
@@ -878,7 +957,7 @@ export function RiderRoutePlanner({
             )}
             <div className="rider-route-summary" aria-live="polite">
               {busy ? (
-                <p role="status">Updating road route…</p>
+                <p role="status">Updating route estimate…</p>
               ) : error ? (
                 <>
                   <p role="alert">{error}</p>
@@ -907,35 +986,38 @@ export function RiderRoutePlanner({
                         min
                       </strong>
                     )}
-                    <p>
-                      {plan.starts_at_live_location
-                        ? "From your live location"
-                        : "Between pinned stops; excludes travel to the first stop"}
-                      . Travel estimate.
-                    </p>
-                    {!plan.starts_at_live_location && (
-                      <p>
-                        Enable live location for an arrival time at each stop.
-                      </p>
-                    )}
-                    {plan.route_unavailable && (
-                      <p className="rider-route-warning">
-                        Some road routes are unavailable. Location pins are
-                        still shown.
-                      </p>
-                    )}
-                    {!!plan.missing_locations?.length && (
-                      <p className="rider-route-warning">
-                        Missing pins: {plan.missing_locations.join(", ")}. These
-                        locations are excluded from the map.
-                      </p>
-                    )}
+                    <details className="rider-route-details">
+                      <summary>Route details</summary>
+                      <div>
+                        <p>
+                          {plan.starts_at_live_location
+                            ? "Estimate starts from your live location."
+                            : "Estimate covers pinned stops and excludes travel to the first stop."}
+                        </p>
+                        {!plan.starts_at_live_location && (
+                          <p>Enable live location to see arrival times.</p>
+                        )}
+                        {plan.route_unavailable && (
+                          <p className="rider-route-warning">
+                            Some roads could not be routed; dashed lines show
+                            straight-line estimates.
+                          </p>
+                        )}
+                        {!!plan.missing_locations?.length && (
+                          <p className="rider-route-warning">
+                            Missing map pins: {plan.missing_locations.join(",")}.
+                          </p>
+                        )}
+                      </div>
+                    </details>
                   </>
                 )
               )}
             </div>
             {onApplyOrder && (
-              <div className="rider-route-apply">
+              <div
+                className={`rider-route-apply${orderDirty ? " is-dirty" : ""}`}
+              >
                 <p>
                   {orderDirty
                     ? "Preview order · not yet applied to your dashboard."

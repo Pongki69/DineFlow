@@ -142,7 +142,6 @@ export function DispatchDashboard() {
   return (
     <section className="welcome dispatch-dashboard">
       <PageHeader
-        eyebrow="DELIVERY OPERATIONS"
         title="Dispatch and tracking"
         description="Resolve exceptions, assign riders and monitor active deliveries."
         actions={
@@ -227,24 +226,15 @@ export function DispatchDashboard() {
                 </div>
                 <span>{d.rider?.name || "Unassigned"}</span>
               </div>
-              <p>{d.order.delivery_address}</p>
-              <p>
-                ₱{d.order.total} · {d.order.delivery_distance_km || "—"} km ·
-                ETA{" "}
+              <p className="dispatch-card-address">
+                {d.order.delivery_address}
+              </p>
+              <p className="dispatch-card-summary">
+                Estimated arrival ·{" "}
                 {d.estimated_arrival_at
                   ? new Date(d.estimated_arrival_at).toLocaleTimeString()
                   : "not available"}
               </p>
-              <details className="dispatch-search-details">
-                <summary>Automatic search details</summary>
-                <p>
-                  Automatic search: {title(d.dispatch_status)} · radius stage{" "}
-                  {Number(d.dispatch_stage || 0) + 1}
-                  {d.next_dispatch_at
-                    ? ` · next check ${new Date(d.next_dispatch_at).toLocaleTimeString()}`
-                    : ""}
-                </p>
-              </details>
               {d.dispatch_status === "exhausted" && (
                 <Feedback tone="warning">
                   No rider accepted within the search limits. Assign manually or
@@ -257,9 +247,6 @@ export function DispatchDashboard() {
                     Restart automatic search
                   </button>
                 </Feedback>
-              )}
-              {d.batch_key && (
-                <p>Paired delivery · drop-off {d.batch_sequence} of 2</p>
               )}
               {d.status === "failed" && (
                 <div className="dispatch-recovery">
@@ -285,19 +272,10 @@ export function DispatchDashboard() {
                   )}
                 </div>
               )}
-              {d.location_updates?.[0] && (
-                <p>
-                  Last rider GPS: {d.location_updates[0].latitude},{" "}
-                  {d.location_updates[0].longitude} ·{" "}
-                  {new Date(
-                    d.location_updates[0].recorded_at,
-                  ).toLocaleTimeString()}
-                </p>
-              )}
               {!terminal.includes(d.status) &&
                 !["picked_up", "in_transit"].includes(d.status) && (
                   <fieldset
-                    className="dispatch-assign"
+                    className="dispatch-assign dispatch-primary-panel"
                     disabled={!!pending[d.id]}
                   >
                     <select
@@ -323,22 +301,55 @@ export function DispatchDashboard() {
                     >
                       {d.rider_user_id ? "Reassign" : "Assign rider"}
                     </button>
+                  </fieldset>
+                )}
+              <details className="dispatch-secondary-details">
+                <summary>More delivery details</summary>
+                <p>
+                  Order total · ₱{d.order.total} ·{" "}
+                  {d.order.delivery_distance_km || "—"} km
+                </p>
+                <details className="dispatch-search-details">
+                  <summary>Automatic search details</summary>
+                  <p>
+                    Automatic search: {title(d.dispatch_status)} · radius stage{" "}
+                    {Number(d.dispatch_stage || 0) + 1}
+                    {d.next_dispatch_at
+                      ? ` · next check ${new Date(d.next_dispatch_at).toLocaleTimeString()}`
+                      : ""}
+                  </p>
+                </details>
+                {d.batch_key && (
+                  <p>Paired delivery · drop-off {d.batch_sequence} of 2</p>
+                )}
+                {d.location_updates?.[0] && (
+                  <p>
+                    Last rider GPS: {d.location_updates[0].latitude},{" "}
+                    {d.location_updates[0].longitude} ·{" "}
+                    {new Date(
+                      d.location_updates[0].recorded_at,
+                    ).toLocaleTimeString()}
+                  </p>
+                )}
+                <small>
+                  {d.status_history
+                    ?.map(
+                      (h) =>
+                        `${title(h.to_status)} · ${new Date(h.created_at).toLocaleString()}`,
+                    )
+                    .join(" / ") || "No delivery status changes recorded yet."}
+                </small>
+                {!terminal.includes(d.status) &&
+                  !["picked_up", "in_transit"].includes(d.status) && (
                     <button
                       className="danger-button"
+                      disabled={!!pending[d.id]}
                       onClick={async () => cancel(d)}
                     >
                       Cancel delivery
                     </button>
-                  </fieldset>
-                )}
-              <small>
-                {d.status_history
-                  ?.map(
-                    (h) =>
-                      `${title(h.to_status)} · ${new Date(h.created_at).toLocaleString()}`,
-                  )
-                  .join(" / ")}
-              </small>
+                  )}
+              </details>
             </article>
           ))}
       </div>

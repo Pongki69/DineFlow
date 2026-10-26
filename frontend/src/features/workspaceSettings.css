@@ -1,7 +1,6 @@
 @import "./riderWorkspace.css";
 
-.workspace-settings,
-.rider-home {
+.workspace-settings {
   max-width: 1180px;
   margin-inline: auto;
 }

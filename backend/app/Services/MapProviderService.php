@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -43,7 +44,13 @@ class MapProviderService
 
     public function route(float $originLat, float $originLng, float $destLat, float $destLng, bool $includeGeometry = false, bool $withTraffic = false): array
     {
-        if (config('services.maps.provider') === 'geoapify') return $this->routeGeoapify($originLat, $originLng, $destLat, $destLng, $includeGeometry);
+        if (config('services.maps.provider') === 'geoapify') {
+            if (! config('services.maps.geoapify_key') && app()->environment('local') && config('services.maps.local_osrm_fallback')) {
+                return $this->routeLocalOsrm($originLat, $originLng, $destLat, $destLng, $includeGeometry);
+            }
+
+            return $this->routeGeoapify($originLat, $originLng, $destLat, $destLng, $includeGeometry);
+        }
         $this->assertMapbox();
         $token = config('services.maps.token');
         if (! $token) throw new RuntimeException('Delivery routing is not configured. Please contact the restaurant before placing a delivery order.');
@@ -74,6 +81,44 @@ class MapProviderService
             $result += ['traffic_segments' => $segments, 'traffic_available' => collect($segments)->contains(fn ($segment) => $segment['congestion'] !== 'unknown'), 'traffic_checked_at' => now()->toIso8601String()];
         }
         return $result;
+    }
+
+    private function routeLocalOsrm(float $originLat, float $originLng, float $destLat, float $destLng, bool $includeGeometry): array
+    {
+        $base = rtrim((string) config('services.maps.local_osrm_url'), '/');
+        $url = $base.'/'.$originLng.','.$originLat.';'.$destLng.','.$destLat;
+        $params = [
+            'overview' => $includeGeometry ? 'full' : 'false',
+            'geometries' => 'geojson',
+            'steps' => 'false',
+        ];
+
+        // The public OSRM demo asks clients to stay at or below one request per
+        // second. Serialize local fallback calls so multi-stop previews comply.
+        $response = Cache::lock('local-osrm-demo-request', 10)->block(10, function () use ($url, $params) {
+            $lastRequestAt = (float) Cache::get('local-osrm-demo-last-request-at', 0);
+            $waitSeconds = 1.1 - (microtime(true) - $lastRequestAt);
+            if ($waitSeconds > 0) usleep((int) ceil($waitSeconds * 1_000_000));
+
+            try {
+                return Http::timeout(8)->get($url, $params);
+            } finally {
+                Cache::put('local-osrm-demo-last-request-at', microtime(true), now()->addSeconds(30));
+            }
+        });
+
+        $route = $response->json('routes.0');
+        if (! $response->successful() || $response->json('code') !== 'Ok' || ! is_array($route) || ! isset($route['distance'], $route['duration'])) {
+            throw new RuntimeException('Local road routing is temporarily unavailable. Straight-line estimates are shown instead.');
+        }
+
+        return [
+            'distance_km' => round(((float) $route['distance']) / 1000, 2),
+            'duration_minutes' => max(1, (int) ceil(((float) $route['duration']) / 60)),
+            'geometry' => $includeGeometry ? ($route['geometry']['coordinates'] ?? null) : null,
+            'traffic_available' => false,
+            'provider' => 'osrm-local-fallback',
+        ];
     }
 
     private function searchGeoapify(string $query): array

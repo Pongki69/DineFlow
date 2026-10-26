@@ -176,25 +176,30 @@ export function AppShell({ user, onSignOut, children }) {
   function closeMenu() {
     menu.current?.close();
     setMenuOpen(false);
+    if (content.current) {
+      content.current.scrollTop = 0;
+      content.current.scrollLeft = 0;
+    }
+    window.scrollTo(0, 0);
   }
   useEffect(() => {
     document.title = `${current} · ${branding.name}`;
     const focusHeading = () => {
       const heading = content.current?.querySelector("h1");
+      if (content.current) {
+        content.current.scrollTop = 0;
+        content.current.scrollLeft = 0;
+      }
       if (heading) {
         heading.tabIndex = -1;
         heading.focus({ preventScroll: true });
         observer.disconnect();
       }
-      window.scrollTo({ top: 0 });
+      window.scrollTo(0, 0);
     };
-    const observer = new MutationObserver(focusHeading);
-    if (content.current)
-      observer.observe(content.current, { childList: true, subtree: true });
     const frame = requestAnimationFrame(focusHeading);
     return () => {
       cancelAnimationFrame(frame);
-      observer.disconnect();
     };
   }, [location.pathname, current, branding.name]);
   useEffect(() => {
@@ -209,11 +214,15 @@ export function AppShell({ user, onSignOut, children }) {
     <div
       className="app-shell"
       data-page={
-        location.pathname === "/rider"
+        location.pathname.replace(/\/+$/, "") === "/rider"
           ? "rider-dashboard"
           : location.pathname === "/rider/deliveries"
             ? "rider-deliveries"
-            : undefined
+            : location.pathname === "/settings"
+              ? "rider-settings"
+              : location.pathname === "/rider/offers"
+                ? "rider-offers"
+              : undefined
       }
       data-workspace={
         user.roles.includes("rider")
@@ -305,16 +314,24 @@ export function AppShell({ user, onSignOut, children }) {
             />
             <Link
               to="/account"
-              className="avatar avatar-link"
+              className="avatar-link"
               aria-label="Your account"
             >
-              {user.name.slice(0, 1).toUpperCase()}
+              <span className="avatar avatar-link-face" aria-hidden="true">
+                {user.name.slice(0, 1).toUpperCase()}
+              </span>
             </Link>
           </div>
         </header>
         <main
           id="main-content"
-          className={`app-content${location.pathname === "/rider" || location.pathname.startsWith("/rider/") ? " rider-content" : ""}`}
+          className={`app-content${
+            location.pathname === "/rider" ||
+            location.pathname.startsWith("/rider/") ||
+            location.pathname.replace(/\/+$/, "") === "/settings"
+              ? " rider-content"
+              : ""
+          }`}
           ref={content}
           tabIndex={-1}
         >

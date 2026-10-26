@@ -273,7 +273,6 @@ export function MenuBrowser({ user }) {
   return (
     <section className="menu-page">
       <PageHeader
-        eyebrow="SOMETHING GOOD IS COOKING"
         title="Find your next favorite."
         description="Fresh choices, made your way. Stay a while or take a little goodness with you."
         actions={

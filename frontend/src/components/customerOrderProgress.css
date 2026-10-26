@@ -1,6 +1,6 @@
 .customer-progress-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(240px, 0.85fr) minmax(0, 1.5fr);
   gap: 14px;
   margin: 16px 0;
   align-items: stretch;
@@ -8,6 +8,21 @@
 .customer-progress-grid > .customer-progress-card {
   display: flex;
   flex-direction: column;
+}
+.customer-progress-rider {
+  grid-column: 2;
+  grid-row: 1;
+  border-color: #b8cdb9;
+  box-shadow: 0 8px 22px rgb(35 63 46 / 6%);
+}
+.customer-progress-food {
+  grid-column: 1;
+  grid-row: 1;
+  background: #fafbf8;
+}
+.customer-progress-rider .customer-progress-current {
+  font-size: clamp(18px, 1rem + 0.45vw, 23px);
+  line-height: 1.4;
 }
 .customer-progress-grid .customer-progress-disclosure {
   margin-top: auto;
@@ -540,6 +555,11 @@ details[open] > .tracking-disclosure-summary .tracking-disclosure-action svg {
   .customer-progress-grid {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+  .customer-progress-rider,
+  .customer-progress-food {
+    grid-column: auto;
+    grid-row: auto;
   }
   .customer-progress-card {
     padding: 18px;

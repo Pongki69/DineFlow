@@ -25,11 +25,18 @@ const defaults = {
 };
 
 export function WorkspaceSettings({ user, onUpdated }) {
-  const [draft, setDraft] = useState({ ...defaults, ...user.preferences });
+  const links = visibleNavigation(user.permissions, user.roles);
+  const dashboardDefault = links.some(([, , path]) => path === "/dashboard")
+    ? "/dashboard"
+    : "";
+  const [draft, setDraft] = useState({
+    ...defaults,
+    ...user.preferences,
+    home_page: user.preferences?.home_page || dashboardDefault,
+  });
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
-  const links = visibleNavigation(user.permissions, user.roles);
   const management = links.filter(
     ([, permission, path]) =>
       permission === "settings.manage" ||
@@ -46,7 +53,11 @@ export function WorkspaceSettings({ user, onUpdated }) {
         body: JSON.stringify(draft),
       });
       onUpdated(result.user);
-      setDraft({ ...defaults, ...result.user.preferences });
+      setDraft({
+        ...defaults,
+        ...result.user.preferences,
+        home_page: result.user.preferences?.home_page || dashboardDefault,
+      });
       setNotice("Preferences saved.");
     } catch (e) {
       setError(e.message);
@@ -57,7 +68,6 @@ export function WorkspaceSettings({ user, onUpdated }) {
   return (
     <section className="workspace-settings">
       <PageHeader
-        eyebrow="MAKE IT YOURS"
         title="Settings"
         description="Your account, preferences and workspace controls."
       />

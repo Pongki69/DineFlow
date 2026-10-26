@@ -3,6 +3,78 @@
   color: var(--ink);
   background: var(--canvas);
 }
+/* Avoid a blank reserved strip beside the delivery workspace. */
+:root:has(.app-shell[data-workspace="delivery"]),
+:root:has(.app-shell[data-workspace="delivery"]) body {
+  scrollbar-gutter: auto;
+  background: var(--canvas);
+}
+.app-shell[data-workspace="delivery"] .app-content.rider-content {
+  --rider-content-gutter: clamp(20px, 2.2vw, 36px);
+  width: 100%;
+  max-width: 1680px;
+  padding: 12px var(--rider-content-gutter) 40px;
+}
+.app-shell[data-workspace="delivery"]
+  .app-content.rider-content
+  > :is(
+    .rider-home,
+    .rider-public-profile,
+    .rider-history-page,
+    .rider-workspace,
+    .rider-availability,
+    .rider-order-details,
+    .dispatch-dashboard,
+    .workspace-settings
+  ) {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+.app-shell[data-workspace="delivery"] .app-content.rider-content .page-heading {
+  width: calc(100% + var(--rider-content-gutter));
+  min-height: 92px;
+  margin: 0 0 24px;
+  padding: 0 var(--rider-content-gutter) 20px 0;
+  align-items: flex-end;
+  gap: 20px 28px;
+  border-bottom: 1px solid var(--border);
+}
+.app-shell[data-workspace="delivery"]
+  .app-content.rider-content
+  .rider-offers-page-heading {
+  margin-bottom: 32px;
+}
+.app-shell[data-workspace="delivery"]
+  .app-content.rider-content
+  .page-heading
+  > div:first-child {
+  min-width: 0;
+}
+.app-shell[data-workspace="delivery"]
+  .app-content.rider-content
+  .page-heading
+  h1 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: clamp(1.85rem, 1.45rem + 1vw, 2.35rem);
+  line-height: 1.16;
+  letter-spacing: -0.035em;
+}
+.app-shell[data-workspace="delivery"]
+  .app-content.rider-content
+  .page-heading
+  p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.app-shell[data-workspace="delivery"] .app-content.rider-content .page-actions {
+  align-self: flex-end;
+  padding: 0;
+}
 .app-shell[data-workspace="delivery"] :is(.app-sidebar, .app-topbar) {
   background: var(--surface);
   border-color: var(--border);
@@ -24,6 +96,24 @@
   ) {
   background: var(--surface);
   border-color: var(--border);
+}
+.app-shell[data-workspace="delivery"]
+  .app-content.rider-content
+  :is(
+    .workspace-card,
+    .rider-dashboard-summary,
+    .rider-dashboard-links,
+    .rider-next-delivery,
+    .rider-history-panel,
+    .rider-route-planner,
+    .rider-delivery-card,
+    .rider-dispatch-panel,
+    .review-profile-header,
+    .review-summary-card,
+    .review-card
+  ) {
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgb(25 50 38 / 4%);
 }
 .app-shell[data-workspace="delivery"] .rider-content .dispatch-offer-card {
   background: var(--surface);
@@ -110,4 +200,80 @@
   color: var(--danger);
   background: var(--danger-soft);
   border-color: #edc7c1;
+}
+@media (min-width: 1024px) {
+  .app-shell[data-workspace="delivery"] .app-topbar {
+    box-sizing: border-box;
+    flex: 0 0 76px;
+    height: 76px;
+    min-height: 76px;
+    padding-block: 12px;
+  }
+}
+
+/* Keep the shared header and footer outside each page's scroll region. */
+.app-shell[data-workspace="delivery"]:is(
+  [data-page="rider-settings"],
+  [data-page="rider-offers"]
+) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+:root:has(.app-shell[data-workspace="delivery"]:is(
+  [data-page="rider-settings"],
+  [data-page="rider-offers"]
+)),
+:root:has(.app-shell[data-workspace="delivery"]:is(
+  [data-page="rider-settings"],
+  [data-page="rider-offers"]
+)) body {
+  overflow: hidden;
+}
+.app-shell[data-workspace="delivery"]:is(
+  [data-page="rider-settings"],
+  [data-page="rider-offers"]
+) .app-body {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.app-shell[data-workspace="delivery"]:is(
+  [data-page="rider-settings"],
+  [data-page="rider-offers"]
+)
+  :is(.app-topbar, .app-footer) {
+  flex: 0 0 auto;
+}
+.app-shell[data-workspace="delivery"]:is(
+  [data-page="rider-settings"],
+  [data-page="rider-offers"]
+) .app-content {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 700px) {
+  .app-shell[data-workspace="delivery"] .app-content.rider-content {
+    --rider-content-gutter: 16px;
+    padding: 20px 16px 32px;
+  }
+  .app-shell[data-workspace="delivery"]
+    .app-content.rider-content
+    .page-heading {
+    width: calc(100% + var(--rider-content-gutter));
+    min-height: 0;
+    margin-bottom: 20px;
+    padding: 0 var(--rider-content-gutter) 16px 0;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .app-shell[data-workspace="delivery"]
+    .app-content.rider-content
+    .rider-offers-page-heading {
+    margin-bottom: 24px;
+  }
 }

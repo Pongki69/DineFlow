@@ -56,7 +56,6 @@ export function Account({
     <section className="account-page">
       {!embedded && (
         <PageHeader
-          eyebrow="A LITTLE ABOUT YOU"
           title="My account"
           description="Keep your details up to date and your account secure."
         />

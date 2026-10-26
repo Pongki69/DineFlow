@@ -131,7 +131,7 @@ export function CustomerOrderProgress({ data, children }) {
     <>
       <div className="customer-progress-grid">
         <section
-          className="customer-progress-card"
+          className="customer-progress-card customer-progress-food"
           aria-labelledby="food-progress-heading"
         >
           <div className="customer-progress-heading">
@@ -166,7 +166,7 @@ export function CustomerOrderProgress({ data, children }) {
           </details>
         </section>
         <section
-          className="customer-progress-card"
+          className="customer-progress-card customer-progress-rider"
           aria-labelledby="rider-progress-heading"
         >
           <div className="customer-progress-heading">

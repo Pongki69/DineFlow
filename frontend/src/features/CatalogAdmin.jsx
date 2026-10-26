@@ -493,7 +493,6 @@ export function MenuAdmin() {
   return (
     <section className="catalog-admin">
       <PageHeader
-        eyebrow="CURATED BY YOUR KITCHEN"
         title="Menu management"
         description="A menu worth coming back for. Manage dishes, categories and the little extras."
         actions={

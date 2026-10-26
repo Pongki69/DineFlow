@@ -9,6 +9,8 @@ return [
     'maps' => [
         'provider' => env('MAP_PROVIDER', 'geoapify') ?: 'geoapify',
         'geoapify_key' => env('GEOAPIFY_API_KEY'),
+        'local_osrm_fallback' => env('MAPS_LOCAL_OSRM_FALLBACK', true),
+        'local_osrm_url' => env('MAPS_LOCAL_OSRM_URL', 'https://router.project-osrm.org/route/v1/driving'),
         'token' => env('MAPBOX_SERVER_TOKEN'),
         'country' => env('MAPS_COUNTRY', 'ph'),
         'routing_url' => env('MAPS_ROUTING_URL', 'https://api.mapbox.com/directions/v5/mapbox/driving'),

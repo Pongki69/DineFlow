@@ -8,18 +8,20 @@ import {
   MapPin,
   ChevronRight,
   History,
+  CalendarDays,
+  Headphones,
+  Radio,
   Search,
   ChevronLeft,
   SlidersHorizontal,
-  Settings2,
-  ArrowUpRight,
   Phone,
   Mail,
 } from "lucide-react";
 import { api } from "../api";
 import { CountUp } from "../components/CountUp";
+import { RiderScreenSkeleton } from "../components/RiderScreenSkeleton";
 import { usePollingResource } from "../components/usePollingResource";
-import { RiderNextDelivery } from "../components/RiderNextDelivery";
+import { useRiderPresence } from "../components/riderPresence";
 import {
   EmptyState,
   Feedback,
@@ -114,8 +116,73 @@ function DeliveryHistoryRow({ delivery }) {
   );
 }
 
+function RiderDashboardSkeleton() {
+  return (
+    <div
+      className="rider-dashboard-skeleton"
+      role="status"
+      aria-label="Loading rider dashboard"
+      aria-busy="true"
+    >
+      <div className="dashboard-skeleton-summary" aria-hidden="true">
+        <div className="dashboard-skeleton-title" />
+        <div className="dashboard-skeleton-copy" />
+        <div className="dashboard-skeleton-metrics">
+          {[0, 1, 2, 3].map((item) => (
+            <div className="dashboard-skeleton-metric" key={item}>
+              <i />
+              <b />
+              <span />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="dashboard-skeleton-main" aria-hidden="true">
+        <div className="dashboard-skeleton-day">
+          <div className="dashboard-skeleton-title short" />
+          <div className="dashboard-skeleton-copy" />
+          <div className="dashboard-skeleton-banner" />
+          <div className="dashboard-skeleton-delivery" />
+          <div className="dashboard-skeleton-link" />
+        </div>
+        <div className="dashboard-skeleton-status">
+          <div className="dashboard-skeleton-title short" />
+          <div className="dashboard-skeleton-banner tall" />
+          <div className="dashboard-skeleton-button" />
+          <div className="dashboard-skeleton-copy" />
+          <div className="dashboard-skeleton-copy narrow" />
+        </div>
+      </div>
+      <div className="dashboard-skeleton-tools" aria-hidden="true">
+        <div className="dashboard-skeleton-title short" />
+        <div className="dashboard-skeleton-tool-cards">
+          {[0, 1, 2].map((item) => (
+            <div className="dashboard-skeleton-tool" key={item}>
+              <i />
+              <span><b /><em /></span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function RiderOverview({ user }) {
   const [restaurantContact, setRestaurantContact] = useState(null);
+  const presence = useRiderPresence();
+  const {
+    data: recentResult,
+  } = usePollingResource(
+    async ({ signal }) => {
+      const result = await api(
+        "/rider/assignments?scope=history&status=delivered&per_page=10",
+        { signal },
+      );
+      return result.data?.[0] || null;
+    },
+    { intervalMs: 60000, eventName: "rider-deliveries-updated" },
+  );
   useEffect(() => {
     const controller = new AbortController();
     api("/restaurant/location", { signal: controller.signal })
@@ -137,9 +204,19 @@ export function RiderOverview({ user }) {
   return (
     <section className="rider-home">
       <PageHeader
-        eyebrow="RIDER DASHBOARD"
         title={`Welcome, ${user.name.split(" ")[0]}`}
         description="Your activity overview, next stop, and rider tools."
+        actions={
+          <span className="rider-dashboard-date">
+            <CalendarDays size={15} aria-hidden="true" />
+            {new Intl.DateTimeFormat("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            }).format(new Date())}
+          </span>
+        }
       />
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {data && error && (
@@ -151,7 +228,7 @@ export function RiderOverview({ user }) {
           . Refresh when your connection returns.
         </p>
       )}
-      {!data && !error && <Skeleton label="Loading rider dashboard" />}
+      {!data && !error && <RiderDashboardSkeleton />}
       {data && (
         <>
           <aside
@@ -216,118 +293,107 @@ export function RiderOverview({ user }) {
             </div>
           </aside>
           <div className="rider-dashboard-main">
-            <RiderNextDelivery
-              delivery={data.next_delivery}
-              activeCount={data.active_count}
-            />
+            <section className="rider-day-overview" aria-labelledby="rider-day-heading">
+              <header>
+                <div>
+                  <h2 id="rider-day-heading">Day overview</h2>
+                  <p>Today’s activity</p>
+                </div>
+                <span className="rider-day-overview-icon" aria-hidden="true">
+                  <Bike size={17} />
+                </span>
+              </header>
+              <p className="rider-day-summary">
+                <CheckCircle2 size={17} aria-hidden="true" />
+                <span>
+                  {data.completed_today} {data.completed_today === 1 ? "delivery" : "deliveries"} completed today. {data.active_count} active {data.active_count === 1 ? "delivery remains" : "deliveries remain"} in your queue.
+                </span>
+              </p>
+              {(() => {
+                const recent = recentResult || data.next_delivery;
+                if (!recent) return null;
+                const isCompleted = recent.status === "delivered";
+                const completedEvent = recent.history?.find(
+                  (event) => event.to_status === "delivered",
+                );
+                const completedDate = completedEvent?.created_at
+                  ? new Date(completedEvent.created_at)
+                  : null;
+                return (
+                  <Link
+                    className="rider-day-delivery-row"
+                    to={isCompleted ? `/rider/deliveries/${recent.id}` : `/rider/deliveries?delivery=${recent.id}`}
+                  >
+                    <span className="rider-day-delivery-time">
+                      {isCompleted && completedDate && Number.isFinite(completedDate.getTime()) ? (
+                        <>
+                          <strong>{completedDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</strong>
+                          <small>COMPLETED</small>
+                        </>
+                      ) : (
+                        <>
+                          <strong>Next up</strong>
+                          <small>ASSIGNED</small>
+                        </>
+                      )}
+                    </span>
+                    <span className="rider-day-delivery-copy">
+                      <strong>{recent.order.order_number}</strong>
+                      <small>{recent.order.destination?.address || "Delivery address not recorded"}</small>
+                    </span>
+                    <span className={`rider-day-delivery-status state-${recent.status}`}>
+                      {recent.status.replaceAll("_", " ")}
+                    </span>
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </Link>
+                );
+              })()}
+              <Link className="rider-day-history-link" to="/rider/history">
+                View delivery history <ChevronRight size={15} aria-hidden="true" />
+              </Link>
+            </section>
             <div className="rider-dashboard-side">
-              <aside
-                className="rider-dashboard-checklist"
-                aria-labelledby="rider-tools-heading"
-              >
+              <aside className="rider-status-card" aria-labelledby="rider-status-heading">
                 <header>
-                  <h2 id="rider-tools-heading">
-                    {data.next_delivery
-                      ? ["picked_up", "in_transit"].includes(
-                          data.next_delivery.status,
-                        )
-                        ? "Before completing delivery"
-                        : "Before pickup"
-                      : "Ready for your next shift"}
-                  </h2>
+                  <h2 id="rider-status-heading">Rider status</h2>
+                  <span className={`rider-status-badge ${presence.state}`}>
+                    {presence.state === "online" ? "Online" : presence.state === "paused" ? "GPS paused" : presence.state === "checking" ? "Checking" : "Offline"}
+                  </span>
                 </header>
-                <ol>
-                  {(data.next_delivery
-                    ? ["picked_up", "in_transit"].includes(
-                        data.next_delivery.status,
-                      )
-                      ? [
-                          "Check the recipient and drop-off instructions.",
-                          "Keep delivery location sharing connected.",
-                          "Save a delivery photo before marking delivered.",
-                        ]
-                      : [
-                          "Check the restaurant address and order number.",
-                          "Wait for the kitchen to mark the order ready.",
-                          "Confirm pickup before starting the drop-off.",
-                        ]
-                    : [
-                        "Check your vehicle and contact details.",
-                        "Go online when you are ready for offers.",
-                        "Accept a suitable offer before heading to pickup.",
-                      ]
-                  ).map((item, index) => (
-                    <li key={item}>
-                      <span className="rider-check-number" aria-hidden="true">
-                        {index + 1}
-                      </span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ol>
-              </aside>
-              <aside
-                className="rider-dashboard-support"
-                aria-labelledby="rider-support-heading"
-              >
-                <h2 id="rider-support-heading">Need rider support?</h2>
-                <p>Contact the restaurant for pickup or delivery assistance.</p>
-                {restaurantContact?.phone ? (
-                  <a
-                    className="ui-button ui-button--secondary"
-                    href={`tel:${restaurantContact.phone}`}
-                  >
-                    <Phone size={16} aria-hidden="true" />
-                    Contact restaurant
-                  </a>
-                ) : restaurantContact?.contact_email ? (
-                  <a
-                    className="ui-button ui-button--secondary"
-                    href={`mailto:${restaurantContact.contact_email}`}
-                  >
-                    <Mail size={16} aria-hidden="true" />
-                    Email restaurant
-                  </a>
-                ) : (
-                  <p className="rider-support-unavailable">
-                    Restaurant contact details have not been added yet.
+                <div className={`rider-status-message ${presence.state}`}>
+                  <Radio size={17} aria-hidden="true" />
+                  <p>
+                    {presence.state === "online"
+                      ? "You’re online and ready to receive nearby delivery offers."
+                      : presence.state === "paused"
+                        ? "Reconnect GPS to resume nearby delivery offers."
+                        : "New delivery offers are paused while you’re offline."}
                   </p>
-                )}
+                </div>
+                <Link className="ui-button ui-button--primary rider-status-action" to="/rider/offers">
+                  {presence.state === "online" ? "View offers" : presence.state === "paused" ? "Reconnect GPS" : "Go online"}
+                </Link>
+                <div className="rider-status-details">
+                  <p><Radio size={15} aria-hidden="true" /><span><strong>Assignment data</strong><small>{updatedAt ? `Last available · refreshed ${updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "Checking for updates"}</small></span></p>
+                  <p>{restaurantContact?.phone ? <Phone size={15} aria-hidden="true" /> : <Mail size={15} aria-hidden="true" />}<span><strong>Restaurant contact</strong><small>{restaurantContact?.phone || restaurantContact?.contact_email || "Contact details have not yet been added"}</small></span></p>
+                </div>
               </aside>
             </div>
           </div>
-          <aside
-            className="rider-dashboard-links"
-            aria-labelledby="rider-quick-links-heading"
-          >
-            <h2 id="rider-quick-links-heading">Quick links</h2>
+          <nav className="rider-dashboard-links" aria-labelledby="rider-links-heading">
+            <h2 id="rider-links-heading">Rider tools</h2>
             <div className="rider-shortcuts">
-              <Link to="/rider/offers">
-                <MapPin size={20} aria-hidden="true" />
-                <div>
-                  <strong>Delivery offers</strong>
-                  <span>Review available pickups</span>
-                </div>
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </Link>
-              <Link to="/rider/history">
-                <ClipboardList size={20} aria-hidden="true" />
-                <div>
-                  <strong>Delivery history</strong>
-                  <span>{data.completed_today} delivered today</span>
-                </div>
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </Link>
-              <Link to="/settings">
-                <Settings2 size={20} aria-hidden="true" />
-                <div>
-                  <strong>Rider settings</strong>
-                  <span>Vehicle and contact details</span>
-                </div>
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </Link>
+              <Link to="/rider/deliveries"><Bike size={18} aria-hidden="true" /><div><strong>My deliveries</strong><span>Manage your {data.active_count} active assignment{data.active_count === 1 ? "" : "s"}</span></div><ChevronRight size={16} aria-hidden="true" /></Link>
+              <Link to="/rider/offers"><MapPin size={18} aria-hidden="true" /><div><strong>Delivery offers</strong><span>Review offers when you’re online</span></div><ChevronRight size={16} aria-hidden="true" /></Link>
+              {restaurantContact?.phone ? (
+                <a href={`tel:${restaurantContact.phone}`}><Headphones size={18} aria-hidden="true" /><div><strong>Rider support</strong><span>Get help with a delivery</span></div><ChevronRight size={16} aria-hidden="true" /></a>
+              ) : restaurantContact?.contact_email ? (
+                <a href={`mailto:${restaurantContact.contact_email}`}><Headphones size={18} aria-hidden="true" /><div><strong>Rider support</strong><span>Get help with a delivery</span></div><ChevronRight size={16} aria-hidden="true" /></a>
+              ) : (
+                <Link to="/settings"><Headphones size={18} aria-hidden="true" /><div><strong>Rider support</strong><span>Add restaurant contact details</span></div><ChevronRight size={16} aria-hidden="true" /></Link>
+              )}
             </div>
-          </aside>
+          </nav>
         </>
       )}
     </section>
@@ -378,7 +444,6 @@ export function RiderHistory() {
   return (
     <section className="rider-history-page">
       <PageHeader
-        eyebrow="YOUR DELIVERY RECORD"
         title="Delivery history"
         description="Your completed, cancelled and unsuccessful trips, all in one place."
       />
@@ -457,7 +522,7 @@ export function RiderHistory() {
           )}
         </div>
         {loading ? (
-          <Skeleton label="Loading delivery history" />
+          <RiderScreenSkeleton variant="history" label="Loading delivery history" />
         ) : error ? (
           <Feedback onRetry={() => setRetry((value) => value + 1)}>
             {error}
@@ -495,7 +560,7 @@ export function RiderHistory() {
                 <DeliveryHistoryRow key={delivery.id} delivery={delivery} />
               ))}
             </div>
-            {result && (
+            {result && total > 0 && (
               <nav
                 className="workspace-pagination rider-history-pagination"
                 aria-label="Delivery history pages"

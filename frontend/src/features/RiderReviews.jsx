@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Star } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { CheckCircle2, Star } from "lucide-react";
 import { RiderVehicle } from "../components/RiderVehicle";
+import { RiderScreenSkeleton } from "../components/RiderScreenSkeleton";
 import { api } from "../api";
 import {
   Button,
-  EmptyState,
   Feedback,
   PageHeader,
-  Skeleton,
 } from "../components/ui";
 import { RatingStars, reviewCategories } from "../components/RiderReviewForm";
 import "../components/riderReviews.css";
@@ -34,7 +33,9 @@ export function RiderReviews({ own = false }) {
       { signal: controller.signal },
     )
       .then((result) => {
-        if (!controller.signal.aborted) setData(result.data);
+        if (!controller.signal.aborted) {
+          setData(result.data);
+        }
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message);
@@ -46,19 +47,12 @@ export function RiderReviews({ own = false }) {
   }, [riderId, own, page, retry]);
   return (
     <section className="rider-public-profile">
-      {own && (
-        <Link className="rider-page-link rider-back-link" to="/rider">
-          <ArrowLeft size={16} aria-hidden="true" />
-          Back to dashboard
-        </Link>
-      )}
       <PageHeader
-        eyebrow={own ? "CUSTOMER FEEDBACK" : "YOUR DELIVERY PARTNER"}
         title={own ? "Ratings & reviews" : "Rider profile"}
         description={own ? "Feedback from verified deliveries." : undefined}
       />
       {loading ? (
-        <Skeleton label="Loading rider profile" />
+        <RiderScreenSkeleton variant="reviews" label="Loading rider profile" />
       ) : error ? (
         <Feedback onRetry={() => setRetry((value) => value + 1)}>
           {error}
@@ -89,47 +83,84 @@ export function RiderReviews({ own = false }) {
                 {data.rider.delivered_total} delivered
               </span>
             </section>
-            <div className="review-profile-layout">
-              <section
-                className="review-summary-card"
-                aria-label="Rating summary"
-              >
-                <Star size={24} aria-hidden="true" />
-                <strong>
-                  {data.summary.count
-                    ? Number(data.summary.average).toFixed(1)
-                    : "—"}
-                  <small> / 5</small>
-                </strong>
-                <RatingStars
-                  value={Math.round(Number(data.summary.average || 0))}
-                />
-                <p>
-                  {data.summary.count} verified{" "}
-                  {data.summary.count === 1 ? "review" : "reviews"}
-                </p>
-                <div className="review-distribution">
-                  {data.summary.breakdown.map((row) => (
-                    <div key={row.stars}>
-                      <span>{row.stars} ★</span>
-                      <progress
-                        max={Math.max(1, data.summary.count)}
-                        value={row.count}
-                        aria-label={`${row.stars} star reviews: ${row.count}`}
-                      />
-                      <span>{row.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-              <section className="review-list" aria-label="Customer reviews">
-                {!data.reviews.length && (
-                  <EmptyState
-                    title="No reviews yet"
-                    description="Reviews appear after completed deliveries."
+            {Number(data.summary?.count || 0) === 0 ? (
+              <div className="review-profile-layout review-profile-layout-empty">
+                <section className="review-summary-card" aria-label="Rating summary">
+                  <h2 className="review-summary-label">Overall rating</h2>
+                  <div className="review-scoreline">
+                    <strong>—</strong><span>/ 5</span>
+                  </div>
+                  <RatingStars value={0} />
+                  <p>No ratings yet</p>
+                  <div className="review-distribution">
+                    {data.summary.breakdown.map((row) => (
+                      <div key={row.stars}>
+                        <span>{row.stars} ★</span>
+                        <progress max={1} value={0} aria-label={`${row.stars} star reviews: 0`} />
+                        <span>0</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                <section className="review-first-empty" aria-labelledby="review-first-heading">
+                  <div className="review-first-empty-icon" aria-hidden="true">
+                    <Star size={29} strokeWidth={1.7} />
+                  </div>
+                  <div className="review-first-empty-copy">
+                    <span>WHAT TO EXPECT</span>
+                    <h2 id="review-first-heading">Your first review will appear here</h2>
+                    <p>
+                      {data.rider.delivered_total > 0
+                        ? "Customers can leave a review after a completed delivery. Your verified rating and comments will appear here once they submit one."
+                        : "Complete your first delivery to open your review history. Customers can then leave feedback about their experience."}
+                    </p>
+                  </div>
+                  <div className="review-first-empty-progress">
+                    <strong>{data.rider.delivered_total}</strong>
+                    <span>completed deliveries</span>
+                  </div>
+                </section>
+              </div>
+            ) : (
+              <div className="review-profile-layout">
+                <section
+                  className="review-summary-card"
+                  aria-label="Rating summary"
+                >
+                  <h2 className="review-summary-label">Overall rating</h2>
+                  <div className="review-scoreline">
+                    <strong>{Number(data.summary.average).toFixed(1)}</strong>
+                    <span>/ 5</span>
+                  </div>
+                  <RatingStars
+                    value={Math.round(Number(data.summary.average || 0))}
                   />
-                )}
-                {data.reviews.map((review) => (
+                  <p>
+                    {data.summary.count} verified{" "}
+                    {data.summary.count === 1 ? "review" : "reviews"}
+                  </p>
+                  <div className="review-distribution">
+                  {data.summary.breakdown.map((row) => (
+                      <div key={row.stars}>
+                        <span>{row.stars} ★</span>
+                        <progress
+                          max={Math.max(1, data.summary.count)}
+                          value={row.count}
+                          aria-label={`${row.stars} star reviews: ${row.count}`}
+                        />
+                        <span>{row.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                <section className="review-list" aria-label="Customer reviews">
+                  <header className="review-list-heading">
+                    <h2>Customer reviews</h2>
+                    <span>
+                      {data.summary.count} verified
+                    </span>
+                  </header>
+                  {data.reviews.map((review) => (
                   <article className="review-card" key={review.id}>
                     <div className="review-card-heading">
                       <strong>{review.display_name}</strong>
@@ -150,33 +181,34 @@ export function RiderReviews({ own = false }) {
                       <p className="review-comment">{review.comment}</p>
                     )}
                   </article>
-                ))}
-                {data.meta.last_page > 1 && (
-                  <nav
-                    className="workspace-pagination"
-                    aria-label="Review pages"
-                  >
-                    <Button
-                      variant="secondary"
-                      disabled={page <= 1}
-                      onClick={() => setPage((value) => value - 1)}
+                  ))}
+                  {data.meta.last_page > 1 ? (
+                    <nav
+                      className="workspace-pagination"
+                      aria-label="Review pages"
                     >
-                      Previous
-                    </Button>
-                    <span>
-                      {page} / {data.meta.last_page}
-                    </span>
-                    <Button
-                      variant="secondary"
-                      disabled={page >= data.meta.last_page}
-                      onClick={() => setPage((value) => value + 1)}
-                    >
-                      Next
-                    </Button>
-                  </nav>
-                )}
-              </section>
-            </div>
+                      <Button
+                        variant="secondary"
+                        disabled={page <= 1}
+                        onClick={() => setPage((value) => value - 1)}
+                      >
+                        Previous
+                      </Button>
+                      <span>
+                        {page} / {data.meta.last_page}
+                      </span>
+                      <Button
+                        variant="secondary"
+                        disabled={page >= data.meta.last_page}
+                        onClick={() => setPage((value) => value + 1)}
+                      >
+                        Next
+                      </Button>
+                    </nav>
+                  ) : null}
+                </section>
+              </div>
+            )}
           </>
         )
       )}

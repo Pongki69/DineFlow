@@ -32,11 +32,10 @@ export function Button({
   );
 }
 
-export function PageHeader({ eyebrow, title, description, actions }) {
+export function PageHeader({ title, description, actions }) {
   return (
     <header className="page-heading">
       <div>
-        {eyebrow && <span className="eyebrow">{eyebrow}</span>}
         <h1 tabIndex={-1}>{title}</h1>
         {description && <p>{description}</p>}
       </div>

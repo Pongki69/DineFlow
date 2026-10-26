@@ -109,6 +109,64 @@
   font-size: var(--text-sm);
   font-weight: 600;
 }
+.dispatch-dashboard .dispatch-card-address {
+  margin: 16px 0 6px;
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.dispatch-dashboard .dispatch-card-summary {
+  color: var(--primary);
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+.dispatch-dashboard .dispatch-primary-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8faf6;
+}
+.dispatch-dashboard .dispatch-primary-panel select {
+  width: 100%;
+  min-height: 46px;
+  margin: 0;
+}
+.dispatch-dashboard .dispatch-primary-panel button {
+  min-width: 132px;
+  min-height: 46px;
+}
+.dispatch-dashboard .dispatch-secondary-details {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+.dispatch-dashboard .dispatch-secondary-details > summary {
+  min-height: 44px;
+  align-content: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+.dispatch-dashboard .dispatch-secondary-details > p,
+.dispatch-dashboard .dispatch-secondary-details > details {
+  margin: 8px 0;
+}
+.dispatch-dashboard .dispatch-secondary-details > .danger-button {
+  min-height: 40px;
+  margin: 10px 0;
+  padding: 8px 12px;
+  border: 1px solid #e3cbc7;
+  border-radius: 8px;
+  background: #fff;
+  color: #93483d;
+  font-weight: 650;
+  cursor: pointer;
+}
 .rider-data-freshness {
   font-size: var(--text-xs);
   color: var(--muted);
@@ -141,6 +199,25 @@ fieldset:disabled {
 }
 .rider-route-apply .ui-button {
   justify-self: start;
+  min-height: 48px;
+}
+.rider-route-apply.is-dirty {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-inline: -20px;
+  padding: 12px 20px max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 -8px 18px rgb(30 50 38 / 7%);
+  backdrop-filter: blur(10px);
+}
+.rider-route-apply.is-dirty p {
+  color: var(--ink);
+  font-weight: 600;
+}
+.rider-route-apply.is-dirty .ui-button {
+  min-width: 180px;
 }
 .rider-route-footnote summary,
 .dispatch-search-details summary {
@@ -174,6 +251,14 @@ fieldset:disabled {
     max-width: 100px;
   }
 }
+@media (max-width: 520px) {
+  .dispatch-dashboard .dispatch-primary-panel {
+    grid-template-columns: 1fr;
+  }
+  .dispatch-dashboard .dispatch-primary-panel button {
+    width: 100%;
+  }
+}
 .rider-workbench-tabs {
   display: flex;
   gap: 8px;
@@ -197,6 +282,12 @@ fieldset:disabled {
 .rider-selected-workbench .rider-delivery-head > div {
   flex-wrap: wrap;
 }
+.rider-selected-workbench .rider-card-priority-label {
+  color: #244a35;
+  background: #eaf3e8;
+  border-color: #c9ddc4;
+  font-weight: 700;
+}
 .rider-selected-workbench {
   --rider-order-size: var(--text-body);
   --rider-order-weight: 500;
@@ -215,6 +306,11 @@ fieldset:disabled {
 }
 .rider-selected-workbench fieldset.rider-actions {
   padding: 16px 0 !important;
+}
+.rider-selected-workbench .rider-primary-actions > .ui-button:first-child {
+  min-width: min(280px, 100%);
+  min-height: 52px;
+  font-weight: 700;
 }
 .rider-selected-workbench .rider-card-total {
   font-size: var(--text-body);
@@ -262,12 +358,49 @@ fieldset:disabled {
   background: var(--progress-soft);
   color: var(--progress);
 }
-.rider-route-draft {
-  padding: 12px;
+.rider-route-draft-toast {
+  position: fixed;
+  z-index: 2500;
+  left: 248px;
+  bottom: 24px;
+  width: min(420px, calc(100vw - 272px));
+  padding: 14px 16px;
   border: 1px solid #e5d4ad;
-  border-radius: 9px;
+  border-radius: 12px;
   background: var(--warning-soft);
-  color: var(--warning) !important;
+  color: var(--warning);
+  box-shadow: 0 12px 32px rgb(35 47 38 / 18%);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  animation: rider-draft-toast-life 4.8s ease both;
+  pointer-events: none;
+}
+@keyframes rider-draft-toast-life {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  10%, 78% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(4px);
+    visibility: hidden;
+  }
+}
+@media (max-width: 1023px) {
+  .rider-route-draft-toast {
+    left: 16px;
+    width: min(420px, calc(100vw - 32px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rider-route-draft-toast {
+    animation-duration: 4.8s;
+    animation-timing-function: linear;
+  }
 }
 .dispatch-dashboard :is(.state-pending_assignment, .state-assigned) {
   color: var(--warning);
@@ -361,35 +494,33 @@ fieldset:disabled {
     flex-direction: column;
     min-height: 0;
     padding-block: 16px 10px;
-    overflow: auto;
+    overflow: hidden;
   }
   .app-shell[data-page="rider-deliveries"] .rider-workspace {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    gap: 8px;
+    gap: 12px;
   }
   .app-shell[data-page="rider-deliveries"]
     .rider-workspace
     > :not(.rider-route-planner) {
     flex-shrink: 0;
   }
-  .app-shell[data-page="rider-deliveries"] .page-heading {
-    margin-bottom: 0;
-  }
-  .app-shell[data-page="rider-deliveries"] .page-heading h1 {
-    margin-block: 4px 6px;
-  }
   .app-shell[data-page="rider-deliveries"] .rider-data-freshness {
-    margin: 0 !important;
+    margin: 8px 0 14px !important;
     font-size: var(--text-caption);
+  }
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .app-content.rider-content {
+    padding-block: 12px 8px;
   }
   .app-shell[data-page="rider-deliveries"]
     .rider-route-planner:not(.is-expanded) {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0;
     margin: 0;
   }
@@ -398,29 +529,43 @@ fieldset:disabled {
     flex-shrink: 0;
   }
   .app-shell[data-page="rider-deliveries"] .rider-route-layout {
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
     grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
   }
   .app-shell[data-page="rider-deliveries"] .rider-route-map-area {
     min-height: 0;
     padding: 12px;
-    overflow-y: auto;
+    overflow: hidden;
     border-right: 1px solid var(--border);
     border-bottom: 0;
   }
   .app-shell[data-page="rider-deliveries"] .rider-route-map {
-    flex: 1;
-    min-height: 160px;
+    flex: 1 1 0;
+    min-height: 300px;
     height: auto;
   }
   .app-shell[data-page="rider-deliveries"] .rider-route-itinerary {
     min-height: 0;
+    max-height: 100%;
     overflow-y: auto;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: auto;
+    scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
     padding: 16px;
+  }
+  .app-shell[data-page="rider-deliveries"]
+    .rider-route-itinerary::-webkit-scrollbar {
+    width: 10px;
+  }
+  .app-shell[data-page="rider-deliveries"]
+    .rider-route-itinerary::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: #aab8ad;
+    background-clip: padding-box;
   }
   .app-shell[data-page="rider-deliveries"] .rider-route-itinerary ol {
     max-height: none;
@@ -435,5 +580,289 @@ fieldset:disabled {
   .app-shell[data-page="rider-deliveries"] .rider-route-legend {
     padding-top: 6px;
     gap: 8px 12px;
+  }
+}
+
+.rider-selected-focus-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin: 0 0 14px;
+}
+.rider-selected-focus-heading h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.rider-selected-focus-heading span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+@media (min-width: 1000px) and (min-height: 600px) {
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .app-content.rider-content {
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-workspace.has-delivery-queue {
+    display: block;
+    flex: none;
+    min-height: 0;
+  }
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-workspace.has-delivery-queue
+    > .rider-route-planner:not(.is-expanded) {
+    display: block;
+    flex: none;
+    min-height: 0;
+    margin: 0 0 16px;
+  }
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner:not(.is-expanded):not(:fullscreen)
+    .rider-route-layout.is-selected-focus {
+    /* Keep the map close to the route-order view's large working scale. */
+    height: min(88vh, 800px);
+    min-height: 620px;
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-layout.is-selected-focus
+    .rider-route-map-area {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-layout.is-selected-focus
+    .rider-route-map {
+    min-height: 0;
+    height: 100%;
+  }
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-layout.is-selected-focus
+    .rider-route-itinerary {
+    min-height: 0;
+    max-height: 100%;
+    overflow: auto;
+    overscroll-behavior: auto;
+  }
+}
+
+.rider-delivery-lower-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.8fr);
+  align-items: start;
+  gap: 18px;
+  margin: 20px 0 4px;
+}
+.rider-delivery-queue,
+.rider-before-pickup {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 4px 14px rgb(23 48 35 / 4%);
+}
+.rider-delivery-queue > header,
+.rider-before-pickup > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e7ece6;
+}
+.rider-delivery-queue > header > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.rider-delivery-queue h2,
+.rider-before-pickup h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.rider-delivery-queue > header > div > span,
+.rider-before-pickup > header > span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: var(--text-caption);
+}
+.rider-delivery-queue > header > a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+}
+.rider-delivery-queue-list {
+  display: grid;
+  gap: 8px;
+}
+.rider-delivery-queue-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid #e2e9e0;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.rider-delivery-queue-row[aria-pressed="true"] {
+  border-color: #c5d8c1;
+  background: #f1f6ef;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.rider-delivery-queue-row:hover:not([aria-pressed="true"]) {
+  border-color: #b8d0b5;
+  background: #f8faf7;
+}
+.rider-queue-number {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--neutral-soft);
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+.rider-queue-order {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.rider-queue-order strong {
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+.rider-queue-order small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rider-queue-action {
+  min-width: 58px;
+  padding: 5px 9px;
+  border: 1px solid #dce7d9;
+  border-radius: 999px;
+  background: #f5f8f3;
+  color: var(--primary);
+  font-size: var(--text-caption);
+  font-weight: 650;
+  text-align: right;
+}
+.rider-queue-hint {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #f6f8f5;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+.rider-before-pickup > header > span {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.rider-before-pickup-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #f0dfb6;
+  border-radius: 10px;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.rider-before-pickup-message svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.rider-before-pickup-message p {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+.rider-before-pickup > .ui-button {
+  min-height: 44px;
+}
+.rider-before-pickup h3 {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #e7ece6;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.rider-before-pickup ol {
+  display: grid;
+  gap: 9px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: prep;
+}
+.rider-before-pickup li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  counter-increment: prep;
+}
+.rider-before-pickup li::before {
+  content: counter(prep);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border: 1px solid #cbdac7;
+  border-radius: 50%;
+  background: #f1f6ef;
+  color: var(--primary);
+  font-size: var(--text-caption);
+}
+@media (max-width: 850px) {
+  .rider-delivery-lower-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 599px) {
+  .rider-delivery-queue-row {
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .rider-delivery-queue-row .rider-route-stop-state {
+    display: none;
   }
 }

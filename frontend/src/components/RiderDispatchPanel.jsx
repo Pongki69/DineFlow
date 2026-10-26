@@ -10,6 +10,42 @@ import { liveOffers, receiveOffers, showOfferUpdates } from "./offerFeed";
 import { updateRiderPresence } from "./riderPresence";
 import { subscribeRiderLocation } from "./riderLocationSession";
 
+function makePreviewOffers() {
+  const expiresAt = (minutes) => new Date(Date.now() + minutes * 60_000).toISOString();
+  return [
+    {
+      id: "preview-offer-01",
+      order_number: "PREVIEW-1044",
+      pickup: "DineFlow Demo Restaurant, Manila",
+      destination: "Sampaloc, Manila (preview stop)",
+      eta_minutes: 8,
+      expires_at: expiresAt(30),
+      batched: false,
+      preview_only: true,
+    },
+    {
+      id: "preview-offer-02",
+      order_number: "PREVIEW-1045",
+      pickup: "DineFlow Demo Restaurant, Manila",
+      destination: "Binondo, Manila (preview stop)",
+      eta_minutes: 12,
+      expires_at: expiresAt(30),
+      batched: true,
+      preview_only: true,
+    },
+    {
+      id: "preview-offer-03",
+      order_number: "PREVIEW-1046",
+      pickup: "DineFlow Demo Restaurant, Manila",
+      destination: "San Miguel, Manila (preview stop)",
+      eta_minutes: 16,
+      expires_at: expiresAt(30),
+      batched: false,
+      preview_only: true,
+    },
+  ];
+}
+
 export function RiderDispatchPanel({
   onAccepted,
   compact = false,
@@ -20,6 +56,7 @@ export function RiderDispatchPanel({
   const [respondingId, setRespondingId] = useState(null);
   const responseLock = useRef(false);
   const loadPending = useRef(false);
+  const previewOffersEnabled = useRef(false);
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -48,11 +85,15 @@ export function RiderDispatchPanel({
         ? serverTime - Date.now()
         : 0;
       setNow(Date.now());
-      setData(result);
+      const offers =
+        result.offers?.length || !import.meta.env.DEV || !previewOffersEnabled.current
+          ? result.offers || []
+          : makePreviewOffers();
+      setData({ ...result, offers });
       setFeed((previous) =>
         receiveOffers(
           previous,
-          result.offers,
+          offers,
           Date.now() + offset.current,
           latest.current.compact,
         ),
@@ -223,6 +264,7 @@ export function RiderDispatchPanel({
     );
   }
   async function respond(offer, response) {
+    if (offer.preview_only) return;
     if (
       busy ||
       responseLock.current ||
@@ -521,7 +563,9 @@ export function RiderDispatchPanel({
                 <strong>Order {offer.order_number}</strong>
                 <span className="dispatch-countdown">
                   <Clock size={16} aria-hidden="true" />
-                  {unavailable || pending ? (
+                  {offer.preview_only ? (
+                    "Preview only"
+                  ) : unavailable || pending ? (
                     stateLabel
                   ) : (
                     <>
@@ -539,23 +583,43 @@ export function RiderDispatchPanel({
                   )}
                 </span>
               </div>
-              <p>
-                <strong>Pickup:</strong> {offer.pickup}
-              </p>
-              <p>
-                <strong>Drop-off:</strong> {offer.destination}
-              </p>
-              <p>
-                About {offer.eta_minutes} min to pickup
-                {offer.batched
-                  ? " · Adds a second compatible order to your pickup route"
-                  : ""}
-                .
-              </p>
+              <ol className="dispatch-offer-route" aria-label="Offer route">
+                <li>
+                  <span
+                    className="dispatch-offer-stop-marker"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <span className="dispatch-offer-stop-label">Pickup</span>
+                    <strong>{offer.pickup}</strong>
+                    <small>About {offer.eta_minutes} min away</small>
+                  </div>
+                </li>
+                <li>
+                  <span
+                    className="dispatch-offer-stop-marker"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <span className="dispatch-offer-stop-label">Drop-off</span>
+                    <strong>{offer.destination}</strong>
+                  </div>
+                </li>
+              </ol>
+              {offer.batched && (
+                <p className="dispatch-offer-batch-note">
+                  This offer includes a second compatible order.
+                </p>
+              )}
+              {offer.preview_only && (
+                <p className="dispatch-offer-preview-note">
+                  Sample offer for layout preview. This is not a real delivery.
+                </p>
+              )}
               <div className="rider-offer-actions">
                 <Button
                   busy={respondingId === offer.id}
-                  disabled={busy || unavailable}
+                  disabled={busy || unavailable || offer.preview_only}
                   onClick={() => respond(offer, "accept")}
                 >
                   {offer.feedStatus === "accepted"
@@ -572,7 +636,7 @@ export function RiderDispatchPanel({
                 ) : (
                   <Button
                     variant="secondary"
-                    disabled={busy || unavailable}
+                    disabled={busy || unavailable || offer.preview_only}
                     onClick={() => respond(offer, "reject")}
                   >
                     Decline offer
@@ -619,6 +683,26 @@ export function RiderDispatchPanel({
               <Radio size={14} aria-hidden="true" />
               {active ? "Live search" : "Go online to start"}
             </span>
+            {import.meta.env.DEV && !previewOffersEnabled.current && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  previewOffersEnabled.current = true;
+                  setFeed((previous) => ({
+                    ...previous,
+                    visible: [
+                      ...previous.visible,
+                      ...makePreviewOffers().map((offer) => ({
+                        ...offer,
+                        feedStatus: "available",
+                      })),
+                    ],
+                  }));
+                }}
+              >
+                Preview sample offers
+              </Button>
+            )}
           </div>
         )}
       </section>

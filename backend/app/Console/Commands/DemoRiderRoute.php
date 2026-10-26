@@ -43,10 +43,27 @@ class DemoRiderRoute extends Command
         }
         $rider = $riders->first();
         $pickup = app(DeliveryQuoteService::class)->location();
+        if (! isset($pickup['latitude'], $pickup['longitude'])) {
+            $existingPickup = Delivery::whereNotNull('pickup_latitude')
+                ->whereNotNull('pickup_longitude')
+                ->latest('assigned_at')
+                ->first();
+            if ($existingPickup) {
+                $pickup['latitude'] = $existingPickup->pickup_latitude;
+                $pickup['longitude'] = $existingPickup->pickup_longitude;
+                $pickup['address'] = $existingPickup->pickup_address;
+            }
+        }
+        $baseLat = (float) ($pickup['latitude'] ?? 0);
+        $baseLng = (float) ($pickup['longitude'] ?? 0);
+        if (! $baseLat || ! $baseLng) {
+            $this->error('Configure the restaurant map location before creating route-preview deliveries.');
+            return self::FAILURE;
+        }
         $destinations = [
-            ['Lopez Avenue, Los Baños, Laguna (demo stop)', 14.1805, 121.243, 'Demo meal A', 320],
-            ['Bambang, Los Baños, Laguna (demo stop)', 14.1778, 121.2387, 'Demo meal B', 380],
-            ['National Highway, Los Baños, Laguna (demo stop)', 14.1736, 121.242, 'Demo meal C', 450],
+            ['Preview stop A · north-east of restaurant', $baseLat + 0.006, $baseLng + 0.004, 'Demo meal A', 320],
+            ['Preview stop B · west of restaurant', $baseLat + 0.002, $baseLng - 0.007, 'Demo meal B', 380],
+            ['Preview stop C · south-east of restaurant', $baseLat - 0.006, $baseLng + 0.005, 'Demo meal C', 450],
         ];
         DB::transaction(function () use ($rider, $pickup, $destinations) {
             foreach ($destinations as $i => [$address, $lat, $lng, $dish, $price]) {
