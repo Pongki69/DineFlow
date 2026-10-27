@@ -20,16 +20,22 @@ class RiderReviewController extends Controller
 
     public function profile(Request $request, User $rider, RiderReviewService $service)
     {
-        $request->validate(['page' => ['sometimes', 'integer', 'between:1,10000']]);
+        $filters = $request->validate([
+            'page' => ['sometimes', 'integer', 'between:1,10000'],
+            'rating' => ['sometimes', 'integer', 'between:1,5'],
+        ]);
 
-        return response()->json(['data' => $service->profile($rider, $request->user())]);
+        return response()->json(['data' => $service->profile($rider, $request->user(), $filters['rating'] ?? null)]);
     }
 
     public function own(Request $request, RiderReviewService $service)
     {
         abort_unless($request->user()->hasRole('rider') && $request->user()->hasPermission('deliveries.assigned'), 403);
-        $request->validate(['page' => ['sometimes', 'integer', 'between:1,10000']]);
+        $filters = $request->validate([
+            'page' => ['sometimes', 'integer', 'between:1,10000'],
+            'rating' => ['sometimes', 'integer', 'between:1,5'],
+        ]);
 
-        return response()->json(['data' => $service->profile($request->user(), $request->user())]);
+        return response()->json(['data' => $service->profile($request->user(), $request->user(), $filters['rating'] ?? null)]);
     }
 }

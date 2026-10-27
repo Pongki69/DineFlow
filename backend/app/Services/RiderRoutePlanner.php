@@ -79,10 +79,35 @@ class RiderRoutePlanner
         $unavailable = false;
         $etaValid = (bool) $origin && ! $missing;
         $departure = now();
+        $sequenceRoute = null;
+        $sequenceFailed = false;
+        $useSequenceRoute = $this->maps->supportsRouteSequence() && count($stops) + (bool) $origin > 1;
+        if ($useSequenceRoute) {
+            $points = $origin ? [$origin, ...array_map(fn ($stop) => [
+                'latitude' => $stop['latitude'],
+                'longitude' => $stop['longitude'],
+            ], $stops)] : array_map(fn ($stop) => [
+                'latitude' => $stop['latitude'],
+                'longitude' => $stop['longitude'],
+            ], $stops);
+            $sequenceKey = 'rider-plan-sequence-v1:'.hash('sha256', json_encode($points));
+            try {
+                $sequenceRoute = Cache::remember($sequenceKey, 60, fn () => $this->maps->routeSequence($points));
+            } catch (\Throwable $e) {
+                report($e);
+                $sequenceFailed = true;
+            }
+        }
         foreach ($stops as $index => $stop) {
-            if ($previous) {
+            if ($sequenceFailed) {
+                $unavailable = true;
+                $etaValid = false;
+            } elseif ($previous) {
                 try {
-                    if (abs($previous['latitude'] - $stop['latitude']) + abs($previous['longitude'] - $stop['longitude']) < 0.00001) {
+                    $sequenceIndex = $origin ? $index : $index - 1;
+                    if ($sequenceRoute && isset($sequenceRoute['legs'][$sequenceIndex])) {
+                        $leg = $sequenceRoute['legs'][$sequenceIndex];
+                    } elseif (abs($previous['latitude'] - $stop['latitude']) + abs($previous['longitude'] - $stop['longitude']) < 0.00001) {
                         $leg = ['distance_km' => 0, 'duration_minutes' => 0, 'geometry' => []];
                     } else {
                         $points = [(float) $previous['latitude'], (float) $previous['longitude'], $stop['latitude'], $stop['longitude']];

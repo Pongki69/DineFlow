@@ -83,6 +83,80 @@ class MapProviderService
         return $result;
     }
 
+    public function supportsRouteSequence(): bool
+    {
+        return app()->environment('local')
+            && config('services.maps.provider') === 'geoapify'
+            && ! config('services.maps.geoapify_key')
+            && config('services.maps.local_osrm_fallback');
+    }
+
+    /** Route all preview stops against the local OSRM fallback in one request. */
+    public function routeSequence(array $points): array
+    {
+        if (! $this->supportsRouteSequence()) {
+            throw new RuntimeException('Multi-stop local routing is not enabled.');
+        }
+        if (count($points) < 2 || count($points) > 52) {
+            throw new RuntimeException('The local route must contain between 2 and 52 points.');
+        }
+
+        $coordinates = collect($points)->map(function ($point) {
+            if (! isset($point['latitude'], $point['longitude'])
+                || ! is_numeric($point['latitude'])
+                || ! is_numeric($point['longitude'])) {
+                throw new RuntimeException('A route point has invalid coordinates.');
+            }
+
+            return (float) $point['longitude'].','.(float) $point['latitude'];
+        })->implode(';');
+        $url = rtrim((string) config('services.maps.local_osrm_url'), '/').'/'.$coordinates;
+        $params = ['overview' => 'full', 'geometries' => 'geojson', 'steps' => 'true'];
+        $response = Cache::lock('local-osrm-demo-request', 10)->block(10, function () use ($url, $params) {
+            $lastRequestAt = (float) Cache::get('local-osrm-demo-last-request-at', 0);
+            $waitSeconds = 1.1 - (microtime(true) - $lastRequestAt);
+            if ($waitSeconds > 0) usleep((int) ceil($waitSeconds * 1_000_000));
+
+            try {
+                return $this->localOsrmRequest($url, $params, 20);
+            } finally {
+                Cache::put('local-osrm-demo-last-request-at', microtime(true), now()->addSeconds(30));
+            }
+        });
+
+        $route = $response->json('routes.0');
+        $routeLegs = data_get($route, 'legs');
+        if (! $response->successful()
+            || $response->json('code') !== 'Ok'
+            || ! is_array($routeLegs)
+            || count($routeLegs) !== count($points) - 1) {
+            throw new RuntimeException('Local road routing is temporarily unavailable. Straight-line estimates are shown instead.');
+        }
+
+        $legs = [];
+        foreach ($routeLegs as $leg) {
+            $geometry = [];
+            foreach ($leg['steps'] ?? [] as $step) {
+                foreach (data_get($step, 'geometry.coordinates', []) as $coordinate) {
+                    $last = $geometry[count($geometry) - 1] ?? null;
+                    if ($last !== $coordinate) $geometry[] = $coordinate;
+                }
+            }
+            if (! is_numeric($leg['distance'] ?? null) || ! is_numeric($leg['duration'] ?? null) || count($geometry) < 2) {
+                throw new RuntimeException('The road router returned incomplete route geometry.');
+            }
+            $legs[] = [
+                'distance_km' => round(((float) $leg['distance']) / 1000, 2),
+                'duration_minutes' => max(1, (int) ceil(((float) $leg['duration']) / 60)),
+                'geometry' => $geometry,
+                'traffic_available' => false,
+                'provider' => 'osrm-local-fallback',
+            ];
+        }
+
+        return ['legs' => $legs, 'provider' => 'osrm-local-fallback'];
+    }
+
     private function routeLocalOsrm(float $originLat, float $originLng, float $destLat, float $destLng, bool $includeGeometry): array
     {
         $base = rtrim((string) config('services.maps.local_osrm_url'), '/');
@@ -101,7 +175,7 @@ class MapProviderService
             if ($waitSeconds > 0) usleep((int) ceil($waitSeconds * 1_000_000));
 
             try {
-                return Http::timeout(8)->get($url, $params);
+                return $this->localOsrmRequest($url, $params, 8);
             } finally {
                 Cache::put('local-osrm-demo-last-request-at', microtime(true), now()->addSeconds(30));
             }
@@ -119,6 +193,21 @@ class MapProviderService
             'traffic_available' => false,
             'provider' => 'osrm-local-fallback',
         ];
+    }
+
+    private function localOsrmRequest(string $url, array $params, int $timeout): \Illuminate\Http\Client\Response
+    {
+        $options = [];
+        if (defined('CURLOPT_SSL_OPTIONS') && defined('CURLSSLOPT_NATIVE_CA')) {
+            $options['curl'] = [
+                CURLOPT_SSL_OPTIONS => CURLSSLOPT_NATIVE_CA,
+                CURLOPT_FORBID_REUSE => true,
+            ];
+        }
+
+        return Http::timeout($timeout)
+            ->withOptions($options)
+            ->get($url, $params);
     }
 
     private function searchGeoapify(string $query): array

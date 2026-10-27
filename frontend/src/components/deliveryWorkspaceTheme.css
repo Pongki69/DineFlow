@@ -3,6 +3,19 @@
   color: var(--ink);
   background: var(--canvas);
 }
+.app-shell[data-workspace="delivery"][data-page="rider-deliveries"] {
+  --rider-space-1: 4px;
+  --rider-space-2: 8px;
+  --rider-space-3: 12px;
+  --rider-space-4: 16px;
+  --rider-space-5: 24px;
+  --rider-control-height: 44px;
+  --rider-control-radius: 10px;
+  --rider-card-radius: 14px;
+  --rider-card-border: #d2ddd2;
+  --rider-card-soft: #f7f9f6;
+  --rider-card-selected: #eef5ec;
+}
 /* Avoid a blank reserved strip beside the delivery workspace. */
 :root:has(.app-shell[data-workspace="delivery"]),
 :root:has(.app-shell[data-workspace="delivery"]) body {

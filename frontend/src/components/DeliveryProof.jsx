@@ -39,7 +39,10 @@ export async function prepareDeliveryPhoto(file) {
 export function DeliveryProofUpload({ deliveryId, uploaded, onUploaded }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState("");
+  const [uploadedPhoto, setUploadedPhoto] = useState("");
+  const [photoLoading, setPhotoLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState("");
   const [error, setError] = useState("");
   const selection = useRef(0);
   useEffect(() => {
@@ -57,6 +60,29 @@ export function DeliveryProofUpload({ deliveryId, uploaded, onUploaded }) {
     },
     [],
   );
+  useEffect(() => {
+    if (!uploaded) {
+      setUploadedPhoto("");
+      return;
+    }
+    const controller = new AbortController();
+    setPhotoLoading(true);
+    api(`/deliveries/${deliveryId}/proof`, { signal: controller.signal })
+      .then((result) => {
+        if (!controller.signal.aborted)
+          setUploadedPhoto(result.data?.image || "");
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted)
+          setError(
+            `Photo uploaded, but its preview could not be loaded: ${e.message}`,
+          );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setPhotoLoading(false);
+      });
+    return () => controller.abort();
+  }, [deliveryId, uploaded]);
   async function choose(event) {
     const selected = event.target.files?.[0];
     event.target.value = "";
@@ -64,6 +90,7 @@ export function DeliveryProofUpload({ deliveryId, uploaded, onUploaded }) {
     const version = ++selection.current;
     setError("");
     setBusy(true);
+    setPhase("preparing");
     setFile(null);
     try {
       const prepared = await prepareDeliveryPhoto(selected);
@@ -74,11 +101,16 @@ export function DeliveryProofUpload({ deliveryId, uploaded, onUploaded }) {
           e.message || "Could not read this photo. Choose another image.",
         );
     } finally {
-      if (version === selection.current) setBusy(false);
+      if (version === selection.current) {
+        setBusy(false);
+        setPhase("");
+      }
     }
   }
   async function upload() {
+    if (!file || busy) return;
     setBusy(true);
+    setPhase("uploading");
     setError("");
     try {
       const body = new FormData();
@@ -88,67 +120,107 @@ export function DeliveryProofUpload({ deliveryId, uploaded, onUploaded }) {
         body,
       });
       setFile(null);
+      setError("");
       onUploaded();
     } catch (e) {
       setError(e.message);
     } finally {
       setBusy(false);
+      setPhase("");
     }
   }
   return (
-    <section className="delivery-proof" aria-label="Delivery photo">
+    <section
+      className="delivery-proof"
+      aria-label="Delivery photo"
+      aria-busy={busy}
+    >
       <div className="delivery-proof-heading">
         <h3>Delivery photo</h3>
-        <span>{uploaded ? "Saved" : "Required"}</span>
+        <span>
+          {uploaded
+            ? "Saved"
+            : phase === "uploading"
+              ? "Uploading"
+              : phase === "preparing"
+                ? "Preparing"
+                : preview
+                  ? "Ready to upload"
+                  : "Required"}
+        </span>
       </div>
       <p>
         Photograph the food at the drop-off. Avoid faces and personal documents.
       </p>
-      {uploaded && (
-        <p role="status" className="delivery-proof-saved">
-          <CheckCircle2 size={16} aria-hidden="true" /> Photo uploaded. Ready to
-          mark delivered.
-        </p>
+      {uploaded ? (
+        <>
+          <div className="delivery-proof-result">
+            {photoLoading && <p role="status">Loading uploaded photo…</p>}
+            {uploadedPhoto && (
+              <img
+                className="delivery-proof-image"
+                src={uploadedPhoto}
+                alt="Uploaded delivery proof photo"
+              />
+            )}
+            <p role="status" className="delivery-proof-saved">
+              <CheckCircle2 size={16} aria-hidden="true" /> Uploaded proof photo
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <label
+            className="delivery-photo-picker"
+            htmlFor={`delivery-photo-${deliveryId}`}
+            aria-disabled={busy}
+          >
+            <Camera size={24} aria-hidden="true" />
+            <span>
+              {preview ? "Choose a different photo" : "Take or choose a photo"}
+              <small>JPG, PNG or WebP</small>
+            </span>
+            <input
+              className="sr-only"
+              id={`delivery-photo-${deliveryId}`}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              capture="environment"
+              disabled={busy}
+              onChange={choose}
+            />
+          </label>
+          <small>
+            {preview
+              ? "Upload to enable Mark delivered · maximum 1 MB."
+              : "Photos are resized to a maximum of 1 MB."}
+          </small>
+          {preview && (
+            <div className="delivery-proof-result is-pending-upload">
+              <img
+                className="delivery-proof-image"
+                src={preview}
+                alt="Delivery photo preview"
+              />
+              <div className="delivery-proof-result-copy">
+                <span className="delivery-proof-file-status">
+                  <strong>Photo ready</strong>
+                  <small>{(file.size / 1024).toFixed(0)} KB · JPG</small>
+                </span>
+                {file && (
+                  <Button type="button" disabled={busy} onClick={upload}>
+                    {phase === "uploading"
+                      ? "Uploading photo…"
+                      : "Upload delivery photo"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+          {phase === "preparing" && <p role="status">Preparing photo…</p>}
+        </>
       )}
-      <label
-        className="delivery-photo-picker"
-        htmlFor={`delivery-photo-${deliveryId}`}
-        aria-disabled={busy}
-      >
-        <Camera size={24} aria-hidden="true" />
-        <span>
-          {uploaded ? "Replace delivery photo" : "Take or choose a photo"}
-          <small>JPG, PNG or WebP</small>
-        </span>
-        <input
-          className="sr-only"
-          id={`delivery-photo-${deliveryId}`}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          capture="environment"
-          disabled={busy}
-          onChange={choose}
-        />
-      </label>
-      <small>
-        {uploaded
-          ? "You can replace the photo if needed."
-          : "Upload a photo to enable Mark delivered."}{" "}
-        Photos are resized to a maximum of 1 MB.
-      </small>
-      {preview && (
-        <img
-          className="delivery-proof-image"
-          src={preview}
-          alt="Delivery photo preview"
-        />
-      )}
-      {file && (
-        <Button type="button" disabled={busy} onClick={upload}>
-          {busy ? "Uploading photo…" : "Upload delivery photo"}
-        </Button>
-      )}
-      {busy && <p role="status">Preparing or uploading your photo…</p>}
+      {phase === "uploading" && <p role="status">Photo upload in progress.</p>}
       {error && (
         <p role="alert" className="delivery-proof-error">
           {error}

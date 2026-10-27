@@ -18,18 +18,22 @@ export function RiderReviews({ own = false }) {
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [page, setPage] = useState(1),
+    [filterRating, setFilterRating] = useState(null),
     [retry, setRetry] = useState(0);
   useEffect(() => {
     setPage(1);
+    setFilterRating(null);
   }, [riderId, own]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError("");
+    const query = new URLSearchParams({ page: String(page) });
+    if (filterRating != null) query.set("rating", String(filterRating));
     api(
       own
-        ? `/rider/reviews?page=${page}`
-        : `/riders/${riderId}/profile?page=${page}`,
+        ? `/rider/reviews?${query}`
+        : `/riders/${riderId}/profile?${query}`,
       { signal: controller.signal },
     )
       .then((result) => {
@@ -44,7 +48,11 @@ export function RiderReviews({ own = false }) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [riderId, own, page, retry]);
+  }, [riderId, own, page, filterRating, retry]);
+  function toggleRatingFilter(stars) {
+    setPage(1);
+    setFilterRating((current) => (current === stars ? null : stars));
+  }
   return (
     <section className="rider-public-profile">
       <PageHeader
@@ -141,7 +149,18 @@ export function RiderReviews({ own = false }) {
                   </p>
                   <div className="review-distribution">
                   {data.summary.breakdown.map((row) => (
-                      <div key={row.stars}>
+                      <button
+                        className={
+                          filterRating === row.stars
+                            ? "review-distribution-row is-active"
+                            : "review-distribution-row"
+                        }
+                        key={row.stars}
+                        type="button"
+                        aria-pressed={filterRating === row.stars}
+                        aria-label={`Show ${row.stars}-star reviews, ${row.count} reviews`}
+                        onClick={() => toggleRatingFilter(row.stars)}
+                      >
                         <span>{row.stars} ★</span>
                         <progress
                           max={Math.max(1, data.summary.count)}
@@ -149,39 +168,66 @@ export function RiderReviews({ own = false }) {
                           aria-label={`${row.stars} star reviews: ${row.count}`}
                         />
                         <span>{row.count}</span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </section>
                 <section className="review-list" aria-label="Customer reviews">
                   <header className="review-list-heading">
-                    <h2>Customer reviews</h2>
-                    <span>
-                      {data.summary.count} verified
-                    </span>
-                  </header>
-                  {data.reviews.map((review) => (
-                  <article className="review-card" key={review.id}>
-                    <div className="review-card-heading">
-                      <strong>{review.display_name}</strong>
-                      <time dateTime={review.created_at}>
-                        {new Date(review.created_at).toLocaleDateString()}
-                      </time>
-                    </div>
-                    <RatingStars value={review.rating} />
-                    <span className="review-verified">Verified delivery</span>
-                    <div className="review-tags">
-                      {review.categories.map((category) => (
-                        <span key={category}>
-                          {reviewCategories[category] || category}
+                    <div>
+                      <h2>Customer reviews</h2>
+                      {filterRating != null && (
+                        <span className="review-filter-label">
+                          {filterRating}-star reviews
                         </span>
-                      ))}
+                      )}
                     </div>
-                    {review.comment && (
-                      <p className="review-comment">{review.comment}</p>
-                    )}
-                  </article>
-                  ))}
+                    <div className="review-list-actions">
+                      <span>
+                        {data.meta.total} verified{" "}
+                        {data.meta.total === 1 ? "review" : "reviews"}
+                      </span>
+                      {filterRating != null && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setFilterRating(null);
+                            setPage(1);
+                          }}
+                        >
+                          Clear filter
+                        </Button>
+                      )}
+                    </div>
+                  </header>
+                  {data.reviews.length ? (
+                    data.reviews.map((review) => (
+                      <article className="review-card" key={review.id}>
+                        <div className="review-card-heading">
+                          <strong>{review.display_name}</strong>
+                          <time dateTime={review.created_at}>
+                            {new Date(review.created_at).toLocaleDateString()}
+                          </time>
+                        </div>
+                        <RatingStars value={review.rating} />
+                        <span className="review-verified">Verified delivery</span>
+                        <div className="review-tags">
+                          {review.categories.map((category) => (
+                            <span key={category}>
+                              {reviewCategories[category] || category}
+                            </span>
+                          ))}
+                        </div>
+                        {review.comment && (
+                          <p className="review-comment">{review.comment}</p>
+                        )}
+                      </article>
+                    ))
+                  ) : (
+                    <p className="review-filter-empty">
+                      No {filterRating}-star reviews yet.
+                    </p>
+                  )}
                   {data.meta.last_page > 1 ? (
                     <nav
                       className="workspace-pagination"

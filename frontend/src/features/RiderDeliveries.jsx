@@ -11,6 +11,7 @@ import { usePrompt } from "../components/ConfirmProvider";
 import "../components/riderDeliveryCards.css";
 import "../components/deliveryWorkbench.css";
 const terminal = ["delivered", "failed", "cancelled"];
+const DELIVERY_QUEUE_PAGE_SIZE = 8;
 const title = (value) => String(value || "").replaceAll("_", " ");
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -37,6 +38,9 @@ export function RiderDeliveries() {
   const [selectedId, setSelectedId] = useState(
     Number(params.get("delivery")) || null,
   );
+  const [mobileWorkspaceView, setMobileWorkspaceView] = useState("map");
+  const [openDeliveryRequest, setOpenDeliveryRequest] = useState(0);
+  const [deliveryQueuePage, setDeliveryQueuePage] = useState(0);
   const [pending, setPending] = useState({});
   const [actionFeedback, setActionFeedback] = useState({});
   const actionLocks = useRef(new Set());
@@ -80,16 +84,37 @@ export function RiderDeliveries() {
     if (!r) return;
     if (!orderDirty.current && r.delivery_order)
       setRouteOrder(r.delivery_order);
-    setSelectedId((current) =>
-      (r.data || []).some((d) => d.id === current)
-        ? current
-        : r.next_delivery_id || r.data?.[0]?.id || null,
-    );
+    setSelectedId((current) => {
+      const currentDelivery = (r.data || []).find(
+        (delivery) => current != null && String(delivery.id) === String(current),
+      );
+      const nextDelivery = (r.data || []).find(
+        (delivery) => String(delivery.id) === String(r.next_delivery_id),
+      );
+      return currentDelivery?.id ?? nextDelivery?.id ?? r.data?.[0]?.id ?? null;
+    });
     setDeliveries(
       (r.data || []).filter((delivery) => !terminal.includes(delivery.status)),
     );
   }, [assignmentResult]);
   const tracked = deliveries.find((d) => d.id === trackingId);
+  const queueDeliveries = orderedRouteDeliveries(deliveries, routeOrder);
+  const deliveryQueuePageCount = Math.ceil(
+    queueDeliveries.length / DELIVERY_QUEUE_PAGE_SIZE,
+  );
+  useEffect(() => {
+    setDeliveryQueuePage((page) =>
+      Math.min(page, Math.max(0, deliveryQueuePageCount - 1)),
+    );
+  }, [deliveryQueuePageCount]);
+  const currentDeliveryQueuePage = Math.min(
+    deliveryQueuePage,
+    Math.max(0, deliveryQueuePageCount - 1),
+  );
+  const visibleQueueDeliveries = queueDeliveries.slice(
+    currentDeliveryQueuePage * DELIVERY_QUEUE_PAGE_SIZE,
+    (currentDeliveryQueuePage + 1) * DELIVERY_QUEUE_PAGE_SIZE,
+  );
   const trackedStatus = tracked?.status;
   const sharingIds = JSON.stringify(
     deliveries
@@ -232,8 +257,8 @@ export function RiderDeliveries() {
   }
   const selectedDeliveryPanel = (
     <div className="rider-delivery-list">
-      {orderedRouteDeliveries(deliveries, routeOrder).map((d, index) => {
-        if (d.id !== selectedId) return null;
+      {queueDeliveries.map((d, index) => {
+        if (selectedId == null || String(d.id) !== String(selectedId)) return null;
         const o = d.order;
         const next =
           d.status === "accepted"
@@ -247,30 +272,45 @@ export function RiderDeliveries() {
                   : null;
         const canPick = next !== "picked_up" || o.status === "ready_to_serve";
         const waitingForKitchen = next === "picked_up" && !canPick;
-        const progressAction = next && !waitingForKitchen && (
-          <Button
-            busy={!!pending[d.id]}
-            disabled={
-              !!pending[d.id] ||
-              !canPick ||
-              (next === "delivered" && !d.proof_uploaded)
-            }
-            onClick={() =>
-              act(d, `/rider/deliveries/${d.id}/status`, { status: next })
-            }
-          >
-            {next === "delivered" && (
-              <CheckCircle2 size={16} aria-hidden="true" />
-            )}
-            {next === "arrived_at_restaurant"
-              ? "Arrived at restaurant"
+        const progressAction =
+          next &&
+          !waitingForKitchen &&
+          (next !== "delivered" || d.proof_uploaded) ? (
+            <Button
+              busy={!!pending[d.id]}
+              disabled={!!pending[d.id] || !canPick}
+              onClick={() =>
+                act(d, `/rider/deliveries/${d.id}/status`, { status: next })
+              }
+            >
+              {next === "delivered" && (
+                <CheckCircle2 size={16} aria-hidden="true" />
+              )}
+              {next === "arrived_at_restaurant"
+                ? "Arrived at restaurant"
                 : next === "picked_up"
                   ? "Pick up order"
-                : next === "in_transit"
-                  ? "Start delivery"
-                  : "Mark delivered"}
-          </Button>
-        );
+                  : next === "in_transit"
+                    ? "Start delivery"
+                    : "Mark delivered"}
+            </Button>
+          ) : null;
+        const primaryAction =
+          waitingForKitchen ? (
+            <p className="rider-action-status" role="status">
+              Waiting for the kitchen to mark this order ready
+            </p>
+          ) : d.status === "assigned" ? (
+            <Button
+              busy={!!pending[d.id]}
+              disabled={!!pending[d.id]}
+              onClick={() => act(d, `/rider/deliveries/${d.id}/accept`)}
+            >
+              Accept assignment
+            </Button>
+          ) : d.status !== "in_transit" ? (
+            progressAction
+          ) : null;
         return (
           <article
             className="rider-delivery-card"
@@ -300,7 +340,9 @@ export function RiderDeliveries() {
                   {title(d.status)}
                 </span>
               </div>
-              <span className="rider-card-priority-label">
+              <span
+                className={`rider-card-priority-label ${["in_transit", "arrived_at_restaurant"].includes(d.status) ? "is-current" : "is-next"}`}
+              >
                 {d.status === "in_transit"
                   ? "Current stop · customer"
                   : d.status === "picked_up"
@@ -312,14 +354,25 @@ export function RiderDeliveries() {
                         : "Assignment awaiting acceptance"}
               </span>
             </div>
+            <div className="rider-selected-route-progress">
+              <div>
+                <strong>Route position</strong>
+                <span>Delivery {index + 1} of {deliveries.length} active</span>
+              </div>
+              <progress
+                max={Math.max(deliveries.length, 1)}
+                value={index + 1}
+                aria-label={`Selected delivery ${index + 1} of ${deliveries.length} active deliveries`}
+              />
+            </div>
+            {primaryAction && (
+              <div className="rider-selected-primary-action">
+                {primaryAction}
+              </div>
+            )}
             <div
               className={`rider-card-body${d.status === "in_transit" ? " has-proof" : ""}`}
             >
-              <RiderDeliveryDetails
-                order={o}
-                status={d.status}
-                batchSequence={d.batch_key ? d.batch_sequence : null}
-              />
               {d.status === "in_transit" && (
                 <aside
                   className="rider-card-completion"
@@ -341,6 +394,11 @@ export function RiderDeliveries() {
                   {progressAction}
                 </aside>
               )}
+              <RiderDeliveryDetails
+                order={o}
+                status={d.status}
+                batchSequence={d.batch_key ? d.batch_sequence : null}
+              />
             </div>
             <fieldset className="rider-actions" disabled={!!pending[d.id]}>
               <div
@@ -348,20 +406,6 @@ export function RiderDeliveries() {
                 role="group"
                 aria-label="Next step"
               >
-                {waitingForKitchen ? (
-                  <p className="rider-action-status" role="status">
-                    Waiting for the kitchen to mark this order ready
-                  </p>
-                ) : d.status === "assigned" ? (
-                  <Button
-                    busy={!!pending[d.id]}
-                    onClick={() => act(d, `/rider/deliveries/${d.id}/accept`)}
-                  >
-                    Accept assignment
-                  </Button>
-                ) : (
-                  d.status !== "in_transit" && progressAction
-                )}
                 <RiderDeliveryNavigation order={o} status={d.status} />
               </div>
               <details className="rider-secondary-actions">
@@ -483,10 +527,21 @@ export function RiderDeliveries() {
           </article>
         );
       })}
+      {!queueDeliveries.some(
+        (delivery) => selectedId != null && String(delivery.id) === String(selectedId),
+      ) && (
+        <div className="rider-selected-delivery-empty" role="status">
+          <strong>Choose an active delivery</strong>
+          <p>Select a delivery above or from the queue to see its next action and stop details.</p>
+        </div>
+      )}
     </div>
   );
   return (
-    <section className="welcome rider-workspace has-delivery-queue">
+    <section
+      className="welcome rider-workspace has-delivery-queue"
+      data-mobile-view={mobileWorkspaceView}
+    >
       <PageHeader
         title="My Deliveries"
         description="Your current pickups and drop-offs. Keep GPS online during a delivery."
@@ -580,6 +635,22 @@ export function RiderDeliveries() {
       {notice && <Feedback tone="success">{notice}</Feedback>}
       {deliveries.length > 0 && (
         <>
+          <nav className="rider-mobile-workspace-tabs" aria-label="Delivery workspace view">
+            <Button
+              variant="secondary"
+              aria-pressed={mobileWorkspaceView === "map"}
+              onClick={() => setMobileWorkspaceView("map")}
+            >
+              Route & map
+            </Button>
+            <Button
+              variant="secondary"
+              aria-pressed={mobileWorkspaceView === "queue"}
+              onClick={() => setMobileWorkspaceView("queue")}
+            >
+              Queue <span>{deliveries.length}</span>
+            </Button>
+          </nav>
           <RiderRoutePlanner
             deliveries={deliveries}
             deliveryOrder={routeOrder}
@@ -595,6 +666,7 @@ export function RiderDeliveries() {
             savingOrder={savingOrder}
             onSelectDelivery={setSelectedId}
             selectedDeliveryId={selectedId}
+            openSelectedRequest={openDeliveryRequest}
             selectedDeliveryPanel={selectedDeliveryPanel}
           />
           <div className="rider-delivery-lower-grid">
@@ -607,7 +679,7 @@ export function RiderDeliveries() {
                 <a href="#rider-route-heading">Route tools</a>
               </header>
               <div className="rider-delivery-queue-list">
-                {orderedRouteDeliveries(deliveries, routeOrder).map((delivery, index) => {
+                {visibleQueueDeliveries.map((delivery, index) => {
                   const statusLabel = title(delivery.status);
                   const nextStop = ["picked_up", "in_transit"].includes(delivery.status)
                     ? delivery.order.destination?.address
@@ -617,20 +689,49 @@ export function RiderDeliveries() {
                       className="rider-delivery-queue-row"
                       type="button"
                       key={delivery.id}
-                      aria-pressed={selectedId === delivery.id}
-                      onClick={() => setSelectedId(delivery.id)}
+                      aria-pressed={selectedId != null && String(selectedId) === String(delivery.id)}
+                      onClick={() => {
+                        setSelectedId(delivery.id);
+                        setOpenDeliveryRequest((request) => request + 1);
+                        setMobileWorkspaceView("map");
+                      }}
                     >
-                      <span className="rider-queue-number">{index + 1}</span>
+                      <span className="rider-queue-number">
+                        {currentDeliveryQueuePage * DELIVERY_QUEUE_PAGE_SIZE + index + 1}
+                      </span>
                       <span className="rider-queue-order">
                         <strong>{delivery.order.order_number}</strong>
                         <small>{nextStop || "Stop address not recorded"}</small>
                       </span>
                       <span className={`rider-route-stop-state state-${delivery.status}`}>{statusLabel}</span>
-                      <span className="rider-queue-action">{selectedId === delivery.id ? "Viewing" : "View"}</span>
+                      <span className="rider-queue-action">
+                        {selectedId != null && String(selectedId) === String(delivery.id) ? "Viewing" : "View"}
+                      </span>
                     </button>
                   );
                 })}
               </div>
+              {deliveryQueuePageCount > 1 && (
+                <nav className="rider-delivery-queue-pagination" aria-label="Delivery queue pages">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setDeliveryQueuePage((page) => Math.max(0, page - 1))}
+                    disabled={currentDeliveryQueuePage === 0}
+                  >
+                    Previous
+                  </Button>
+                  <span aria-live="polite">
+                    Page {currentDeliveryQueuePage + 1} of {deliveryQueuePageCount}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setDeliveryQueuePage((page) => Math.min(deliveryQueuePageCount - 1, page + 1))}
+                    disabled={currentDeliveryQueuePage >= deliveryQueuePageCount - 1}
+                  >
+                    Next
+                  </Button>
+                </nav>
+              )}
               <p className="rider-queue-hint">Select a delivery to focus it on the map. Change stop order from Route order in the route panel.</p>
             </section>
             <aside className="rider-before-pickup" aria-labelledby="rider-before-pickup-heading">

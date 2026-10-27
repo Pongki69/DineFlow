@@ -56,15 +56,17 @@ class RiderReviewService
         return $review ? ['rating' => (int) $review->rating, 'comment' => $review->comment, 'categories' => json_decode($review->categories ?? '[]', true) ?: [], 'show_name' => (bool) $review->show_name] : null;
     }
 
-    public function profile(User $rider, User $viewer): array
+    public function profile(User $rider, User $viewer, ?int $rating = null): array
     {
         abort_unless($rider->is_active && $rider->hasRole('rider'), 404);
         abort_unless($viewer->hasRole('customer') || $viewer->id === $rider->id || $viewer->hasPermission('deliveries.manage'), 404);
         $ratings = DB::table('delivery_ratings')->where('rider_user_id', $rider->id);
         $breakdown = (clone $ratings)->selectRaw('rating, count(*) as total')->groupBy('rating')->pluck('total', 'rating');
-        $reviews = (clone $ratings)->join('users', 'users.id', '=', 'delivery_ratings.customer_id')
+        $reviewsQuery = (clone $ratings)->join('users', 'users.id', '=', 'delivery_ratings.customer_id')
             ->select(['delivery_ratings.id', 'delivery_ratings.rating', 'delivery_ratings.comment', 'delivery_ratings.categories', 'delivery_ratings.show_name', 'delivery_ratings.created_at', 'users.name as reviewer_name'])
-            ->orderByDesc('delivery_ratings.created_at')->orderByDesc('delivery_ratings.id')->paginate(10);
+            ->when($rating !== null, fn ($query) => $query->where('delivery_ratings.rating', $rating))
+            ->orderByDesc('delivery_ratings.created_at')->orderByDesc('delivery_ratings.id');
+        $reviews = $reviewsQuery->paginate(10);
 
         return [
             'rider' => ['id' => $rider->id, 'name' => $rider->name, 'vehicle_type' => $rider->riderProfile?->vehicle_type, 'joined_at' => $rider->created_at?->format('Y-m'), 'delivered_total' => Delivery::where('rider_user_id', $rider->id)->where('status', 'delivered')->count()],

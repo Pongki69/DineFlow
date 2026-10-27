@@ -24,7 +24,7 @@ class DeliveryOperationsController extends Controller
     public function saveRouteOrder(Request $request, RiderWorkOrder $work): JsonResponse
     {
         abort_unless($request->user()->hasRole('rider'), 403);
-        $data = $request->validate(['delivery_ids' => ['present', 'array', 'max:20'], 'delivery_ids.*' => ['required', 'integer', 'distinct']]);
+        $data = $request->validate(['delivery_ids' => ['present', 'array', 'max:25'], 'delivery_ids.*' => ['required', 'integer', 'distinct']]);
 
         return response()->json(['delivery_order' => $work->save($request->user(), $data['delivery_ids'])]);
     }
@@ -33,7 +33,7 @@ class DeliveryOperationsController extends Controller
     {
         abort_unless($request->user()->hasRole('rider'), 403);
         $data = $request->validate([
-            'delivery_ids' => ['present', 'array', 'max:20'],
+            'delivery_ids' => ['present', 'array', 'max:25'],
             'return_to_store' => ['sometimes', 'boolean'],
             'return_store_key' => ['nullable', 'string', 'max:64'],
             'delivery_ids.*' => ['required', 'integer', 'distinct'],

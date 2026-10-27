@@ -34,15 +34,20 @@ import {
 } from "./riderRoutePlanning";
 import "./riderRoutePlanner.css";
 
+const STREET_MAX_ZOOM = 19;
+
 function RouteViewport({
   stops,
   position,
   follow,
   fitVersion,
+  fitRouteVersion,
+  fitRoutePoints,
   focusTarget,
   customerMarkers,
 }) {
   const map = useMap();
+  const lastSelectedFit = useRef(0);
   const stopKey = JSON.stringify(stops.map((s) => [s.latitude, s.longitude]));
   useEffect(() => {
     const points = JSON.parse(stopKey);
@@ -52,10 +57,21 @@ function RouteViewport({
       map.fitBounds(points, {
         paddingTopLeft: [40, 64],
         paddingBottomRight: [40, 40],
-        maxZoom: 16,
+        maxZoom: STREET_MAX_ZOOM,
       });
     // Live updates move only the marker unless Follow me is selected.
   }, [map, stopKey, fitVersion]);
+  useEffect(() => {
+    if (fitRouteVersion <= lastSelectedFit.current) return;
+    lastSelectedFit.current = fitRouteVersion;
+    if (fitRoutePoints.length > 1) {
+      map.fitBounds(fitRoutePoints, {
+        paddingTopLeft: [48, 72],
+        paddingBottomRight: [48, 48],
+        maxZoom: STREET_MAX_ZOOM,
+      });
+    }
+  }, [map, fitRouteVersion, fitRoutePoints]);
   useEffect(() => {
     if (follow && position && Number(position.accuracy || 0) <= 1000)
       map.panTo([position.latitude, position.longitude]);
@@ -64,7 +80,7 @@ function RouteViewport({
     if (!focusTarget) return;
     map.setView(
       [focusTarget.latitude, focusTarget.longitude],
-      Math.max(map.getZoom(), 16),
+      Math.max(map.getZoom(), STREET_MAX_ZOOM),
       { animate: false },
     );
     customerMarkers.current.get(focusTarget.id)?.openPopup();
@@ -74,7 +90,7 @@ function RouteViewport({
         ? "auto"
         : "smooth",
     });
-  }, [map, focusTarget, customerMarkers, stopKey]);
+  }, [map, focusTarget, customerMarkers]);
   useEffect(() => {
     const observer = new ResizeObserver(() => map.invalidateSize());
     observer.observe(map.getContainer());
@@ -89,16 +105,57 @@ const locationIcon = L.divIcon({
   iconSize: [22, 22],
   iconAnchor: [11, 11],
 });
+function routeDirection(geometry) {
+  if (!Array.isArray(geometry) || geometry.length < 2) return null;
+  const scale = Math.max(Math.cos((Number(geometry[0][1]) * Math.PI) / 180), 0.01);
+  const segmentLengths = [];
+  let totalLength = 0;
+  for (let i = 0; i < geometry.length - 1; i += 1) {
+    const [lon1, lat1] = geometry[i];
+    const [lon2, lat2] = geometry[i + 1];
+    const length = Math.hypot((lon2 - lon1) * scale, lat2 - lat1);
+    segmentLengths.push(length);
+    totalLength += length;
+  }
+  if (!totalLength) return null;
+  let target = totalLength * 0.62;
+  for (let i = 0; i < segmentLengths.length; i += 1) {
+    const length = segmentLengths[i];
+    if (target > length) {
+      target -= length;
+      continue;
+    }
+    const [lon1, lat1] = geometry[i];
+    const [lon2, lat2] = geometry[i + 1];
+    const ratio = length ? target / length : 0.5;
+    const bearing =
+      (Math.atan2(-(lat2 - lat1), (lon2 - lon1) * scale) * 180) / Math.PI;
+    return {
+      position: [lat1 + (lat2 - lat1) * ratio, lon1 + (lon2 - lon1) * ratio],
+      angle: bearing + 90,
+    };
+  }
+  return null;
+}
+const routeDirectionIcon = (angle, color, compact = false) =>
+  L.divIcon({
+    className: `rider-route-direction-marker${compact ? " is-compact" : ""}`,
+    html: `<span class="rider-route-direction-arrow" style="--route-arrow-angle:${angle}deg;--route-arrow-color:${color}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 21 22 12 17 3 22 12 2Z"/></svg></span>`,
+    iconSize: compact ? [18, 18] : [26, 26],
+    iconAnchor: compact ? [9, 9] : [13, 13],
+  });
 const readableStatus = (status) =>
   String(status || "Waiting")
     .replaceAll("_", " ")
     .replace(/^./, (c) => c.toUpperCase());
-const stopIcon = (number, kind, selected = false) =>
+const stopIcon = (number, kind, selected = false, compact = false) =>
   L.divIcon({
-    className: `rider-customer-marker ${kind}${selected ? " is-selected" : ""}`,
-    html: `<span class="rider-customer-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg><b>${number}</b></span>`,
-    iconSize: [48, 44],
-    iconAnchor: [24, 44],
+    className: `rider-customer-marker ${kind}${compact ? " is-compact" : ""}${selected ? " is-selected" : ""}`,
+    html: compact
+      ? `<span class="rider-customer-pin is-compact"><b>${number}</b></span>`
+      : `<span class="rider-customer-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg><b>${number}</b></span>`,
+    iconSize: compact ? [34, 34] : [48, 44],
+    iconAnchor: compact ? [17, 17] : [24, 44],
   });
 
 export function RiderRoutePlanner({
@@ -110,16 +167,15 @@ export function RiderRoutePlanner({
   savingOrder = false,
   onSelectDelivery,
   selectedDeliveryId,
+  openSelectedRequest = 0,
   selectedDeliveryPanel,
 }) {
   const [localOrder, setLocalOrder] = useState([]);
-  // The selected delivery is the rider's immediate task; keep its actions in
-  // view first and leave route editing available as the secondary tab.
-  const [showSelected, setShowSelected] = useState(true);
+  const [showSelected, setShowSelected] = useState(false);
   const [showDraftToast, setShowDraftToast] = useState(false);
   useEffect(() => {
-    if (selectedDeliveryId) setShowSelected(true);
-  }, [selectedDeliveryId]);
+    if (openSelectedRequest > 0) setShowSelected(true);
+  }, [openSelectedRequest]);
   useEffect(() => {
     if (!orderDirty) return;
     setShowDraftToast(true);
@@ -142,12 +198,15 @@ export function RiderRoutePlanner({
   const [locating, setLocating] = useState(false);
   const [position, setPosition] = useState(null);
   const [origin, setOrigin] = useState(null);
+  const [locationPreview, setLocationPreview] = useState(false);
   const [gpsError, setGpsError] = useState("");
   const [follow, setFollow] = useState(true);
   const [fitVersion, setFitVersion] = useState(0);
+  const [fitRouteVersion, setFitRouteVersion] = useState(0);
   const [gpsAttempt, setGpsAttempt] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [focusTarget, setFocusTarget] = useState(null);
+  const lastFocusedDeliveryId = useRef(null);
   const customerMarkers = useRef(new Map());
   const sectionRef = useRef(null);
   const fullscreenButtonRef = useRef(null);
@@ -159,15 +218,24 @@ export function RiderRoutePlanner({
   const ordered = orderedRouteDeliveries(available, order);
   const ids = ordered.map((d) => d.id);
   useEffect(() => {
-    const delivery = ordered.find((item) => item.id === selectedDeliveryId);
+    if (selectedDeliveryId == null) {
+      lastFocusedDeliveryId.current = null;
+      return;
+    }
+    const selectedId = String(selectedDeliveryId);
+    if (lastFocusedDeliveryId.current === selectedId) return;
+    const delivery = ordered.find(
+      (item) => String(item.id) === selectedId,
+    );
     if (!delivery || !validRoutePoint(delivery.order.destination)) return;
+    lastFocusedDeliveryId.current = selectedId;
     setFollow(false);
     setFocusTarget({
       id: delivery.id,
       latitude: Number(delivery.order.destination.latitude),
       longitude: Number(delivery.order.destination.longitude),
     });
-  }, [selectedDeliveryId, deliveries, order]);
+  }, [selectedDeliveryId, ordered]);
   const requestKey = JSON.stringify({
     delivery_ids: ids,
     origin,
@@ -196,6 +264,43 @@ export function RiderRoutePlanner({
         if (!controller.signal.aborted) {
           setPlan(result.data);
           if (result.data.stores?.length) setKnownStores(result.data.stores);
+          if (locationPreview) {
+            const firstLegStart = result.data.legs?.find(
+              (leg) => Number(leg.stop_index) === 0,
+            )?.geometry?.[0];
+            const snappedOrigin = Array.isArray(firstLegStart)
+              ? {
+                  latitude: Number(firstLegStart[1]),
+                  longitude: Number(firstLegStart[0]),
+                }
+              : null;
+            const requestedOrigin = payload.origin;
+            const snapDistance = snappedOrigin
+              ? Math.hypot(
+                  (snappedOrigin.latitude - requestedOrigin.latitude) * 111_000,
+                  (snappedOrigin.longitude - requestedOrigin.longitude) *
+                    111_000 *
+                    Math.cos((requestedOrigin.latitude * Math.PI) / 180),
+                )
+              : 0;
+            if (
+              snappedOrigin &&
+              Number.isFinite(snappedOrigin.latitude) &&
+              Number.isFinite(snappedOrigin.longitude) &&
+              snapDistance > 20
+            ) {
+              // Align the demo marker with the router's snapped road start so
+              // the highlighted route visibly connects to the location dot.
+              setOrigin(snappedOrigin);
+              setPosition((current) =>
+                current?.preview
+                  ? { ...current, ...snappedOrigin }
+                  : current,
+              );
+            } else {
+              setFitRouteVersion((value) => value + 1);
+            }
+          }
         }
       } catch (e) {
         if (!controller.signal.aborted) {
@@ -210,7 +315,7 @@ export function RiderRoutePlanner({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [requestKey, retry]);
+  }, [requestKey, retry, locationPreview]);
 
   useEffect(() => {
     if (!locating) return;
@@ -324,6 +429,7 @@ export function RiderRoutePlanner({
       setLocating(false);
       setPosition(null);
       setOrigin(null);
+      setLocationPreview(false);
       return;
     }
     if (!navigator.geolocation) {
@@ -332,8 +438,44 @@ export function RiderRoutePlanner({
     }
     lastRouteAt.current = 0;
     setGpsError("");
+    setLocationPreview(false);
+    setPosition(null);
+    setOrigin(null);
     setFollow(true);
     setLocating(true);
+  }
+  function toggleLocationPreview() {
+    if (locationPreview) {
+      setLocationPreview(false);
+      setPosition(null);
+      setOrigin(null);
+      return;
+    }
+    const firstDelivery = ordered[0];
+    const fallbackTarget = firstDelivery
+      ? ["picked_up", "in_transit"].includes(firstDelivery.status)
+        ? firstDelivery.order.destination
+        : validRoutePoint(firstDelivery.order.pickup)
+          ? firstDelivery.order.pickup
+          : firstDelivery.order.destination
+      : null;
+    const target = plan?.stops?.[0] || fallbackTarget;
+    if (!validRoutePoint(target)) {
+      setGpsError("Add a pinned first delivery stop to preview the route.");
+      return;
+    }
+    // Simulate a rider position roughly 450 m south-east of the first route stop.
+    // This is map-only demo state and is never sent as a GPS location update.
+    const preview = {
+      latitude: Number(target.latitude) - 0.0027,
+      longitude: Number(target.longitude) + 0.0032,
+    };
+    setLocating(false);
+    setGpsError("");
+    setFollow(false);
+    setLocationPreview(true);
+    setPosition({ ...preview, accuracy: 35, recordedAt: "Preview", preview: true });
+    setOrigin(preview);
   }
   function move(index, direction) {
     const next = [...ordered];
@@ -369,9 +511,38 @@ export function RiderRoutePlanner({
     else customerMarkers.current.delete(id);
   }
   const stops = plan?.stops || [];
+  const nextDeliveryId =
+    stops[0]?.kind === "dropoff"
+      ? String(stops[0].delivery_id)
+      : !stops.length && ordered[0]
+        ? String(ordered[0].id)
+        : null;
   const hasRoadGeometry = (plan?.legs || []).some(
     (leg) => (leg.geometry || []).length > 1,
   );
+  const selectedRouteLeg =
+    selectedDeliveryId == null
+      ? null
+      : (plan?.legs || []).find(
+          (leg) =>
+            String(stops[leg.stop_index]?.delivery_id) ===
+            String(selectedDeliveryId),
+        );
+  const selectedRoutePoints = (selectedRouteLeg?.geometry || []).map((point) => [
+    point[1],
+    point[0],
+  ]);
+  const firstRouteLeg = (plan?.legs || []).find(
+    (leg) => Number(leg.stop_index) === 0,
+  );
+  const firstRoutePoints = (firstRouteLeg?.geometry || []).map((point) => [
+    point[1],
+    point[0],
+  ]);
+  const hasLiveRouteStart = Boolean(position && origin);
+  const fitRoutePoints = hasLiveRouteStart
+    ? firstRoutePoints
+    : selectedRoutePoints;
   const fallbackStores = deliveries
     .map((d) => d.order.pickup)
     .filter(validRoutePoint)
@@ -430,6 +601,19 @@ export function RiderRoutePlanner({
             {locating ? "Stop live location" : "Use live location"}
           </Button>
           <Button
+            variant="secondary"
+            onClick={toggleLocationPreview}
+            disabled={!ordered.length}
+            aria-label={
+              locationPreview
+                ? "Clear temporary location preview"
+                : "Preview route from near the first stop"
+            }
+            title="Show the first route from a temporary point near stop 1"
+          >
+            {locationPreview ? "Clear preview" : "Preview near stop 1"}
+          </Button>
+          <Button
             ref={fullscreenButtonRef}
             variant="secondary"
             onClick={toggleFullscreen}
@@ -454,23 +638,28 @@ export function RiderRoutePlanner({
           <span className="rider-route-switcher-label">
             Deliveries <span>{ordered.length}</span>
           </span>
-          <div className="rider-route-switcher-items">
-            {ordered.map((delivery, index) => (
-              <Button
-                key={delivery.id}
-                variant="secondary"
-                aria-pressed={selectedDeliveryId === delivery.id}
-                onClick={() => {
-                  setShowSelected(true);
-                  onSelectDelivery?.(delivery.id);
-                }}
-              >
-                <span className="rider-route-switcher-number">{index + 1}</span>
-                <span>{delivery.order.order_number}</span>
-                <small>{readableStatus(delivery.status)}</small>
-              </Button>
-            ))}
-          </div>
+          <label className="rider-route-switcher-control">
+            <span className="sr-only">Jump to an active delivery</span>
+            <select
+              className="rider-route-switcher-select"
+              value={selectedDeliveryId == null ? "" : String(selectedDeliveryId)}
+              onChange={(event) => {
+                const delivery = ordered.find(
+                  (item) => String(item.id) === event.target.value,
+                );
+                if (!delivery) return;
+                setShowSelected(true);
+                onSelectDelivery?.(delivery.id);
+              }}
+            >
+              <option value="">Choose an active delivery</option>
+              {ordered.map((delivery, index) => (
+                <option key={delivery.id} value={String(delivery.id)}>
+                  {index + 1}. {delivery.order.order_number} · {readableStatus(delivery.status)}
+                </option>
+              ))}
+            </select>
+          </label>
         </nav>
       )}
       <div
@@ -481,18 +670,23 @@ export function RiderRoutePlanner({
             <MapContainer
               center={[Number(first.latitude), Number(first.longitude)]}
               zoom={13}
+              maxZoom={STREET_MAX_ZOOM}
               className="rider-route-map"
               scrollWheelZoom
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                maxZoom={STREET_MAX_ZOOM}
+                maxNativeZoom={STREET_MAX_ZOOM}
               />
               <RouteViewport
                 stops={[...(stops.length ? stops : fallbackPoints), ...stores]}
                 position={position}
                 follow={locating && follow}
                 fitVersion={fitVersion}
+                fitRouteVersion={fitRouteVersion}
+                fitRoutePoints={fitRoutePoints}
                 focusTarget={
                   ordered.some((delivery) => delivery.id === focusTarget?.id)
                     ? focusTarget
@@ -546,10 +740,17 @@ export function RiderRoutePlanner({
                       icon={stopIcon(
                         i + 1,
                         stop.kind,
-                        focusTarget?.id === stop.delivery_id,
+                        focusTarget?.id === stop.delivery_id ||
+                          (hasLiveRouteStart &&
+                            nextDeliveryId === String(stop.delivery_id)),
+                        ordered.length > 8,
                       )}
                       zIndexOffset={
-                        focusTarget?.id === stop.delivery_id ? 1000 : 0
+                        focusTarget?.id === stop.delivery_id ||
+                        (hasLiveRouteStart &&
+                          nextDeliveryId === String(stop.delivery_id))
+                          ? 1000
+                          : 0
                       }
                     >
                       <Popup>
@@ -587,10 +788,15 @@ export function RiderRoutePlanner({
                         icon={stopIcon(
                           i + 1,
                           "preview",
-                          focusTarget?.id === delivery.id,
+                          focusTarget?.id === delivery.id ||
+                            (hasLiveRouteStart && i === 0),
+                          ordered.length > 8,
                         )}
                         zIndexOffset={
-                          focusTarget?.id === delivery.id ? 1000 : 0
+                          focusTarget?.id === delivery.id ||
+                          (hasLiveRouteStart && i === 0)
+                            ? 1000
+                            : 0
                         }
                       >
                         <Popup>
@@ -600,62 +806,111 @@ export function RiderRoutePlanner({
                       </Marker>
                     ),
                 )}
-              {(plan?.legs || []).map((leg, i) => (
-                <Fragment key={i}>
-                  <Polyline
-                    positions={(leg.geometry || []).map((p) => [p[1], p[0]])}
-                    pathOptions={{ color: "#ffffff", weight: 10, opacity: 0.82 }}
-                  />
-                  <Polyline
-                    positions={(leg.geometry || []).map((p) => [p[1], p[0]])}
-                    pathOptions={{
-                      color:
-                        stops[leg.stop_index]?.kind === "return"
-                          ? "#8056b3"
-                          : "#2563eb",
-                      weight: 6,
-                      opacity: 0.82,
-                      ...(stops[leg.stop_index]?.kind === "return"
-                        ? { dashArray: "9 7" }
-                        : {}),
-                    }}
-                  />
-                  {trafficOverlays(leg).map((segment, index) => (
-                    <Polyline
-                      key={index}
-                      positions={segment.geometry.map((p) => [p[1], p[0]])}
-                      pathOptions={{
-                        color: "#c43d38",
-                        weight: 6,
-                        opacity: 0.95,
-                      }}
-                    >
-                      <Popup>{segment.congestion} traffic reported</Popup>
-                    </Polyline>
-                  ))}
-                </Fragment>
-              ))}
+              {[...(plan?.legs || [])]
+                .map((leg, index) => ({ leg, index }))
+                .sort((a, b) => {
+                  const priority = (entry) => {
+                    const isLiveFirstLeg =
+                      hasLiveRouteStart &&
+                      Number(entry.leg.stop_index) === 0;
+                    const isSelectedLeg =
+                      selectedDeliveryId != null &&
+                      String(stops[entry.leg.stop_index]?.delivery_id) ===
+                        String(selectedDeliveryId);
+                    return isLiveFirstLeg ? 2 : isSelectedLeg ? 1 : 0;
+                  };
+                  return priority(a) - priority(b);
+                })
+                .map(({ leg, index: i }) => {
+                  const isReturn = stops[leg.stop_index]?.kind === "return";
+                  const direction = routeDirection(leg.geometry || []);
+                  const directionColor = isReturn ? "#8056b3" : "#2563eb";
+                  const denseRoute = ordered.length > 8;
+                  const isLiveFirstLeg =
+                    hasLiveRouteStart && Number(leg.stop_index) === 0;
+                  const selectedLeg =
+                    selectedDeliveryId != null &&
+                    String(stops[leg.stop_index]?.delivery_id) ===
+                      String(selectedDeliveryId);
+                  const highlightedLeg = hasLiveRouteStart
+                    ? isLiveFirstLeg
+                    : selectedLeg;
+                  const routeColor = isLiveFirstLeg
+                    ? "#0f766e"
+                    : selectedLeg && !hasLiveRouteStart
+                      ? directionColor
+                      : "#5374b8";
+                  const showDirection =
+                    direction &&
+                    (hasLiveRouteStart ? isLiveFirstLeg : selectedLeg);
+                  return (
+                    <Fragment key={i}>
+                      <Polyline
+                        positions={(leg.geometry || []).map((p) => [p[1], p[0]])}
+                        pathOptions={{
+                          color: "#ffffff",
+                          weight: highlightedLeg ? 12 : hasLiveRouteStart ? 5 : 8,
+                          opacity: highlightedLeg ? 0.96 : hasLiveRouteStart ? 0.34 : 0.86,
+                        }}
+                      />
+                      <Polyline
+                        positions={(leg.geometry || []).map((p) => [p[1], p[0]])}
+                        pathOptions={{
+                          color: routeColor,
+                          weight: highlightedLeg ? 7 : 3.5,
+                          opacity: highlightedLeg ? 0.98 : hasLiveRouteStart ? 0.22 : 0.72,
+                          ...(isReturn ? { dashArray: "9 7" } : {}),
+                        }}
+                      />
+                      {showDirection && (
+                        <Marker
+                          key={`direction-${i}`}
+                          position={direction.position}
+                          icon={routeDirectionIcon(
+                            direction.angle,
+                            isLiveFirstLeg ? "#0f766e" : directionColor,
+                            denseRoute,
+                          )}
+                          zIndexOffset={200}
+                          title={
+                            isReturn
+                              ? "Continue toward the pickup store"
+                              : `Continue toward stop ${Number(leg.stop_index) + 1}`
+                          }
+                        >
+                          <Popup>
+                            {isReturn
+                              ? "Continue toward the pickup store"
+                              : `Continue toward stop ${Number(leg.stop_index) + 1}`}
+                          </Popup>
+                        </Marker>
+                      )}
+                      {trafficOverlays(leg).map((segment, index) => (
+                        <Polyline
+                          key={index}
+                          positions={segment.geometry.map((p) => [p[1], p[0]])}
+                          pathOptions={{
+                            color: "#c43d38",
+                            weight: 6,
+                            opacity: 0.95,
+                          }}
+                        >
+                          <Popup>{segment.congestion} traffic reported</Popup>
+                        </Polyline>
+                      ))}
+                    </Fragment>
+                  );
+                })}
               {!hasRoadGeometry && approximateRoute.length > 1 && (
-                <>
-                  <Polyline
-                    positions={approximateRoute}
-                    pathOptions={{
-                      color: "#fff",
-                      weight: 8,
-                      opacity: 0.76,
-                      dashArray: "6 9",
-                    }}
-                  />
-                  <Polyline
-                    positions={approximateRoute}
-                    pathOptions={{
-                      color: "#2563eb",
-                      weight: 4,
-                      opacity: 0.78,
-                      dashArray: "6 9",
-                    }}
-                  />
-                </>
+                <Polyline
+                  positions={approximateRoute}
+                  pathOptions={{
+                    color: "#6b7280",
+                    weight: 2,
+                    opacity: 0.55,
+                    dashArray: "3 8",
+                  }}
+                />
               )}
               {position && (
                 <>
@@ -671,9 +926,13 @@ export function RiderRoutePlanner({
                   <Marker
                     position={[position.latitude, position.longitude]}
                     icon={locationIcon}
+                    zIndexOffset={1000}
+                    title="Your live location · Route starts here"
                   >
                     <Popup>
-                      Your live location · updated {position.recordedAt}
+                    {locationPreview
+                      ? "Temporary preview · near stop 1"
+                      : `Route starts here · updated ${position.recordedAt}`}
                     </Popup>
                   </Marker>
                 </>
@@ -685,6 +944,18 @@ export function RiderRoutePlanner({
               delivery coordinates.
             </div>
           )}
+          {plan?.route_unavailable && !busy && (
+            <div className="rider-route-fallback-notice" role="status">
+              <span>
+                {hasRoadGeometry
+                  ? "Some road directions are unavailable; the route may be incomplete."
+                  : "Road directions are unavailable. Dashed lines are straight-line estimates."}
+              </span>
+              <Button variant="secondary" onClick={() => setRetry((n) => n + 1)}>
+                Retry route
+              </Button>
+            </div>
+          )}
           <div className="rider-route-legend" aria-label="Map legend">
             <span>
               <i className="pickup" /> Store
@@ -693,9 +964,42 @@ export function RiderRoutePlanner({
               <i className="dropoff" /> Customer
             </span>
             <span>
-              <i className={`route${hasRoadGeometry ? "" : " approximate"}`} />
-              {hasRoadGeometry ? "Delivery route" : "Approximate route"}
+              <i
+                className={`route${hasRoadGeometry ? "" : " approximate"}${selectedDeliveryId == null ? " is-muted" : ""}`}
+              />
+              {hasRoadGeometry
+                ? selectedDeliveryId != null
+                  ? "Selected route"
+                  : "Routes · select a delivery to highlight"
+                : "Approximate route"}
             </span>
+            {hasRoadGeometry &&
+              (hasLiveRouteStart
+                ? firstRoutePoints.length > 1
+                : selectedDeliveryId != null) && (
+              <span>
+                <i
+                  className={
+                    hasLiveRouteStart
+                      ? "direction is-live-route"
+                      : "direction"
+                  }
+                />
+                {hasLiveRouteStart
+                  ? "Direction to stop 1"
+                  : "Direction to selected stop"}
+              </span>
+            )}
+            {hasLiveRouteStart && (
+              <span>
+                <i className="route is-live-route" /> Your location → stop 1
+              </span>
+            )}
+            {selectedDeliveryId != null && (
+              <span>
+                <i className="route is-context" /> Other route legs
+              </span>
+            )}
             {plan?.return_to_store && (
               <span>
                 <i className="return" /> Return to store
@@ -706,11 +1010,22 @@ export function RiderRoutePlanner({
             </span>
             {position && (
               <span>
-                <i className="live" /> You
+                <i className="live" />
+                {locationPreview ? "Preview location" : "You"}
               </span>
             )}
           </div>
           <div className="rider-route-map-tools">
+            {(selectedDeliveryId != null || hasLiveRouteStart) && (
+              <Button
+                variant="secondary"
+                onClick={() => setFitRouteVersion((value) => value + 1)}
+                disabled={fitRoutePoints.length < 2}
+              >
+                <Route size={15} aria-hidden="true" />{" "}
+                {hasLiveRouteStart ? "Fit first leg" : "Fit selected route"}
+              </Button>
+            )}
             <Button
               variant="secondary"
               onClick={() => setFitVersion((n) => n + 1)}
@@ -731,7 +1046,9 @@ export function RiderRoutePlanner({
           </div>
           <p className="rider-route-location-note">
             {position
-              ? `Live location updated ${position.recordedAt} · accuracy about ${Math.round(position.accuracy || 0)} m. Road route refreshes at most every 45 seconds.`
+              ? locationPreview
+                ? "Temporary map preview near stop 1 · not your device location and not shared. Clear preview to return to the normal map."
+                : `Live location updated ${position.recordedAt} · accuracy about ${Math.round(position.accuracy || 0)} m. Road route refreshes at most every 45 seconds.`
               : locating
                 ? "Waiting for your location…"
                 : "Enable live location to include the journey from where you are."}{" "}
@@ -828,7 +1145,9 @@ export function RiderRoutePlanner({
                 }
                 disabled={savingOrder || ordered.length < 2}
               >
-                Suggest order
+                {hasLiveRouteStart
+                  ? "Reorder from live location"
+                  : "Suggest order"}
               </Button>
             </div>
             <div className="rider-route-return-control">
@@ -866,7 +1185,10 @@ export function RiderRoutePlanner({
               )}
             </div>
             <p>
-              Remaining pickups first · paired drop-offs keep their sequence.
+              {hasLiveRouteStart
+                ? "Order suggestion starts from your live location; paired deliveries keep their sequence."
+                : "Nearest-stop suggestion · paired deliveries keep their sequence."}{" "}
+              Review the route before applying.
             </p>
             <ol>
               {ordered.map((d, i) => (
@@ -885,7 +1207,9 @@ export function RiderRoutePlanner({
                     disabled={!validRoutePoint(d.order.destination)}
                     aria-label={`Show ${d.order.order_number} on map`}
                     aria-pressed={
-                      (selectedDeliveryId ?? focusTarget?.id) === d.id
+                      selectedDeliveryId != null
+                        ? String(selectedDeliveryId) === String(d.id)
+                        : focusTarget?.id != null && String(focusTarget.id) === String(d.id)
                     }
                   >
                     <span
@@ -898,6 +1222,11 @@ export function RiderRoutePlanner({
                     </span>
                     <span className="rider-route-stop-copy">
                       <strong>{d.order.order_number}</strong>
+                      {hasLiveRouteStart &&
+                        nextDeliveryId != null &&
+                        nextDeliveryId === String(d.id) && (
+                        <span className="rider-route-stop-next">Next stop</span>
+                      )}
                       <span
                         className={`rider-route-stop-state state-${d.status}`}
                       >
