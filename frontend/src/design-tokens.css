@@ -1,0 +1,233 @@
+/*
+ * DineFlow / Sage Organic Minimalism / 1.0
+ * Opt-in tokens: wrap a specimen in .df-theme or [data-df-theme].
+ * Raw palette values preserve the brief. Only semantic pairs are approved
+ * for text; see docs/DESIGN_TOKENS.md and check-design-tokens.mjs.
+ * No global selectors, production-token aliases, or application overrides.
+ */
+.df-theme,
+[data-df-theme] {
+  /* Primitive colors: accents are not automatically text-safe. */
+  --df-palette-white: #ffffff;
+  --df-palette-sage: #e8efe0;
+  --df-palette-canvas: #f7f9f5;
+  --df-palette-cream: #f2f5ed;
+  --df-palette-border: #d8e2d1;
+  --df-palette-forest: #1e4d3a;
+  --df-palette-forest-hover: #143729;
+  --df-palette-forest-active: #0f2c20;
+  --df-palette-olive: #8f9e82;
+  --df-palette-charcoal: #1a2421;
+  --df-palette-muted-forest: #5a6b63;
+  --df-palette-amber: #d97706;
+  --df-palette-teal: #0d9488;
+  --df-palette-terracotta: #c2410c;
+
+  /* Semantic light theme: body text targets >= 7:1 on its paired surfaces. */
+  --df-color-canvas: #f7f9f5;
+  --df-color-surface: #ffffff;
+  --df-color-panel: #f2f5ed;
+  --df-color-brand-panel: #e8efe0;
+  --df-color-ink: #1a2421;
+  --df-color-secondary: #3f5147;
+  --df-color-brand: #1e4d3a;
+  --df-color-brand-hover: #143729;
+  --df-color-brand-active: #0f2c20;
+  --df-color-on-brand: #ffffff;
+  --df-color-accent: #8f9e82;
+  --df-color-border: #d8e2d1;
+  --df-color-control-border: #768573;
+  --df-color-focus: #1e4d3a;
+  --df-color-disabled-bg: #e8efe0;
+  --df-color-disabled-text: #3f5147;
+  --df-color-overlay: rgb(15 44 32 / 58%);
+  --df-color-selection: #d5e5ca;
+  --df-color-selection-text: #143729;
+
+  /* Status foreground/background pairs; retain a written status and icon. */
+  --df-status-pending-text: #704000;
+  --df-status-pending-bg: #fff4dc;
+  --df-status-pending-border: #dec596;
+  --df-status-progress-text: #10524c;
+  --df-status-progress-bg: #e3f4ef;
+  --df-status-progress-border: #99c6b9;
+  --df-status-success-text: #1e4d3a;
+  --df-status-success-bg: #e8efe0;
+  --df-status-success-border: #b4ccaa;
+  --df-status-danger-text: #87320c;
+  --df-status-danger-bg: #fff0e8;
+  --df-status-danger-border: #dda58b;
+  --df-status-neutral-text: #3f5147;
+  --df-status-neutral-bg: #f2f5ed;
+  --df-status-neutral-border: #c2d0ba;
+
+  /* Single native/system family; no external font request or font swap. */
+  --df-font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --df-font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+  --df-font-regular: 400;
+  --df-font-medium: 500;
+  --df-font-semibold: 600;
+  /* Base 16px, major-third ratio 1.25. Rem preserves user font settings. */
+  --df-type-xs: 0.8rem;
+  --df-type-sm: 0.8rem;
+  --df-type-body: 1rem;
+  --df-type-lg: 1.25rem;
+  --df-type-xl: 1.5625rem;
+  --df-type-2xl: 1.953125rem;
+  --df-type-3xl: 2.44140625rem;
+  --df-type-4xl: 3.0517578125rem;
+  --df-type-5xl: 3.814697265625rem;
+  --df-type-display: clamp(2.44140625rem, 5.2vw, 3.814697265625rem);
+  --df-leading-tight: 1.2;
+  --df-leading-snug: 1.4;
+  --df-leading-normal: 1.5;
+  --df-leading-relaxed: 1.7;
+  --df-tracking-tight: -0.025em;
+  --df-tracking-normal: 0;
+  --df-tracking-label: 0.06em;
+
+  /* 4px micro-grid, 8px macro-grid. No pixel-valued gaps outside this scale. */
+  --df-space-0: 0;
+  --df-space-1: 4px;
+  --df-space-2: 8px;
+  --df-space-3: 12px;
+  --df-space-4: 16px;
+  --df-space-5: 20px;
+  --df-space-6: 24px;
+  --df-space-8: 32px;
+  --df-space-10: 40px;
+  --df-space-12: 48px;
+  --df-space-16: 64px;
+  --df-space-20: 80px;
+  --df-space-24: 96px;
+  --df-layout-gap: var(--df-space-6);
+  --df-page-gutter: clamp(16px, 3vw, 48px);
+  --df-page-max: 1440px;
+  --df-reading-max: 65ch;
+  --df-sidebar-width: 240px;
+  --df-sidebar-rail: 80px;
+  --df-topbar-height: 72px;
+  --df-drawer-width: 480px;
+  --df-breakpoint-tablet: 768px;
+  --df-breakpoint-desktop: 1280px;
+  --df-breakpoint-wide: 1600px;
+  --df-target-size: 48px;
+  --df-control-height: 48px;
+  --df-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  --df-radius-none: 0;
+  --df-radius-sm: 8px;
+  --df-radius-md: 12px;
+  --df-radius-lg: 16px;
+  --df-radius-xl: 24px;
+  --df-radius-pill: 9999px;
+  --df-border-width: 1px;
+  --df-focus-width: 3px;
+  --df-focus-offset: 3px;
+  /* Exact light-theme elevations requested in the brief. */
+  --df-shadow-low: 0px 2px 8px rgb(30 77 58 / 4%);
+  --df-shadow-medium: 0px 6px 16px rgb(30 77 58 / 8%);
+  --df-shadow-high: 0px 16px 32px rgb(30 77 58 / 14%);
+  --df-z-base: 0;
+  --df-z-raised: 10;
+  --df-z-sticky: 20;
+  --df-z-dropdown: 30;
+  --df-z-overlay: 40;
+  --df-z-modal: 50;
+  --df-z-toast: 60;
+
+  /* Name individual properties in transitions; do not animate `all`. */
+  --df-motion-duration-fast: 120ms;
+  --df-motion-duration: 200ms;
+  --df-motion-duration-slow: 320ms;
+  --df-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --df-motion-easing-enter: cubic-bezier(0, 0, 0.2, 1);
+  --df-motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --df-motion-hover-scale: 1.01;
+  --df-motion-drawer-offset: 24px;
+  --df-skeleton-base: #e2e9dc;
+  --df-skeleton-highlight: #f7f9f5;
+
+  /* Short aliases for the reference components; all remain namespaced. */
+  --df-canvas: var(--df-color-canvas);
+  --df-surface: var(--df-color-surface);
+  --df-panel: var(--df-color-panel);
+  --df-border: var(--df-color-border);
+  --df-text: var(--df-color-ink);
+  --df-text-secondary: var(--df-color-secondary);
+  --df-primary: var(--df-color-brand);
+  --df-primary-hover: var(--df-color-brand-hover);
+  --df-focus: var(--df-color-focus);
+  --df-shadow-card: var(--df-shadow-low);
+  --df-shadow-modal: var(--df-shadow-high);
+  color-scheme: light;
+}
+
+/* Explicitly selected theme. No automatic override of a saved preference. */
+.df-theme[data-df-theme="dark"],
+[data-df-theme="dark"],
+[data-theme="dark"] .df-theme:not([data-df-theme="light"]),
+.df-theme[data-theme="dark"] {
+  --df-color-canvas: #101a16;
+  --df-color-surface: #13221c;
+  --df-color-panel: #1b2c23;
+  --df-color-brand-panel: #23362a;
+  --df-color-ink: #f4f8ef;
+  --df-color-secondary: #c1d2c2;
+  --df-color-brand: #c5ddbd;
+  --df-color-brand-hover: #dae9d1;
+  --df-color-brand-active: #b1cfaa;
+  --df-color-on-brand: #143729;
+  --df-color-accent: #a9b89b;
+  --df-color-border: #3c5544;
+  --df-color-control-border: #819985;
+  --df-color-focus: #b6d8aa;
+  --df-color-disabled-bg: #23362a;
+  --df-color-disabled-text: #c1d2c2;
+  --df-color-overlay: rgb(0 0 0 / 68%);
+  --df-color-selection: #38543b;
+  --df-color-selection-text: #f4f8ef;
+  --df-status-pending-text: #ffe1a6;
+  --df-status-pending-bg: #362b15;
+  --df-status-pending-border: #947b45;
+  --df-status-progress-text: #b7f1e2;
+  --df-status-progress-bg: #14382f;
+  --df-status-progress-border: #658f80;
+  --df-status-success-text: #d0ebbf;
+  --df-status-success-bg: #203a27;
+  --df-status-success-border: #779b68;
+  --df-status-danger-text: #ffccb4;
+  --df-status-danger-bg: #3d241a;
+  --df-status-danger-border: #b77f63;
+  --df-status-neutral-text: #d7e4d7;
+  --df-status-neutral-bg: #26392e;
+  --df-status-neutral-border: #6e8e77;
+  --df-shadow-low: 0px 2px 8px rgb(0 0 0 / 18%);
+  --df-shadow-medium: 0px 6px 16px rgb(0 0 0 / 28%);
+  --df-shadow-high: 0px 16px 32px rgb(0 0 0 / 40%);
+  --df-skeleton-base: #2b3c30;
+  --df-skeleton-highlight: #3a5040;
+  color-scheme: dark;
+}
+
+/* OS and saved reduced-motion preferences are both respected. */
+@media (prefers-reduced-motion: reduce) {
+  .df-theme,
+  [data-df-theme] {
+    --df-motion-duration-fast: 0ms;
+    --df-motion-duration: 0ms;
+    --df-motion-duration-slow: 0ms;
+    --df-motion-hover-scale: 1;
+    --df-motion-drawer-offset: 0px;
+  }
+}
+.df-theme[data-reduced-motion="true"],
+[data-df-theme][data-reduced-motion="true"] {
+  --df-motion-duration-fast: 0ms;
+  --df-motion-duration: 0ms;
+  --df-motion-duration-slow: 0ms;
+  --df-motion-hover-scale: 1;
+  --df-motion-drawer-offset: 0px;
+}

@@ -1,0 +1,595 @@
+[
+  {
+    "name": "landing",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Less waiting.More savoring.",
+    "header": {
+      "x": 0,
+      "y": 0,
+      "width": 1425,
+      "height": 96
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "login",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Welcome back.",
+    "header": null,
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "admin-dashboard",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Operations overview",
+    "header": {
+      "x": 250,
+      "y": 0,
+      "width": 1175,
+      "height": 73
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "admin-tracking",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Live delivery tracking",
+    "header": {
+      "x": 250,
+      "y": 0,
+      "width": 1175,
+      "height": 73
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "admin-orders",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Orders",
+    "header": {
+      "x": 250,
+      "y": 0,
+      "width": 1175,
+      "height": 73
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "admin-outlets",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Restaurant outlets",
+    "header": {
+      "x": 250,
+      "y": 0,
+      "width": 1175,
+      "height": 73
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "admin-settings",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "System settings",
+    "header": {
+      "x": 250,
+      "y": 0,
+      "width": 1175,
+      "height": 73
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "manager",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Service overview",
+    "header": {
+      "x": 250,
+      "y": 0,
+      "width": 1175,
+      "height": 73
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "cashier",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "A clear view of every payment.",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1185,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": {
+      "x": 322,
+      "y": 811,
+      "width": 296,
+      "height": 44
+    },
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "cashier-payment-sheet",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "A clear view of every payment.",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1185,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": {
+      "x": 322,
+      "y": 811,
+      "width": 296,
+      "height": 44
+    },
+    "paymentSheet": {
+      "x": 433,
+      "y": 233,
+      "width": 560,
+      "height": 534
+    },
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "kitchen",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Kitchen queue",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1185,
+      "height": 76
+    },
+    "firstTicket": {
+      "x": 272,
+      "y": 555,
+      "width": 358,
+      "height": 593
+    },
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "waiter",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Every table, well looked after.",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1185,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": {
+      "x": 272,
+      "y": 555,
+      "width": 358,
+      "height": 422
+    },
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "rider",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1440,
+    "clientWidth": 1440,
+    "heading": "Your next stop, made clear",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1200,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": {
+      "x": 272,
+      "y": 234,
+      "width": 693,
+      "height": 735
+    },
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "rider-deliveries",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1440,
+    "clientWidth": 1440,
+    "heading": "My Deliveries",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1200,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "customer-menu",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Find your next favorite.",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1185,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": {
+      "x": 272,
+      "y": 656,
+      "width": 366,
+      "height": 557
+    },
+    "firstAdd": {
+      "x": 293,
+      "y": 1148,
+      "width": 324,
+      "height": 44
+    },
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": {
+      "x": 1047,
+      "y": 514,
+      "width": 346,
+      "height": 295
+    },
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "customer-cart",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Find your next favorite.",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1185,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": {
+      "x": 272,
+      "y": 656,
+      "width": 366,
+      "height": 557
+    },
+    "firstAdd": {
+      "x": 293,
+      "y": 1148,
+      "width": 324,
+      "height": 44
+    },
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": {
+      "x": 1047,
+      "y": 514,
+      "width": 346,
+      "height": 872
+    },
+    "cartBar": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "customer-checkout",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Find your next favorite.",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1185,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": {
+      "x": 272,
+      "y": 271,
+      "width": 366,
+      "height": 557
+    },
+    "firstAdd": {
+      "x": 293,
+      "y": 763,
+      "width": 324,
+      "height": 44
+    },
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": {
+      "x": 1047,
+      "y": 129,
+      "width": 346,
+      "height": 872
+    },
+    "cartBar": {
+      "x": 0,
+      "y": 0,
+      "width": 0,
+      "height": 0
+    },
+    "violations": []
+  },
+  {
+    "name": "customer-orders",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "My orders",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1185,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  },
+  {
+    "name": "customer-reservations",
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "pageWidth": 1425,
+    "clientWidth": 1440,
+    "heading": "Reserve a table",
+    "header": {
+      "x": 240,
+      "y": 0,
+      "width": 1185,
+      "height": 76
+    },
+    "firstTicket": null,
+    "firstTable": null,
+    "firstDish": null,
+    "firstAdd": null,
+    "firstCashierAction": null,
+    "paymentSheet": null,
+    "nextDelivery": null,
+    "cart": null,
+    "cartBar": null,
+    "violations": []
+  }
+]

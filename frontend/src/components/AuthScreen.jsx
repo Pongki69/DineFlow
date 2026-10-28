@@ -31,12 +31,12 @@ const descriptions = {
   reset: "Choose a strong password to keep your account secure.",
 };
 
-export function AuthScreen({ onSignedIn }) {
+export function AuthScreen({ onSignedIn, initialMode = "login" }) {
   const formRef = useRef(null);
   const [savedLoginsAvailable] = useState(supportsSavedLogins);
   const [selectingLogin, setSelectingLogin] = useState(false);
   const params = new URLSearchParams(window.location.search);
-  const [mode, setMode] = useState(params.has("token") ? "reset" : "login");
+  const [mode, setMode] = useState(params.has("token") ? "reset" : initialMode);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");

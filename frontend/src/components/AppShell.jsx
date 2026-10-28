@@ -13,8 +13,10 @@ import {
   LogOut,
   MapPin,
   Menu,
+  Moon,
   Settings2,
   Star,
+  Sun,
   ShoppingBag,
   Table2,
   Truck,
@@ -34,6 +36,8 @@ import {
 } from "../navigation";
 import { Notifications } from "./Notifications";
 import { brandTheme } from "./brandTheme";
+import { AdminShell } from "./AdminShell";
+import { useWorkspaceTheme } from "./useWorkspaceTheme";
 
 const icons = {
   "/menu": UtensilsCrossed,
@@ -64,13 +68,23 @@ const icons = {
 };
 function Navigation({ user, branding, onNavigate, onSignOut }) {
   const location = useLocation();
-  const links = visibleNavigation(user.permissions, user.roles);
+  const availableLinks = visibleNavigation(user.permissions, user.roles);
+  const links = availableLinks.filter(
+    ([, , path]) =>
+      path !== "/admin/orders" ||
+      !availableLinks.some(([, , candidate]) => candidate === "/orders"),
+  );
   const context = navigationContext(location.pathname, links);
   const customer = user.roles.includes("customer");
   const rider = user.roles.includes("rider");
-  const groups = [
-    ...new Set(links.map(([, , path]) => navigationGroup(path, user.roles))),
-  ];
+  const compactNavigation = !customer && !rider;
+  const groups = compactNavigation
+    ? ["Workspace"]
+    : [
+        ...new Set(
+          links.map(([, , path]) => navigationGroup(path, user.roles)),
+        ),
+      ];
   return (
     <>
       <Link
@@ -83,7 +97,7 @@ function Navigation({ user, branding, onNavigate, onSignOut }) {
           <UtensilsCrossed size={21} aria-hidden="true" />
         </span>
         <span>
-          {branding.name}
+          DineFlow
           <b className="wordmark-dot">.</b>
           <small>
             {customer
@@ -94,13 +108,19 @@ function Navigation({ user, branding, onNavigate, onSignOut }) {
           </small>
         </span>
       </Link>
+      <div className="workspace-restaurant" title={branding.name}>
+        <UtensilsCrossed size={16} aria-hidden="true" />
+        <span>{branding.name}</span>
+      </div>
       <nav aria-label="Main navigation">
         {groups.map((group) => (
           <section className="nav-group" key={group} aria-label={group}>
             <span className="nav-group-label">{group}</span>
             {links
               .filter(
-                ([, , path]) => navigationGroup(path, user.roles) === group,
+                ([, , path]) =>
+                  compactNavigation ||
+                  navigationGroup(path, user.roles) === group,
               )
               .map(([label, , path]) => {
                 const Icon = icons[path] || Settings2;
@@ -155,7 +175,18 @@ function Navigation({ user, branding, onNavigate, onSignOut }) {
   );
 }
 
-export function AppShell({ user, onSignOut, children }) {
+export function AppShell(props) {
+  return props.user.roles.some((role) =>
+    ["administrator", "manager"].includes(role),
+  ) ? (
+    <AdminShell {...props} />
+  ) : (
+    <StandardAppShell {...props} />
+  );
+}
+
+function StandardAppShell({ user, onSignOut, children }) {
+  const { theme, toggleTheme } = useWorkspaceTheme();
   const [branding, setBranding] = useState({
     name: "DineFlow",
     brand_color: "#245440",
@@ -176,11 +207,6 @@ export function AppShell({ user, onSignOut, children }) {
   function closeMenu() {
     menu.current?.close();
     setMenuOpen(false);
-    if (content.current) {
-      content.current.scrollTop = 0;
-      content.current.scrollLeft = 0;
-    }
-    window.scrollTo(0, 0);
   }
   useEffect(() => {
     document.title = `${current} · ${branding.name}`;
@@ -193,7 +219,6 @@ export function AppShell({ user, onSignOut, children }) {
       if (heading) {
         heading.tabIndex = -1;
         heading.focus({ preventScroll: true });
-        observer.disconnect();
       }
       window.scrollTo(0, 0);
     };
@@ -212,7 +237,16 @@ export function AppShell({ user, onSignOut, children }) {
   }, []);
   return (
     <div
-      className="app-shell"
+      className="app-shell df-theme"
+      data-theme={theme}
+      data-df-theme={theme}
+      data-role={
+        user.roles.includes("customer")
+          ? "customer"
+          : user.roles.includes("rider")
+            ? "rider"
+            : user.roles[0]
+      }
       data-page={
         location.pathname.replace(/\/+$/, "") === "/rider"
           ? "rider-dashboard"
@@ -222,7 +256,7 @@ export function AppShell({ user, onSignOut, children }) {
               ? "rider-settings"
               : location.pathname === "/rider/offers"
                 ? "rider-offers"
-              : undefined
+                : undefined
       }
       data-workspace={
         user.roles.includes("rider")
@@ -233,7 +267,7 @@ export function AppShell({ user, onSignOut, children }) {
       }
       data-density={user.preferences?.compact_view ? "compact" : "comfortable"}
       data-motion={user.preferences?.reduced_motion ? "reduced" : "system"}
-      style={brandTheme(branding.brand_color)}
+      style={theme === "light" ? brandTheme(branding.brand_color) : undefined}
     >
       <a className="skip-link" href="#main-content">
         Skip to content
@@ -282,7 +316,7 @@ export function AppShell({ user, onSignOut, children }) {
             >
               <Menu size={23} aria-hidden="true" />
             </button>
-            <Link className="topbar-brand" to="/">
+            <Link className="topbar-brand" to="/" title={branding.name}>
               {branding.name}
             </Link>
             <ChevronRight size={14} aria-hidden="true" />
@@ -297,6 +331,22 @@ export function AppShell({ user, onSignOut, children }) {
             </nav>
           </div>
           <div className="topbar-actions">
+            <button
+              type="button"
+              className="icon-button workspace-theme-toggle"
+              aria-label={
+                theme === "light"
+                  ? "Switch to dark mode"
+                  : "Switch to light mode"
+              }
+              onClick={toggleTheme}
+            >
+              {theme === "light" ? (
+                <Moon size={20} aria-hidden="true" />
+              ) : (
+                <Sun size={20} aria-hidden="true" />
+              )}
+            </button>
             {user.roles.includes("rider") &&
             user.permissions.includes("deliveries.assigned") ? (
               <div id="rider-presence-slot" />

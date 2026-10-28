@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AccessDemoController;
+use App\Http\Controllers\Api\V1\AdminWorkspaceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DeliveryController;
 use App\Http\Controllers\Api\V1\DeliveryOperationsController;
@@ -62,6 +63,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/admin/delivery-policy', [DeliveryController::class, 'showPolicy'])->middleware('permission:settings.manage');
         Route::put('/admin/delivery-policy', [DeliveryController::class, 'savePolicy'])->middleware('permission:settings.manage');
         Route::put('/admin/restaurant/location', [DeliveryController::class, 'saveLocation'])->middleware('permission:settings.manage');
+        Route::get('/admin/operations-overview', [AdminWorkspaceController::class, 'overview'])->middleware('permission:deliveries.manage');
+        Route::put('/admin/outlet-config', [AdminWorkspaceController::class, 'saveOutlet'])->middleware('permission:settings.manage');
 
         Route::get('/notifications', [DeliveryOperationsController::class, 'notifications']);
         Route::patch('/notifications/{notification}/read', [DeliveryOperationsController::class, 'readNotification']);

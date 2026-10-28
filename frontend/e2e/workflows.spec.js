@@ -15,7 +15,7 @@ async function navigate(page, label) {
 }
 
 async function login(page, role = "customer") {
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill(`${role}@example.test`);
   await page
     .getByLabel("Password", { exact: true })
@@ -27,7 +27,7 @@ async function login(page, role = "customer") {
 test("sign-in is accessible and customers can place a pickup order and edit their profile", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/login");
   const accessibility = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();

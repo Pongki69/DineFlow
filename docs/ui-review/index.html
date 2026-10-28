@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DineFlow — desktop and mobile visual review</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+        background: #f7f9f4;
+        color: #1a2921;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: clamp(16px, 3vw, 40px);
+      }
+      header {
+        max-width: 1000px;
+      }
+      h1 {
+        font-size: clamp(25px, 3vw, 36px);
+        letter-spacing: -0.04em;
+        margin: 0 0 12px;
+      }
+      p {
+        line-height: 1.65;
+        color: #43584a;
+      }
+      a {
+        color: #1e4d3a;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: end;
+        margin: 24px 0;
+      }
+      label {
+        display: grid;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      select,
+      button {
+        min-height: 48px;
+        border: 1px solid #768573;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font: inherit;
+        color: inherit;
+        background: #fff;
+      }
+      select {
+        max-width: 100%;
+      }
+      :focus-visible {
+        outline: 3px solid #1e4d3a;
+        outline-offset: 3px;
+      }
+      .compare {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        align-items: start;
+      }
+      figure {
+        margin: 0;
+        min-width: 0;
+      }
+      figcaption {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+      .frame {
+        border: 1px solid #ccd8c7;
+        border-radius: 12px;
+        overflow: auto;
+        max-height: 80vh;
+        background: #fff;
+      }
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      body[data-device="mobile"] .frame {
+        max-width: 430px;
+        margin: auto;
+      }
+      body[data-device="mobile"] figcaption {
+        max-width: 430px;
+        margin: 0 auto 12px;
+      }
+      .note {
+        max-width: 850px;
+        font-size: 14px;
+      }
+      .missing {
+        padding: 24px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 700px) {
+        .compare {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        select {
+          width: 100%;
+        }
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          background: #121b16;
+          color: #edf4e9;
+        }
+        p {
+          color: #bdccba;
+        }
+        a {
+          color: #d2e7b6;
+        }
+        select,
+        button,
+        .frame {
+          background: #1c2820;
+          border-color: #869780;
+        }
+        :focus-visible {
+          outline-color: #d2e7b6;
+        }
+      }
+    </style>
+  </head>
+  <body data-device="mobile">
+    <header>
+      <h1>DineFlow visual review</h1>
+      <p>
+        Before and after screenshots of the actual application, using populated
+        review records in a separate test database. Desktop: 1440 × 1000.
+        Mobile: 390 × 844.
+      </p>
+      <p class="note">
+        Review the <a href="REVIEW.md">findings and validation report</a>. These
+        comparison captures cover the public experience and seven user roles
+        using test records. Separate read-only captures show the actual live
+        landing page: <a href="after/live-landing-desktop.png">desktop</a> and
+        <a href="after/live-landing-mobile.png">mobile</a>.
+      </p>
+    </header>
+    <div class="controls">
+      <label
+        >Screen
+        <select id="screen" aria-label="Screen">
+          <option value="admin-dashboard">Administrator dashboard</option>
+          <option value="admin-tracking">Live delivery tracking</option>
+          <option value="admin-orders">Order management</option>
+          <option value="admin-outlets">Restaurant outlets</option>
+          <option value="admin-settings">System settings</option>
+          <option value="manager">Manager dashboard</option>
+          <option value="cashier">Cashier</option>
+          <option value="cashier-payment-sheet">Payment review</option>
+          <option value="kitchen">Kitchen queue</option>
+          <option value="waiter">Service tables</option>
+          <option value="rider">Rider dashboard</option>
+          <option value="rider-deliveries">Rider map and queue</option>
+          <option value="customer-menu">Customer menu</option>
+          <option value="customer-cart">Populated customer cart</option>
+          <option value="customer-checkout">Customer checkout</option>
+          <option value="customer-orders">Customer orders</option>
+          <option value="customer-reservations">Customer reservations</option>
+          <option value="landing">Public landing</option>
+          <option value="login">Sign in</option>
+        </select>
+      </label>
+      <label
+        >Viewport<select id="device" aria-label="Viewport">
+          <option value="mobile">Mobile · 390px</option>
+          <option value="desktop">Desktop · 1440px</option>
+        </select></label
+      >
+      <label
+        >Capture<select id="extent" aria-label="Capture">
+          <option value="">First screen</option>
+          <option value="-full">Full page</option>
+        </select></label
+      >
+    </div>
+    <main class="compare" aria-label="Screenshot comparison">
+      <figure>
+        <figcaption>Before</figcaption>
+        <div class="frame">
+          <a id="before-link"
+            ><img id="before" alt="DineFlow before the visual review fixes"
+          /></a>
+        </div>
+      </figure>
+      <figure>
+        <figcaption>After</figcaption>
+        <div class="frame">
+          <a id="after-link"
+            ><img id="after" alt="DineFlow after the visual review fixes"
+          /></a>
+        </div>
+      </figure>
+    </main>
+    <p class="note">
+      Click an image to inspect its original resolution. Dark-mode,
+      navigation-drawer, and fullscreen-map captures are also saved in the
+      <a href="after/manifest-mobile.json">mobile manifest</a> and
+      <a href="after/manifest-desktop.json">desktop manifest</a>. A full-page
+      capture follows the document; screens with independently scrolling map
+      panels retain their viewport framing.
+    </p>
+    <script>
+      const screen = document.getElementById("screen");
+      const device = document.getElementById("device");
+      const extent = document.getElementById("extent");
+      function update() {
+        document.body.dataset.device = device.value;
+        for (const stage of ["before", "after"]) {
+          const src = `${stage}/${screen.value}-${device.value}${extent.value}.png`;
+          document.getElementById(stage).src = src;
+          document.getElementById(`${stage}-link`).href = src;
+          document.getElementById(stage).alt =
+            `${screen.selectedOptions[0].textContent}, ${device.value}, ${stage}`;
+        }
+      }
+      for (const control of [screen, device, extent])
+        control.addEventListener("change", update);
+      update();
+    </script>
+  </body>
+</html>

@@ -1,5 +1,12 @@
 import { Component, lazy, Suspense, useEffect, useState } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  Link,
+} from "react-router-dom";
 import { api } from "./api";
 import { visibleNavigation } from "./navigation";
 import { Account } from "./Account";
@@ -9,12 +16,30 @@ import { AuthScreen } from "./components/AuthScreen";
 import { ConfirmProvider } from "./components/ConfirmProvider";
 import { EmptyState, Feedback, Skeleton } from "./components/ui";
 import { MenuBrowser } from "./features/Menu";
+import { useWorkspaceTheme } from "./components/useWorkspaceTheme";
+import { signInDestination } from "./components/signInDestination";
 import { RiderDispatchPanel } from "./components/RiderDispatchPanel";
 import "./features/workspaceSettings.css";
 import "./components/RiderScreenSkeleton.css";
 const WorkspaceSettings = screen(
   () => import("./features/WorkspaceSettings"),
   "WorkspaceSettings",
+);
+const PublicLanding = screen(
+  () => import("./features/PublicLanding"),
+  "PublicLanding",
+);
+const AdminDashboard = screen(
+  () => import("./features/AdminWorkspace"),
+  "AdminDashboard",
+);
+const OutletManager = screen(
+  () => import("./features/AdminWorkspace"),
+  "OutletManager",
+);
+const RiderFleet = screen(
+  () => import("./features/AdminWorkspace"),
+  "RiderFleet",
 );
 const RiderOverview = screen(
   () => import("./features/RiderWorkspace"),
@@ -173,6 +198,12 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
     "/payments": <PaymentDashboard user={user} />,
     "/admin/delivery": <DeliverySettings />,
     "/admin/deliveries": <DispatchDashboard />,
+    "/admin/tracking": <AdminDashboard user={user} tracking />,
+    "/admin/dashboard": <AdminDashboard user={user} />,
+    "/admin/orders": <OrdersView staff user={user} />,
+    "/admin/system-settings": <BusinessSettings />,
+    "/admin/outlets": <OutletManager />,
+    "/admin/riders": <RiderFleet user={user} />,
     "/rider": <RiderOverview user={user} />,
     "/rider/deliveries": <RiderDeliveries />,
     "/rider/history": <RiderHistory />,
@@ -197,7 +228,10 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
               <header className="page-heading rider-offers-page-heading">
                 <div>
                   <h1>Delivery offers</h1>
-                  <p>Find nearby deliveries and review each offer before accepting.</p>
+                  <p>
+                    Find nearby deliveries and review each offer before
+                    accepting.
+                  </p>
                 </div>
               </header>
             )}
@@ -214,10 +248,7 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
         <Suspense
           fallback={
             riderLoadingVariant ? (
-              <RiderScreenSkeleton
-                variant={riderLoadingVariant}
-                showHeading
-              />
+              <RiderScreenSkeleton variant={riderLoadingVariant} showHeading />
             ) : (
               <Skeleton label="Loading your page" />
             )
@@ -232,7 +263,10 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
                     user.preferences?.home_page === "/account" ||
                     links.some(([, , to]) => to === user.preferences?.home_page)
                       ? user.preferences.home_page
-                      : links.find(([, , to]) => to === "/dashboard")?.[2] ||
+                      : links.find(
+                          ([, , to]) => to === "/admin/dashboard",
+                        )?.[2] ||
+                        links.find(([, , to]) => to === "/dashboard")?.[2] ||
                         links[0]?.[2] ||
                         "/account"
                   }
@@ -284,7 +318,9 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
   );
 }
 
-export default function App() {
+function AppContent() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState(null),
     [ready, setReady] = useState(false),
     [error, setError] = useState(""),
@@ -310,10 +346,23 @@ export default function App() {
       await api("/logout", { method: "POST" });
       setSignOutError("");
       setUser(null);
+      navigate("/", { replace: true });
     } catch (failure) {
       if ([401, 419].includes(failure.status)) setUser(null);
       else setSignOutError("We couldn’t sign you out. Please try again.");
     }
+  }
+  function signedIn(nextUser) {
+    const requested =
+      new URLSearchParams(location.search).get("next") ||
+      `${location.pathname}${location.search}`;
+    const destination = signInDestination(
+      nextUser,
+      requested,
+      window.location.origin,
+    );
+    setUser(nextUser);
+    navigate(destination, { replace: true });
   }
   if (!ready)
     return (
@@ -342,9 +391,43 @@ export default function App() {
           onUserUpdated={setUser}
           signOutError={signOutError}
         />
+      ) : location.pathname === "/" ? (
+        <Suspense
+          fallback={
+            <main className="public-loading">
+              <Skeleton label="Loading restaurant" />
+            </main>
+          }
+        >
+          <PublicLanding />
+        </Suspense>
       ) : (
-        <AuthScreen onSignedIn={setUser} />
+        <div className="production-auth">
+          <Link to="/" className="auth-restaurant-link">
+            ← Back to restaurant
+          </Link>
+          <AuthScreen
+            key={location.pathname}
+            initialMode={
+              location.pathname === "/register"
+                ? "register"
+                : location.pathname === "/forgot-password"
+                  ? "forgot"
+                  : "login"
+            }
+            onSignedIn={signedIn}
+          />
+        </div>
       )}
     </ConfirmProvider>
+  );
+}
+
+export default function App() {
+  const { theme } = useWorkspaceTheme();
+  return (
+    <div className="df-theme dineflow-app" data-df-theme={theme}>
+      <AppContent />
+    </div>
   );
 }

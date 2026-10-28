@@ -6,6 +6,7 @@ import { DineInBooking } from "../components/DineInBooking";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
+  Check,
   ChefHat,
   Minus,
   Plus,
@@ -24,6 +25,7 @@ import {
   PageHeader,
   Skeleton,
 } from "../components/ui";
+import "./customerSage.css";
 
 const DeliveryMapSelector = lazy(() =>
   import("../DeliveryMap").then((module) => ({
@@ -49,8 +51,9 @@ function linePrice(line) {
   );
 }
 
-function MenuCard({ item, onAdd }) {
+function MenuCard({ item, onAdd, disabled = false }) {
   const [added, setAdded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => {
     if (!added) return;
     const timer = setTimeout(() => setAdded(false), 1800);
@@ -59,14 +62,18 @@ function MenuCard({ item, onAdd }) {
   return (
     <article className="dish-card">
       <div
-        className={`dish-image ${item.image_url ? "" : "dish-image--illustrated"}`}
+        className={`dish-image ${item.image_url && !imageFailed ? "" : "dish-image--illustrated"}`}
       >
-        {item.image_url ? (
+        {item.image_url && !imageFailed ? (
           <img
             src={item.image_url}
             alt=""
             loading="lazy"
+            width="600"
+            height="400"
+            decoding="async"
             referrerPolicy="no-referrer"
+            onError={() => setImageFailed(true)}
           />
         ) : (
           <UtensilsCrossed size={48} strokeWidth={1} aria-hidden="true" />
@@ -76,13 +83,15 @@ function MenuCard({ item, onAdd }) {
         )}
       </div>
       <div className="dish-body">
-        <span className="eyebrow">
-          {item.category?.name || "FROM OUR KITCHEN"}
-        </span>
+        <div className="customer-dish-heading">
+          <span className="eyebrow">
+            {item.category?.name || "From our kitchen"}
+          </span>
+          <strong className="dish-price">{money(item.base_price)}</strong>
+        </div>
         <h2>{item.name}</h2>
         <DishPortion item={item} />
         {item.description && <p>{item.description}</p>}
-        <strong className="dish-price">{money(item.base_price)}</strong>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -90,38 +99,54 @@ function MenuCard({ item, onAdd }) {
             setAdded(true);
           }}
         >
-          {item.variants?.length > 0 && (
-            <Field label={`Size for ${item.name}`} name="variant_id" required>
-              <select>
-                <option value="">Choose a size</option>
-                {item.variants.map((variant) => (
-                  <option key={variant.id} value={variant.id}>
-                    {variant.name}
-                    {Number(variant.price_adjustment)
-                      ? ` (+${money(variant.price_adjustment)})`
-                      : ""}
-                  </option>
+          <fieldset className="customer-dish-form" disabled={disabled}>
+            <legend className="customer-sr-only">
+              Options for {item.name}
+            </legend>
+            {item.variants?.length > 0 && (
+              <Field label={`Size for ${item.name}`} name="variant_id" required>
+                <select>
+                  <option value="">Choose a size</option>
+                  {item.variants.map((variant) => (
+                    <option key={variant.id} value={variant.id}>
+                      {variant.name}
+                      {Number(variant.price_adjustment)
+                        ? ` (+${money(variant.price_adjustment)})`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+            <details className="customer-dish-options">
+              <summary>
+                Make it yours<span>Optional</span>
+              </summary>
+              <div>
+                {item.addons?.map((addon) => (
+                  <label className="checkline" key={addon.id}>
+                    <input type="checkbox" name="addon_ids" value={addon.id} />
+                    {addon.name}
+                    <span>+{money(addon.price)}</span>
+                  </label>
                 ))}
-              </select>
-            </Field>
-          )}
-          {item.addons?.map((addon) => (
-            <label className="checkline" key={addon.id}>
-              <input type="checkbox" name="addon_ids" value={addon.id} />
-              {addon.name}
-              <span>+{money(addon.price)}</span>
-            </label>
-          ))}
-          <Field
-            label={`Special instructions for ${item.name}`}
-            name="special_instructions"
-            maxLength={500}
-            placeholder="Any preferences?"
-          />
-          <Button type="submit" variant="secondary">
-            <Plus size={17} aria-hidden="true" />
-            {added ? "Added to order" : "Add to order"}
-          </Button>
+                <Field
+                  label={`Special instructions for ${item.name}`}
+                  name="special_instructions"
+                  maxLength={500}
+                  placeholder="Any preferences?"
+                />
+              </div>
+            </details>
+            <Button type="submit" variant="primary">
+              {added ? (
+                <Check size={17} aria-hidden="true" />
+              ) : (
+                <Plus size={17} aria-hidden="true" />
+              )}
+              {added ? "Added to order" : "Add to order"}
+            </Button>
+          </fieldset>
         </form>
       </div>
     </article>
@@ -141,16 +166,29 @@ export function MenuBrowser({ user }) {
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [retry, setRetry] = useState(0);
+  const [menuError, setMenuError] = useState("");
+  const [visibleCount, setVisibleCount] = useState(12);
   const [dineInReady, setDineInReady] = useState(false);
   const [placedDelivery, setPlacedDelivery] = useState(null);
+  const [summaryVisible, setSummaryVisible] = useState(false);
   const summary = useRef(null);
+  useEffect(() => {
+    if (!summary.current || typeof IntersectionObserver !== "function") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setSummaryVisible(entry.isIntersecting),
+      { threshold: 0.1 },
+    );
+    observer.observe(summary.current);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     saveCart(user?.id, cart);
   }, [user?.id, cart]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    setError("");
+    setMenuError("");
+    setVisibleCount(12);
     const timer = setTimeout(
       async () => {
         try {
@@ -168,7 +206,7 @@ export function MenuBrowser({ user }) {
             setItems(result.data || []);
           }
         } catch (failure) {
-          if (!controller.signal.aborted) setError(failure.message);
+          if (!controller.signal.aborted) setMenuError(failure.message);
         } finally {
           if (!controller.signal.aborted) setLoading(false);
         }
@@ -214,7 +252,7 @@ export function MenuBrowser({ user }) {
       current
         .map((line) =>
           line.key === key
-            ? { ...line, quantity: line.quantity + amount }
+            ? { ...line, quantity: Math.min(99, line.quantity + amount) }
             : line,
         )
         .filter((line) => line.quantity > 0),
@@ -252,6 +290,7 @@ export function MenuBrowser({ user }) {
           items: cart.map(({ item, key, ...line }) => line),
         }),
       });
+      saveCart(user?.id, []);
       setNotice(
         `Order ${result.data.order_number} placed · ${money(result.data.total)}`,
       );
@@ -270,46 +309,39 @@ export function MenuBrowser({ user }) {
     0,
   );
   const count = cart.reduce((total, line) => total + line.quantity, 0);
+  function showOrder() {
+    summary.current?.scrollIntoView({
+      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start",
+    });
+    summary.current?.focus({ preventScroll: true });
+  }
   return (
-    <section className="menu-page">
+    <section className="menu-page customer-menu">
       <PageHeader
         title="Find your next favorite."
         description="Fresh choices, made your way. Stay a while or take a little goodness with you."
         actions={
-          <Button
-            variant="secondary"
-            onClick={() => {
-              summary.current?.scrollIntoView({
-                behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
-                  .matches
-                  ? "auto"
-                  : "smooth",
-                block: "start",
-              });
-              summary.current?.focus({ preventScroll: true });
-            }}
-          >
+          <Button variant="secondary" onClick={showOrder}>
             <ShoppingBag size={18} aria-hidden="true" />
             Your order<span className="count-pill">{count}</span>
           </Button>
         }
       />
-      <div className="menu-feature">
+      <div className="menu-feature customer-service-strip">
+        <span className="customer-service-icon" aria-hidden="true">
+          <UtensilsCrossed size={25} strokeWidth={1.5} />
+        </span>
         <div>
-          <span className="feature-kicker">
-            <ChefHat size={16} aria-hidden="true" />
-            FROM OUR KITCHEN TO YOUR TABLE
-          </span>
-          <h2>
-            A good meal.
-            <br />
-            At your own pace.
-          </h2>
+          <h2>Good food, on your schedule.</h2>
           <p>Dine in, pick up, or have your favorites delivered.</p>
         </div>
-        <div className="feature-plate" aria-hidden="true">
-          <UtensilsCrossed size={56} strokeWidth={1.1} />
-        </div>
+        <span className="customer-service-label">
+          <ChefHat size={16} aria-hidden="true" />
+          Made with care
+        </span>
       </div>
       {notice && <Feedback tone="success">{notice}</Feedback>}
       {placedDelivery && (
@@ -357,21 +389,44 @@ export function MenuBrowser({ user }) {
               </button>
             ))}
           </div>
-          {loading ? (
-            <Skeleton label="Loading menu" />
-          ) : error && !cart.length ? (
+          {menuError && (
             <Feedback
-              title="We couldn’t load the menu"
+              title="We couldn’t refresh the menu"
               onRetry={() => setRetry((value) => value + 1)}
             >
-              {error}
+              {menuError}
             </Feedback>
-          ) : items.length ? (
-            <div className="dish-grid">
-              {items.map((item) => (
-                <MenuCard key={item.id} item={item} onAdd={add} />
-              ))}
-            </div>
+          )}
+          {loading ? (
+            <Skeleton label="Loading menu" />
+          ) : menuError && !items.length ? null : items.length ? (
+            <>
+              <div className="dish-grid">
+                {items.slice(0, visibleCount).map((item) => (
+                  <MenuCard
+                    key={item.id}
+                    item={item}
+                    onAdd={add}
+                    disabled={busy}
+                  />
+                ))}
+              </div>
+              {items.length > visibleCount && (
+                <div className="customer-load-more">
+                  <p>
+                    Showing {Math.min(visibleCount, items.length)} of{" "}
+                    {items.length} dishes
+                  </p>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setVisibleCount((value) => value + 12)}
+                  >
+                    Show more dishes
+                    <Plus size={17} aria-hidden="true" />
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <EmptyState
               icon={UtensilsCrossed}
@@ -402,7 +457,10 @@ export function MenuBrowser({ user }) {
         >
           <div className="summary-heading">
             <ShoppingBag size={20} aria-hidden="true" />
-            <h2>Your order</h2>
+            <div>
+              <h2>Your order</h2>
+              <p>A little something for you.</p>
+            </div>
             <span className="count-pill">{count}</span>
           </div>
           {!cart.length ? (
@@ -437,12 +495,26 @@ export function MenuBrowser({ user }) {
                         {line.special_instructions && (
                           <small>{line.special_instructions}</small>
                         )}
+                        {line.addon_ids.length > 0 && (
+                          <small>
+                            {line.addon_ids
+                              .map(
+                                (id) =>
+                                  line.item.addons?.find(
+                                    (addon) => addon.id === id,
+                                  )?.name,
+                              )
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </small>
+                        )}
                         <span>{money(linePrice(line) * line.quantity)}</span>
                       </div>
                       <div className="quantity-control">
                         <button
                           type="button"
                           aria-label={`Decrease ${line.item.name} quantity`}
+                          disabled={busy}
                           onClick={() => quantity(line.key, -1)}
                         >
                           <Minus size={14} aria-hidden="true" />
@@ -453,6 +525,12 @@ export function MenuBrowser({ user }) {
                         <button
                           type="button"
                           aria-label={`Increase ${line.item.name} quantity`}
+                          disabled={busy || line.quantity >= 99}
+                          title={
+                            line.quantity >= 99
+                              ? "Maximum 99 of this item"
+                              : undefined
+                          }
                           onClick={() => quantity(line.key, 1)}
                         >
                           <Plus size={14} aria-hidden="true" />
@@ -460,6 +538,7 @@ export function MenuBrowser({ user }) {
                         <button
                           type="button"
                           aria-label={`Remove ${line.item.name}`}
+                          disabled={busy}
                           onClick={() =>
                             setCart((current) =>
                               current.filter((row) => row.key !== line.key),
@@ -544,6 +623,23 @@ export function MenuBrowser({ user }) {
           )}
         </aside>
       </div>
+      {count > 0 && !summaryVisible && (
+        <div className="customer-cart-shortcut">
+          <div>
+            <ShoppingBag size={19} aria-hidden="true" />
+            <span>
+              <strong>
+                {count} {count === 1 ? "item" : "items"}
+              </strong>
+              <small>{money(subtotal)} subtotal</small>
+            </span>
+          </div>
+          <button type="button" onClick={showOrder}>
+            Review your order
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </section>
   );
 }

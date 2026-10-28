@@ -1,0 +1,979 @@
+.sage-staff {
+  --staff-ink: var(--ink, #1a2421);
+  --staff-muted: var(--text-secondary, var(--muted, #43564b));
+  --staff-surface: var(--surface, #fff);
+  --staff-panel: var(--neutral-soft, #f2f5ed);
+  --staff-border: var(--border, #d8e2d1);
+  --staff-control: var(--control-border, #778b7a);
+  --staff-brand: var(--primary, #1e4d3a);
+  --staff-warning: var(--warning, #805019);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  width: 100%;
+  color: var(--staff-ink);
+  container-type: inline-size;
+}
+.sage-staff :is(h1, h2, h3, p, ul, dl) {
+  margin: 0;
+}
+.sage-staff :is(button, input, select) {
+  font: inherit;
+}
+.sage-staff :is(button, a, input, select):focus-visible {
+  outline: 3px solid var(--staff-brand);
+  outline-offset: 3px;
+}
+.sage-staff .sage-page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+.sage-page-heading > div {
+  min-width: 0;
+  max-width: 720px;
+}
+.sage-staff .sage-page-heading h1 {
+  font-size: clamp(28px, 2.5vw, 39px);
+  font-weight: 600;
+  letter-spacing: -0.8px;
+  line-height: 1.2;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.sage-staff .sage-page-heading p {
+  font-size: 16px;
+  color: var(--staff-muted);
+  line-height: 1.6;
+  margin-top: 12px;
+}
+.sage-staff .eyebrow {
+  color: var(--staff-muted);
+  font-size: 12px;
+  letter-spacing: 1.3px;
+  font-weight: 600;
+}
+.sage-staff .sage-button,
+.sage-staff .sage-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  min-width: 48px;
+  margin: 0;
+  padding: 12px 20px;
+  border: 1px solid var(--staff-brand);
+  border-radius: 8px;
+  background: var(--staff-brand);
+  color: var(--df-color-on-brand, #fff);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+.sage-staff .sage-button:hover:not(:disabled) {
+  background: var(--primary-hover, #143729);
+}
+.sage-staff .sage-button--secondary,
+.sage-staff .sage-icon-button {
+  color: var(--staff-ink);
+  border-color: var(--staff-control);
+  background: var(--staff-surface);
+}
+.sage-staff .sage-button--secondary:hover:not(:disabled),
+.sage-staff .sage-icon-button:hover:not(:disabled) {
+  background: var(--staff-panel);
+}
+.sage-staff .sage-button--danger {
+  color: var(--danger, #923b26);
+  border-color: currentColor;
+  background: var(--danger-soft, #fff1eb);
+}
+.sage-staff .sage-button--danger:hover:not(:disabled) {
+  background: var(--danger-soft, #ffe4dc);
+}
+.sage-staff .sage-icon-button {
+  padding: 12px;
+  flex-shrink: 0;
+}
+.sage-staff
+  :is(.sage-button, .sage-icon-button, .sage-filter-chips button):disabled,
+.sage-staff fieldset:disabled .sage-button {
+  color: var(--admin-disabled-text, var(--staff-muted));
+  background: var(--admin-disabled-bg, var(--staff-panel));
+  border-color: var(--staff-control);
+  opacity: 1;
+  cursor: not-allowed;
+}
+.sage-staff svg {
+  flex-shrink: 0;
+}
+.dineflow-app
+  .app-content
+  .sage-staff
+  :is(.sage-button, .sage-icon-button, .sage-filter-chips button) {
+  min-height: 48px;
+  min-width: 48px;
+}
+.dineflow-app .app-content .sage-staff .sage-kds-ticket > footer .sage-button {
+  min-height: 56px;
+}
+.sage-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.sage-stat-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.sage-stat-grid article {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px;
+  border: 1px solid var(--staff-border);
+  border-radius: 16px;
+  background: var(--staff-surface);
+  min-width: 0;
+}
+.sage-stat-grid article > span {
+  color: var(--staff-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+.sage-stat-grid strong {
+  font-size: clamp(25px, 2.8vw, 36px);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  overflow-wrap: anywhere;
+}
+.sage-stat-grid small {
+  color: var(--staff-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.sage-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  min-width: 0;
+}
+.sage-field {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  flex: 0 1 190px;
+  min-width: 150px;
+  color: var(--staff-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.sage-field--search {
+  flex-basis: 340px;
+}
+.sage-staff .sage-field :is(input, select),
+.sage-ticket-prep :is(input, select) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 12px;
+  margin: 0;
+  border: 1px solid var(--staff-control);
+  border-radius: 8px;
+  color: var(--staff-ink);
+  background: var(--staff-surface);
+  font-size: 14px;
+}
+.sage-staff .sage-field input::placeholder {
+  color: var(--staff-muted);
+  opacity: 1;
+}
+.sage-field--search > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--staff-control);
+  border-radius: 8px;
+  background: var(--staff-surface);
+  padding-left: 12px;
+}
+.sage-staff .sage-field--search > div input {
+  border: 0;
+  background: transparent;
+}
+.sage-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.sage-filter-chips button {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px solid var(--staff-control);
+  border-radius: 999px;
+  color: var(--staff-ink);
+  background: var(--staff-surface);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.sage-filter-chips button[aria-pressed="true"] {
+  background: var(--staff-brand);
+  border-color: var(--staff-brand);
+  color: var(--df-color-on-brand, #fff);
+}
+.sage-staff .sage-freshness {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--staff-muted);
+}
+.sage-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  border: 1px solid var(--staff-border);
+  border-radius: 16px;
+  background: var(--staff-surface);
+  padding: 24px;
+  min-width: 0;
+}
+.sage-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.sage-panel-heading > div {
+  min-width: 0;
+}
+.sage-staff .sage-panel-heading h2 {
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 8px;
+}
+.sage-staff .sage-panel-heading p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--staff-muted);
+  margin-top: 8px;
+  max-width: 64ch;
+}
+.sage-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--staff-panel);
+  color: var(--staff-muted);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.sage-kds-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.sage-kds-ticket {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--staff-control);
+  border-top: 4px solid var(--staff-brand);
+  border-radius: 16px;
+  background: var(--staff-surface);
+  box-shadow: 0 2px 8px rgb(30 77 58 / 4%);
+}
+.sage-kds-ticket[data-attention="true"] {
+  border-top-color: var(--staff-warning);
+}
+.sage-kds-ticket > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 16px;
+}
+.sage-kds-ticket > header > div:first-child {
+  min-width: 0;
+}
+.sage-staff .sage-kds-ticket h2 {
+  margin-top: 8px;
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sage-ticket-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: capitalize;
+  color: var(--staff-muted);
+  font-size: 13px;
+}
+.sage-ticket-age {
+  display: grid;
+  grid-template-columns: 18px auto;
+  gap: 4px 8px;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--staff-ink);
+}
+.sage-ticket-age strong {
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+.sage-ticket-age > span {
+  grid-column: 1 / -1;
+  text-align: right;
+  color: var(--staff-muted);
+  font-size: 12px;
+}
+.sage-ticket-state {
+  padding: 0 24px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--staff-border);
+}
+.sage-staff .sage-attention-label {
+  color: var(--staff-warning);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.sage-staff .sage-kds-items {
+  padding: 8px 24px;
+  list-style: none;
+}
+.sage-kds-items li {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--staff-border);
+}
+.sage-kds-items li:last-child {
+  border: 0;
+}
+.sage-kds-items li > div {
+  min-width: 0;
+}
+.sage-item-quantity {
+  min-width: 32px;
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+.sage-kds-items strong {
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sage-staff .sage-kds-items p {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--staff-muted);
+  overflow-wrap: anywhere;
+}
+.sage-staff .sage-kds-items .sage-item-instructions {
+  background: var(--staff-panel);
+  padding: 8px;
+  border-radius: 4px;
+  color: var(--staff-ink);
+}
+.sage-staff .sage-ticket-note {
+  margin: 0 24px 16px;
+  padding: 12px;
+  background: var(--staff-panel);
+  color: var(--staff-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.sage-ticket-prep {
+  padding: 16px 24px;
+  border-top: 1px solid var(--staff-border);
+}
+.sage-ticket-prep fieldset {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.sage-ticket-prep legend {
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sage-ticket-prep label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.sage-staff .sage-ticket-prep p {
+  color: var(--staff-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.sage-kds-ticket > footer {
+  padding: 16px 24px 24px;
+}
+.sage-kds-ticket > footer .sage-button {
+  width: 100%;
+  min-height: 56px;
+  font-size: 16px;
+}
+.sage-kds-ticket > .ui-feedback {
+  margin: 8px 16px;
+}
+.sage-bill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+.sage-bill-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--staff-border);
+  border-radius: 12px;
+  background: var(--staff-surface);
+  min-width: 0;
+  width: 100%;
+  max-width: 440px;
+}
+.sage-bill-card > header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.sage-bill-card header > div {
+  min-width: 0;
+}
+.sage-bill-icon {
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--staff-panel);
+  color: var(--staff-brand);
+}
+.sage-card-kicker {
+  font-size: 12px;
+  color: var(--staff-muted);
+  font-weight: 500;
+}
+.sage-staff .sage-bill-card h3 {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  margin-top: 4px;
+}
+.sage-staff .sage-bill-card > p {
+  color: var(--staff-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.sage-bill-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--staff-border);
+}
+.sage-bill-amount span {
+  font-size: 13px;
+  color: var(--staff-muted);
+}
+.sage-bill-amount strong {
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.sage-bill-card .sage-button {
+  margin-top: auto;
+  width: 100%;
+}
+.sage-transactions {
+  display: flex;
+  flex-direction: column;
+}
+.sage-transaction {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--staff-border);
+  min-width: 0;
+}
+.sage-transaction:first-child {
+  padding-top: 0;
+}
+.sage-transaction:last-child {
+  border-bottom: 0;
+}
+.sage-transaction > div {
+  min-width: 0;
+}
+.sage-staff .sage-transaction h3 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.sage-staff .sage-transaction p,
+.sage-transaction small {
+  display: block;
+  margin-top: 4px;
+  color: var(--staff-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.sage-transaction-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.sage-transaction-value > strong {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.sage-transaction-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.sage-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  border-top: 1px solid var(--staff-border);
+  padding-top: 24px;
+}
+.sage-pagination > span {
+  font-size: 13px;
+  color: var(--staff-muted);
+}
+.sage-staff .sage-payment-review {
+  padding: 0;
+  margin: auto;
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  border: 1px solid var(--staff-control);
+  border-radius: 20px;
+  color: var(--staff-ink);
+  background: var(--staff-surface);
+  box-shadow: 0 16px 32px rgb(30 77 58 / 14%);
+  overflow: hidden;
+}
+.sage-payment-review:not([open]) {
+  display: none;
+}
+.sage-payment-review[open] {
+  display: flex;
+  flex-direction: column;
+}
+.sage-payment-review::backdrop {
+  background: rgb(12 29 21 / 48%);
+}
+.sage-payment-review > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px;
+  border-bottom: 1px solid var(--staff-border);
+}
+.sage-payment-review > header > div {
+  min-width: 0;
+}
+.sage-staff .sage-payment-review h2 {
+  margin-top: 8px;
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.sage-review-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sage-staff .sage-review-body > p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--staff-muted);
+}
+.sage-staff .sage-review-orders {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  padding: 0;
+}
+.sage-review-orders li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--staff-border);
+  padding: 12px 0;
+}
+.sage-review-orders span {
+  color: var(--staff-muted);
+}
+.sage-review-total {
+  padding: 24px;
+  background: var(--staff-panel);
+  border-radius: 12px;
+}
+.sage-review-total > div {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+.sage-review-total dt {
+  color: var(--staff-muted);
+  font-size: 14px;
+}
+.sage-review-total dd {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+.sage-payment-review > footer {
+  display: flex;
+  gap: 12px;
+  padding: 24px;
+  border-top: 1px solid var(--staff-border);
+}
+.sage-payment-review > footer .sage-button {
+  flex: 1;
+}
+.sage-service-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+.sage-table-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--staff-border);
+  border-radius: 16px;
+  background: var(--staff-surface);
+}
+.sage-table-card > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.sage-table-symbol {
+  font-size: 32px;
+  color: var(--staff-brand);
+  line-height: 1;
+}
+.sage-table-state {
+  display: inline-flex;
+  padding: 6px 12px;
+  border: 1px solid var(--staff-border);
+  border-radius: 999px;
+  background: var(--staff-panel);
+  color: var(--staff-ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.sage-table-state[data-status="available"] {
+  color: var(--staff-brand);
+  background: var(--primary-soft, #edf4eb);
+  border-color: var(--primary-border, #b8cbb7);
+}
+.sage-table-state[data-status="occupied"] {
+  border-color: var(--staff-control);
+}
+.sage-staff .sage-table-card h2 {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+  overflow-wrap: anywhere;
+}
+.sage-staff .sage-table-card > p {
+  font-size: 14px;
+  color: var(--staff-muted);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+.sage-table-session {
+  display: grid;
+  gap: 8px;
+  padding: 16px 0;
+  margin-top: 16px;
+  border-block: 1px solid var(--staff-border);
+}
+.sage-table-session strong {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.sage-table-session span {
+  font-size: 13px;
+  color: var(--staff-muted);
+  line-height: 1.5;
+}
+.sage-staff .sage-table-card .sage-table-estimate {
+  font-size: 13px;
+  margin-block: 16px 24px;
+}
+.sage-table-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: auto 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.sage-staff .sage-table-actions .sage-button {
+  padding: 12px 8px;
+  font-size: 13px;
+}
+.sage-staff .sage-service-note {
+  padding: 16px 24px;
+  border-radius: 12px;
+  background: var(--staff-panel);
+  color: var(--staff-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+@container (min-width: 650px) {
+  .sage-kds-grid,
+  .sage-service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (min-width: 1000px) {
+  .sage-kds-grid,
+  .sage-service-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@container (max-width: 750px) {
+  .sage-stat-grid--four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sage-transaction {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+  .sage-transaction-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 600px) {
+  .sage-staff {
+    gap: 20px;
+  }
+  .sage-staff .sage-page-heading {
+    gap: 16px;
+  }
+  .sage-staff .sage-page-heading h1 {
+    font-size: 28px;
+  }
+  .sage-staff .sage-page-heading p {
+    margin-top: 8px;
+  }
+  .sage-payments .sage-page-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    align-items: start;
+    column-gap: 16px;
+  }
+  .sage-payments .sage-refresh-action {
+    width: 48px;
+    padding: 12px;
+  }
+  .sage-payments .sage-refresh-action > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .sage-stat-grid,
+  .sage-stat-grid--four {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    border: 1px solid var(--staff-border);
+    border-radius: 12px;
+    background: var(--staff-surface);
+    overflow: hidden;
+  }
+  .sage-stat-grid article {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 56px;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .sage-stat-grid article + article {
+    border-top: 1px solid var(--staff-border);
+  }
+  .sage-stat-grid article > span {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .sage-stat-grid strong {
+    font-size: 24px;
+    line-height: 1.2;
+    text-align: right;
+    max-width: 14ch;
+  }
+  .sage-stat-grid small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .sage-panel,
+  .sage-bill-card,
+  .sage-table-card {
+    padding: 20px;
+  }
+  .sage-field {
+    flex: 1 1 145px;
+    min-width: 0;
+  }
+  .sage-field--search {
+    flex-basis: 100%;
+  }
+  .sage-filter-chips {
+    gap: 8px;
+  }
+  .sage-filter-chips button {
+    padding-inline: 14px;
+  }
+  .sage-kds-ticket > header {
+    padding: 20px 20px 16px;
+  }
+  .sage-ticket-state {
+    padding-inline: 20px;
+  }
+  .sage-staff .sage-kds-items {
+    padding-inline: 20px;
+  }
+  .sage-ticket-prep {
+    padding: 16px 20px;
+  }
+  .sage-staff .sage-ticket-note {
+    margin-inline: 20px;
+  }
+  .sage-kds-ticket > footer {
+    padding: 16px 20px 20px;
+  }
+  .sage-staff .sage-payment-review {
+    inset: auto 0 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    max-height: 92dvh;
+    border-radius: 20px 20px 0 0;
+    border-bottom: 0;
+  }
+  .sage-payment-review > header,
+  .sage-review-body {
+    padding: 20px;
+  }
+  .sage-payment-review > footer {
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .sage-payment-review > footer .sage-button {
+    padding-inline: 12px;
+  }
+  .sage-review-total {
+    padding: 20px;
+  }
+  .sage-review-total dd {
+    font-size: 28px;
+  }
+  .sage-staff .sage-service-note {
+    padding: 16px 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sage-staff *,
+  .sage-staff *::before,
+  .sage-staff *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

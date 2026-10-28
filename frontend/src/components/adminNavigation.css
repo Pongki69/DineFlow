@@ -1,0 +1,117 @@
+.admin-shell .admin-navigation--flat {
+  min-height: 0;
+  padding-block: 2px;
+}
+.admin-shell .admin-navigation--flat :is(a, button),
+.admin-shell .admin-tools-links a {
+  /* Theme colors must switch together to retain readable intermediate states. */
+  transition: none;
+}
+.admin-navigation--flat .admin-tools-trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 18px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+}
+.admin-navigation--flat .admin-tools-trigger:hover,
+.admin-navigation--flat .admin-tools-trigger.is-current {
+  background: var(--neutral-soft);
+  border-color: var(--primary-border);
+}
+.admin-shell--collapsed .admin-sidebar .admin-tools-trigger {
+  justify-content: center;
+  padding-inline: 10px;
+}
+.admin-shell .admin-tools-dialog {
+  width: min(650px, calc(100vw - 32px));
+  max-height: min(760px, calc(100dvh - 40px));
+  margin: auto;
+  padding: 22px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 80px #10271c33;
+}
+.admin-tools-dialog::backdrop {
+  background: #0c211966;
+  backdrop-filter: blur(2px);
+}
+.admin-tools-dialog > .admin-panel-heading {
+  padding: 0 0 18px;
+  align-items: flex-start;
+}
+.admin-tools-dialog h2 {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+.admin-tools-dialog .admin-panel-heading p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.admin-shell .admin-tools-search {
+  max-width: none;
+  margin-bottom: 18px;
+}
+.admin-shell .admin-tools-search input {
+  font-size: 14px;
+}
+.admin-tools-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.admin-tools-links > a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 58px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.admin-tools-links > a > span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.admin-tools-links > a > svg:last-child {
+  color: var(--muted);
+}
+.admin-tools-links > a:hover,
+.admin-tools-links > a[aria-current="page"] {
+  background: var(--primary-soft);
+  border-color: var(--primary-border);
+}
+.admin-tools-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+@media (max-width: 479px) {
+  .admin-shell .admin-tools-dialog {
+    padding: 18px;
+  }
+  .admin-tools-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

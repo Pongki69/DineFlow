@@ -69,7 +69,7 @@ test("riders can review a timed offer, accept it and navigate to pickup", async 
       },
     }),
   );
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("rider@example.test");
   await page
     .getByLabel("Password", { exact: true })

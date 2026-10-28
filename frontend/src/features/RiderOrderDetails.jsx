@@ -33,6 +33,7 @@ import { OrderItemDetails } from "../components/OrderItemDetails";
 import { Modal } from "../components/Modal";
 import { deliveryLabels } from "../components/CustomerOrderProgress";
 import "./workspaceSettings.css";
+import "./riderSage.css";
 
 const DeliveryEndpointsMap = lazy(() =>
   import("../components/DeliveryEndpointsMap").then((module) => ({
@@ -176,6 +177,15 @@ export function RiderOrderDetails() {
     (sum, item) => sum + Number(item.quantity),
     0,
   );
+  const active =
+    data &&
+    [
+      "assigned",
+      "accepted",
+      "arrived_at_restaurant",
+      "picked_up",
+      "in_transit",
+    ].includes(data.status);
   return (
     <section className="rider-order-details">
       <Link className="rider-history-back" to="/rider/history">
@@ -184,6 +194,18 @@ export function RiderOrderDetails() {
       </Link>
       <PageHeader
         title={data ? `Order ${data.order.order_number}` : "Order details"}
+        description="Recipient details, order contents, and your delivery record."
+        actions={
+          active && !loading && !error ? (
+            <Link
+              className="ui-button ui-button--primary rider-record-action"
+              to={`/rider/deliveries?delivery=${deliveryId}`}
+            >
+              Continue active delivery
+              <ChevronRight size={18} aria-hidden="true" />
+            </Link>
+          ) : undefined
+        }
       />
       {loading ? (
         <RiderScreenSkeleton variant="details" label="Loading order details" />

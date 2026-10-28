@@ -1,0 +1,407 @@
+.business-settings-page {
+  --business-muted: var(--muted, #4b5e54);
+  --business-input-border: #7f9387;
+  --business-disabled-background: var(--admin-disabled-bg, #edf1ee);
+  --business-disabled-text: var(--admin-disabled-text, #43574a);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+[data-theme="dark"] .business-settings-page {
+  --business-muted: var(--muted, #bdcfc2);
+  --business-input-border: #789082;
+  --business-disabled-background: var(--admin-disabled-bg, #2a3b30);
+  --business-disabled-text: var(--admin-disabled-text, #d4e4d9);
+}
+.business-settings-heading h1 {
+  margin: 0;
+}
+.business-settings-heading {
+  position: relative;
+  padding-right: 155px;
+}
+.business-settings-heading > .admin-form-status {
+  position: absolute;
+  top: 4px;
+  right: 0;
+}
+.business-settings-heading p {
+  margin-top: 10px;
+  max-width: 650px;
+  color: var(--business-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.business-settings-workspace {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.business-settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 300px);
+  align-items: start;
+  gap: 24px;
+}
+.business-settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.business-settings-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+.business-settings-card > header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.business-settings-page h2 {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.business-settings-card > header p {
+  color: var(--business-muted);
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.business-settings-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--neutral-soft);
+}
+.business-settings-fields {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+}
+.business-settings-fields--paired {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.business-settings-page .ui-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.business-settings-page
+  :is(.ui-field > label, .business-settings-color > label) {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.business-settings-page .ui-field input {
+  min-height: 46px;
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--business-input-border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+.business-settings-page .ui-field input::placeholder {
+  color: var(--business-muted);
+  opacity: 1;
+}
+.business-settings-page
+  :is(
+    .field-hint,
+    .business-settings-color small,
+    .business-settings-check small
+  ) {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--business-muted);
+  font-weight: 400;
+}
+.business-settings-color {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.business-settings-color > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.business-settings-color input[type="color"] {
+  width: 64px;
+  height: 46px;
+  padding: 5px;
+  flex-shrink: 0;
+  border: 1px solid var(--business-input-border);
+  border-radius: 7px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.business-settings-color > div > span {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 500;
+}
+.business-settings-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.business-settings-check input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+}
+.business-settings-check strong {
+  display: block;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.business-settings-check small {
+  display: block;
+  margin-top: 4px;
+}
+.business-settings-related {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 22px 18px 10px;
+}
+.business-settings-related-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink);
+}
+.business-settings-related > p {
+  color: var(--business-muted);
+  margin: 10px 0 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.business-settings-related nav {
+  display: flex;
+  flex-direction: column;
+}
+.business-settings-related a {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  min-height: 60px;
+  padding: 15px 0;
+  border-top: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--ink);
+}
+.business-settings-related a > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.business-settings-related a > svg:last-child {
+  margin-left: auto;
+}
+.business-settings-related a span {
+  min-width: 0;
+}
+.business-settings-related a strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.business-settings-related a small {
+  display: block;
+  font-size: 12px;
+  color: var(--business-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.business-settings-related a:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.business-settings-actions {
+  position: static;
+  bottom: 16px;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 6px 24px #12261a14;
+}
+.business-settings-actions[data-pinned="true"] {
+  position: sticky;
+}
+.business-settings-actions[data-pinned="false"] {
+  box-shadow: none;
+}
+.business-settings-actions[data-state="dirty"] {
+  border-color: var(--business-input-border);
+}
+.business-settings-fields input {
+  scroll-margin-block: 32px 135px;
+}
+.business-settings-card--appearance > header,
+.business-settings-card--notifications > header {
+  padding-block: 17px;
+}
+.business-settings-card--appearance .business-settings-fields,
+.business-settings-card--notifications .business-settings-fields {
+  padding-block: 18px;
+}
+.business-settings-actions > div:first-child {
+  min-width: 0;
+}
+.business-settings-actions strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.business-settings-actions p {
+  color: var(--business-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.business-settings-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.business-settings-page .business-settings-action-buttons .ui-button {
+  min-height: 46px;
+  border-radius: 7px;
+  padding: 11px 15px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.business-settings-page
+  .business-settings-action-buttons
+  .ui-button--secondary {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--business-input-border);
+}
+.business-settings-page .business-settings-action-buttons .ui-button:disabled {
+  opacity: 1;
+  background: var(--business-disabled-background);
+  border: 1px solid var(--business-input-border);
+  color: var(--business-disabled-text);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.business-settings-page fieldset:disabled input {
+  color: var(--ink);
+  opacity: 1;
+  cursor: wait;
+}
+@media (max-width: 1120px) {
+  .business-settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .business-settings-related nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 24px;
+  }
+  .business-settings-related {
+    padding-inline: 24px;
+  }
+}
+@media (max-width: 600px) {
+  .business-settings-heading {
+    padding-right: 0;
+  }
+  .business-settings-heading > .admin-form-status {
+    position: static;
+    float: right;
+    margin-left: 10px;
+  }
+  .business-settings-actions[data-pinned="true"] p {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .business-settings-actions[data-pinned="true"] {
+    gap: 10px;
+    padding: 12px;
+  }
+  .business-settings-page,
+  .business-settings-workspace,
+  .business-settings-layout {
+    gap: 20px;
+  }
+  .business-settings-heading p {
+    font-size: 13px;
+  }
+  .business-settings-card > header,
+  .business-settings-fields {
+    padding: 18px 16px;
+  }
+  .business-settings-fields--paired {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .business-settings-related {
+    padding: 18px 16px 8px;
+  }
+  .business-settings-related nav {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .business-settings-actions {
+    bottom: max(8px, env(safe-area-inset-bottom));
+    padding: 15px;
+    gap: 13px;
+  }
+  .business-settings-action-buttons {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: 100%;
+    gap: 8px;
+  }
+  .business-settings-page .business-settings-action-buttons .ui-button {
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+    padding-inline: 10px;
+  }
+}

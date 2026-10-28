@@ -26,13 +26,10 @@ const defaults = {
 
 export function WorkspaceSettings({ user, onUpdated }) {
   const links = visibleNavigation(user.permissions, user.roles);
-  const dashboardDefault = links.some(([, , path]) => path === "/dashboard")
-    ? "/dashboard"
-    : "";
   const [draft, setDraft] = useState({
     ...defaults,
     ...user.preferences,
-    home_page: user.preferences?.home_page || dashboardDefault,
+    home_page: user.preferences?.home_page || "",
   });
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -56,7 +53,7 @@ export function WorkspaceSettings({ user, onUpdated }) {
       setDraft({
         ...defaults,
         ...result.user.preferences,
-        home_page: result.user.preferences?.home_page || dashboardDefault,
+        home_page: result.user.preferences?.home_page || "",
       });
       setNotice("Preferences saved.");
     } catch (e) {

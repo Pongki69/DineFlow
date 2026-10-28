@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "types": ["react"],
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/design-lab/**/*.jsx",
+    "src/design-lab/model.js",
+    "src/design-lab/*.d.ts",
+    "src/mocks/productionTestData.js"
+  ],
+  "exclude": ["src/design-lab/**/*.test.jsx"]
+}

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 async function login(page, role = "customer") {
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill(`${role}@example.test`);
   await page
     .getByLabel("Password", { exact: true })
@@ -53,7 +53,7 @@ test("redesigned customer pages are accessible and navigation works with a keybo
 }, testInfo) => {
   const failures = [];
   page.on("pageerror", (error) => failures.push(error.message));
-  await page.goto("/");
+  await page.goto("/login");
   await expect(
     page.getByRole("heading", { name: "Welcome back." }),
   ).toBeVisible();

@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -46,6 +47,25 @@ function mockApi(handle) {
 const mount = () => render(<RiderDeliveries />, { wrapper: MemoryRouter });
 const assignmentCalls = () =>
   api.mock.calls.filter(([path]) => path.startsWith("/rider/assignments"));
+async function openAssignment(id) {
+  const picker = await screen.findByRole("combobox", {
+    name: "Jump to an active delivery",
+  });
+  fireEvent.change(picker, { target: { value: String(id) } });
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "Selected delivery",
+      exact: true,
+    }),
+  );
+  expect(picker.value).toBe(String(id));
+}
+async function openMoreActions(id) {
+  await openAssignment(id);
+  const summary = screen.getByText("More actions and details");
+  fireEvent.click(summary);
+  expect(summary.closest("details").open).toBe(true);
+}
 it("deduplicates manual refresh while keeping the refresh state recoverable", async () => {
   let finish;
   let calls = 0;
@@ -103,12 +123,16 @@ it("locks route edits during saving and preserves the saved drop-off order", asy
       });
     return Promise.resolve({ data: deliveries, delivery_order: saved });
   });
-  const { container } = mount();
-  await screen.findByText("Order DF-3");
+  mount();
+  const picker = await screen.findByRole("combobox", {
+    name: "Jump to an active delivery",
+  });
   const switchOrder = () =>
-    [...container.querySelectorAll(".rider-active-switcher button")].map(
-      (el) => el.textContent.match(/DF-\d+/)[0],
-    );
+    within(picker)
+      .getAllByRole("option")
+      .filter((option) => option.value)
+      .map((option) => option.textContent.match(/DF-\d+/)[0]);
+  expect(switchOrder()).toEqual(["DF-3", "DF-1", "DF-2"]);
   fireEvent.click(
     screen.getByRole("button", { name: "Route order", exact: true }),
   );
@@ -147,6 +171,7 @@ it("prevents repeated status submissions while an assignment is being updated", 
       : Promise.resolve({ data: [row(9, status)], delivery_order: [9] }),
   );
   mount();
+  await openAssignment(9);
   const action = await screen.findByRole("button", {
     name: "Arrived at restaurant",
   });
@@ -155,6 +180,12 @@ it("prevents repeated status submissions while an assignment is being updated", 
   expect(
     api.mock.calls.filter(([path]) => path.endsWith("/status")),
   ).toHaveLength(1);
+  const [path, options] = api.mock.calls.find(([endpoint]) =>
+    endpoint.endsWith("/status"),
+  );
+  expect(path).toBe("/rider/deliveries/9/status");
+  expect(options.method).toBe("PATCH");
+  expect(JSON.parse(options.body)).toEqual({ status: "arrived_at_restaurant" });
   expect(action.disabled).toBe(true);
   await act(async () => finish());
   await screen.findByRole("button", { name: "Pick up order" });
@@ -163,6 +194,7 @@ it("cancels unsuccessful-delivery reporting without changing status", async () =
   ask.mockResolvedValue(null);
   mockApi(() => Promise.resolve({ data: [row(9, "accepted")] }));
   mount();
+  await openMoreActions(9);
   fireEvent.click(
     await screen.findByRole("button", { name: "Mark delivery unsuccessful" }),
   );
@@ -191,6 +223,7 @@ it("submits failure only after the rider supplies a valid explicit reason", asyn
     ),
   );
   mount();
+  await openMoreActions(9);
   fireEvent.click(
     await screen.findByRole("button", { name: "Mark delivery unsuccessful" }),
   );

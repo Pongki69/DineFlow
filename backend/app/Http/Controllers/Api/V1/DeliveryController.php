@@ -100,7 +100,8 @@ class DeliveryController extends Controller
     {
         abort_unless($request->user()->hasPermission('settings.manage'), 403);
         $data = $request->validate(['name' => ['nullable', 'string', 'max:120'], 'address' => ['required', 'string', 'max:500'], 'latitude' => ['required', 'numeric', 'between:-90,90'], 'longitude' => ['required', 'numeric', 'between:-180,180'], 'phone' => ['nullable', 'string', 'max:32'], 'contact_email' => ['nullable', 'email', 'max:254'], 'opening_hours' => ['nullable', 'array']]);
-        RestaurantSetting::updateOrCreate(['key' => 'restaurant_location'], ['value' => $data]);
+        $existing = RestaurantSetting::where('key', 'restaurant_location')->value('value') ?? [];
+        RestaurantSetting::updateOrCreate(['key' => 'restaurant_location'], ['value' => array_replace($existing, $data)]);
         $audit->record($request->user(), 'restaurant.location_updated', null, $data, $request);
         return response()->json(['data' => $data]);
     }

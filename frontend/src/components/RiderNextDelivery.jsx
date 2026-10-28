@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -23,6 +24,7 @@ const nextStep = {
 };
 
 export function RiderNextDelivery({ delivery, activeCount }) {
+  const headingId = useId();
   const onWay = ["picked_up", "in_transit"].includes(delivery?.status);
   const [guidance, action] = nextStep[delivery?.status] || [
     "Open your deliveries for the next step.",
@@ -51,13 +53,11 @@ export function RiderNextDelivery({ delivery, activeCount }) {
         },
       ]
     : [];
+  const orderedStops = onWay ? [...stops].reverse() : stops;
   return (
-    <section
-      className="rider-next-delivery"
-      aria-labelledby="rider-next-heading"
-    >
+    <section className="rider-next-delivery" aria-labelledby={headingId}>
       <header>
-        <h2 id="rider-next-heading">Next delivery</h2>
+        <h2 id={headingId}>Next delivery</h2>
         <Link className="rider-page-link" to="/rider/deliveries">
           View all{activeCount ? ` (${activeCount})` : ""}{" "}
           <ArrowRight size={15} aria-hidden="true" />
@@ -98,7 +98,7 @@ export function RiderNextDelivery({ delivery, activeCount }) {
             ))}
           </ol>
           <div className="rider-next-addresses">
-            {stops.map(
+            {orderedStops.map(
               ({
                 key,
                 label,
@@ -141,7 +141,8 @@ export function RiderNextDelivery({ delivery, activeCount }) {
                   {phone && (
                     <a
                       className="rider-recipient-call-link"
-                      href={`tel:${phone}`}
+                      href={`tel:${phone.replace(/[^+\d]/g, "")}`}
+                      aria-label={`Call recipient at ${phone}`}
                     >
                       <Phone size={16} aria-hidden="true" />
                       {phone}
@@ -159,7 +160,7 @@ export function RiderNextDelivery({ delivery, activeCount }) {
                   {key === (onWay ? "dropoff" : "pickup") && (
                     <div className="rider-next-actions">
                       <Link
-                        className="workspace-action"
+                        className="workspace-action rider-next-primary-action"
                         to={`/rider/deliveries?delivery=${delivery.id}`}
                       >
                         {action}

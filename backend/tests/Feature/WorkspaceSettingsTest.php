@@ -46,6 +46,16 @@ it('requires authentication for preferences', function () {
     $this->putJson('/api/v1/me/preferences', [])->assertUnauthorized();
 });
 
+it('accepts the new workspace start pages only when the role can access them', function () {
+    $prefs = ['compact_view' => false, 'reduced_motion' => false, 'show_notification_badge' => true];
+    $manager = workspaceUser('manager');
+    $this->actingAs($manager)->putJson('/api/v1/me/preferences', [...$prefs, 'home_page' => '/admin/dashboard'])->assertOk();
+    $this->putJson('/api/v1/me/preferences', [...$prefs, 'home_page' => '/admin/orders'])->assertOk();
+    $this->putJson('/api/v1/me/preferences', [...$prefs, 'home_page' => '/admin/system-settings'])->assertUnprocessable();
+    $this->actingAs(workspaceUser('administrator'))->putJson('/api/v1/me/preferences', [...$prefs, 'home_page' => '/admin/outlets'])->assertOk();
+    $this->actingAs(workspaceUser('customer'))->putJson('/api/v1/me/preferences', [...$prefs, 'home_page' => '/admin/dashboard'])->assertUnprocessable();
+});
+
 it('separates rider active work from paginated history and keeps all counts private', function () {
     $rider = workspaceUser('rider');
     $other = workspaceUser('rider');

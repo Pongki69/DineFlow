@@ -64,7 +64,7 @@ for (const recorded of [true, false]) {
     await page.route("**/api/v1/notifications", (route) =>
       route.fulfill({ json: { data: [] } }),
     );
-    await page.goto("/");
+    await page.goto("/login");
     await page
       .getByLabel("Email", { exact: true })
       .fill("customer@example.test");

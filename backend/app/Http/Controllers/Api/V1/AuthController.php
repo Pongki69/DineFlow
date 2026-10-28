@@ -140,14 +140,14 @@ class AuthController extends Controller
         $user = $request->user();
         $pages = ['', '/account', '/settings'];
         $permissionPages = [
-            'dashboard.view' => ['/dashboard'], 'orders.manage' => ['/orders'],
+            'dashboard.view' => ['/dashboard'], 'orders.manage' => ['/orders', '/admin/orders'],
             'kitchen.orders.view' => ['/kitchen'], 'service.tables.view' => ['/service'],
             'reservations.manage' => ['/reservations'], 'payments.manage' => ['/payments'],
-            'payments.refund' => ['/payments'], 'deliveries.manage' => ['/admin/deliveries'],
+            'payments.refund' => ['/payments'], 'deliveries.manage' => ['/admin/deliveries', '/admin/dashboard', '/admin/tracking', '/admin/riders'],
             'reports.operations' => ['/reports'], 'reports.daily_transactions' => ['/cashier/summary'],
             'menu.manage' => ['/admin/menu'], 'users.manage' => ['/admin/users'],
             'audit.view' => ['/admin/audit'], 'floorplan.manage' => ['/admin/floor-plan'],
-            'settings.manage' => ['/admin/settings', '/admin/payment-settings', '/admin/business-settings', '/admin/delivery'],
+            'settings.manage' => ['/admin/settings', '/admin/payment-settings', '/admin/business-settings', '/admin/delivery', '/admin/outlets', '/admin/system-settings'],
         ];
         foreach ($permissionPages as $permission => $routes) {
             if ($user->hasPermission($permission)) $pages = array_merge($pages, $routes);

@@ -32,7 +32,7 @@ test("restaurant location presents directions, contacts and a readable weekly sc
       },
     }),
   );
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("customer@example.test");
   await page
     .getByLabel("Password", { exact: true })
@@ -111,7 +111,7 @@ test("restaurant details recover from errors and handle a missing pin", async ({
         })
       : route.fulfill({ json: { data: {} } }),
   );
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("customer@example.test");
   await page
     .getByLabel("Password", { exact: true })

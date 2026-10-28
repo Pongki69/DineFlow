@@ -9,6 +9,10 @@
     "test": "vitest run",
     "lint": "eslint src scripts e2e *.js",
     "test:e2e": "playwright test",
+    "check:design": "tsc --project tsconfig.design-lab.json && node scripts/check-design-tokens.mjs --check",
+    "test:design": "vitest run src/design-lab/components.test.jsx src/design-lab/model.test.js",
+    "test:design:e2e": "playwright test --config=playwright.design-lab.config.js",
+    "test:production": "playwright test --config=playwright.production.config.js",
     "format": "prettier --write src scripts e2e *.js",
     "format:check": "prettier --check src scripts e2e playwright.config.js eslint.config.js"
   },

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 async function signIn(page, remember) {
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("customer@example.test");
   await page
     .getByLabel("Password", { exact: true })
@@ -54,7 +54,7 @@ test("ordinary login has no persistent remember cookie and the controls are acce
   page,
   context,
 }) => {
-  await page.goto("/");
+  await page.goto("/login");
   await expect(
     page.getByLabel("Remember me", { exact: true }),
   ).not.toBeChecked();

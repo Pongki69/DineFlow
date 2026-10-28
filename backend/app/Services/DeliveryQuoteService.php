@@ -22,6 +22,8 @@ class DeliveryQuoteService
     public function quote(float $latitude, float $longitude, int $subtotalCents): array
     {
         $location = $this->location(); $policy = $this->policy();
+        if (($location['is_active'] ?? true) === false) throw ValidationException::withMessages(['delivery_address' => 'This restaurant is currently offline for delivery. Please choose pickup or try again later.']);
+        $this->assertOpen($location['opening_hours'] ?? []);
         if (! isset($location['latitude'], $location['longitude'])) throw ValidationException::withMessages(['delivery_address' => 'The restaurant delivery location has not been configured.']);
         $straightKm = $this->haversine((float) $location['latitude'], (float) $location['longitude'], $latitude, $longitude);
         if ($straightKm > (float) ($policy['radius_km'] ?? 8)) throw ValidationException::withMessages(['delivery_address' => 'This address is outside the restaurant delivery area.']);

@@ -25,7 +25,7 @@ test("customer can view and hide the delivery photo after completion", async ({
   await page.route("**/api/v1/deliveries/5/proof", (route) =>
     route.fulfill({ json: { data: { image: photo } } }),
   );
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("customer@example.test");
   await page
     .getByLabel("Password", { exact: true })
@@ -110,7 +110,7 @@ test("rider must upload a photo successfully before marking delivered", async ({
     delivered = true;
     return route.fulfill({ json: { data: { id: 5, status: "delivered" } } });
   });
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("rider@example.test");
   await page
     .getByLabel("Password", { exact: true })

@@ -1,0 +1,592 @@
+{
+  "schemaVersion": 1,
+  "source": "frontend/src/design-tokens.css",
+  "sourceSha256": "8b621c4f3bb4da8f71dcb65af5cc87d10df043367eaf3aca311597a061a30e12",
+  "method": "WCAG relative luminance; sRGB transfer threshold 0.04045; unrounded ratios determine pass/fail",
+  "scope": "Approved opaque token pairs only. Text target 7:1; meaningful UI boundaries/focus target 3:1. This is not a WCAG AAA conformance claim.",
+  "checksPerTheme": 30,
+  "passed": true,
+  "results": {
+    "light": [
+      {
+        "label": "ink on canvas",
+        "foreground": "#1A2421",
+        "background": "#F7F9F5",
+        "ratio": 15.038,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "ink on surface",
+        "foreground": "#1A2421",
+        "background": "#FFFFFF",
+        "ratio": 15.9304,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "ink on panel",
+        "foreground": "#1A2421",
+        "background": "#F2F5ED",
+        "ratio": 14.4582,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "ink on brand-panel",
+        "foreground": "#1A2421",
+        "background": "#E8EFE0",
+        "ratio": 13.544,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "secondary on canvas",
+        "foreground": "#3F5147",
+        "background": "#F7F9F5",
+        "ratio": 7.9956,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "secondary on surface",
+        "foreground": "#3F5147",
+        "background": "#FFFFFF",
+        "ratio": 8.4701,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "secondary on panel",
+        "foreground": "#3F5147",
+        "background": "#F2F5ED",
+        "ratio": 7.6873,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "secondary on brand-panel",
+        "foreground": "#3F5147",
+        "background": "#E8EFE0",
+        "ratio": 7.2012,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "brand on canvas",
+        "foreground": "#1E4D3A",
+        "background": "#F7F9F5",
+        "ratio": 9.1024,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "brand on surface",
+        "foreground": "#1E4D3A",
+        "background": "#FFFFFF",
+        "ratio": 9.6425,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "brand on panel",
+        "foreground": "#1E4D3A",
+        "background": "#F2F5ED",
+        "ratio": 8.7514,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "brand on brand-panel",
+        "foreground": "#1E4D3A",
+        "background": "#E8EFE0",
+        "ratio": 8.198,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "button label on brand",
+        "foreground": "#FFFFFF",
+        "background": "#1E4D3A",
+        "ratio": 9.6425,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "button label on brand-hover",
+        "foreground": "#FFFFFF",
+        "background": "#143729",
+        "ratio": 13.0578,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "button label on brand-active",
+        "foreground": "#FFFFFF",
+        "background": "#0F2C20",
+        "ratio": 14.9846,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "pending badge",
+        "foreground": "#704000",
+        "background": "#FFF4DC",
+        "ratio": 7.937,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "progress badge",
+        "foreground": "#10524C",
+        "background": "#E3F4EF",
+        "ratio": 7.9084,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "success badge",
+        "foreground": "#1E4D3A",
+        "background": "#E8EFE0",
+        "ratio": 8.198,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "danger badge",
+        "foreground": "#87320C",
+        "background": "#FFF0E8",
+        "ratio": 7.5776,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "neutral badge",
+        "foreground": "#3F5147",
+        "background": "#F2F5ED",
+        "ratio": 7.6873,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "disabled control label",
+        "foreground": "#3F5147",
+        "background": "#E8EFE0",
+        "ratio": 7.2012,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "selected text",
+        "foreground": "#143729",
+        "background": "#D5E5CA",
+        "ratio": 9.8803,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "input boundary on canvas",
+        "foreground": "#768573",
+        "background": "#F7F9F5",
+        "ratio": 3.6896,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "focus indicator on canvas",
+        "foreground": "#1E4D3A",
+        "background": "#F7F9F5",
+        "ratio": 9.1024,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "input boundary on surface",
+        "foreground": "#768573",
+        "background": "#FFFFFF",
+        "ratio": 3.9085,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "focus indicator on surface",
+        "foreground": "#1E4D3A",
+        "background": "#FFFFFF",
+        "ratio": 9.6425,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "input boundary on panel",
+        "foreground": "#768573",
+        "background": "#F2F5ED",
+        "ratio": 3.5473,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "focus indicator on panel",
+        "foreground": "#1E4D3A",
+        "background": "#F2F5ED",
+        "ratio": 8.7514,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "input boundary on brand-panel",
+        "foreground": "#768573",
+        "background": "#E8EFE0",
+        "ratio": 3.323,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "focus indicator on brand-panel",
+        "foreground": "#1E4D3A",
+        "background": "#E8EFE0",
+        "ratio": 8.198,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      }
+    ],
+    "dark": [
+      {
+        "label": "ink on canvas",
+        "foreground": "#F4F8EF",
+        "background": "#101A16",
+        "ratio": 16.5231,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "ink on surface",
+        "foreground": "#F4F8EF",
+        "background": "#13221C",
+        "ratio": 15.3306,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "ink on panel",
+        "foreground": "#F4F8EF",
+        "background": "#1B2C23",
+        "ratio": 13.6394,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "ink on brand-panel",
+        "foreground": "#F4F8EF",
+        "background": "#23362A",
+        "ratio": 11.9566,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "secondary on canvas",
+        "foreground": "#C1D2C2",
+        "background": "#101A16",
+        "ratio": 11.2286,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "secondary on surface",
+        "foreground": "#C1D2C2",
+        "background": "#13221C",
+        "ratio": 10.4182,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "secondary on panel",
+        "foreground": "#C1D2C2",
+        "background": "#1B2C23",
+        "ratio": 9.2689,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "secondary on brand-panel",
+        "foreground": "#C1D2C2",
+        "background": "#23362A",
+        "ratio": 8.1253,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "brand on canvas",
+        "foreground": "#C5DDBD",
+        "background": "#101A16",
+        "ratio": 12.2328,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "brand on surface",
+        "foreground": "#C5DDBD",
+        "background": "#13221C",
+        "ratio": 11.3499,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "brand on panel",
+        "foreground": "#C5DDBD",
+        "background": "#1B2C23",
+        "ratio": 10.0978,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "brand on brand-panel",
+        "foreground": "#C5DDBD",
+        "background": "#23362A",
+        "ratio": 8.852,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "button label on brand",
+        "foreground": "#143729",
+        "background": "#C5DDBD",
+        "ratio": 8.9859,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "button label on brand-hover",
+        "foreground": "#143729",
+        "background": "#DAE9D1",
+        "ratio": 10.2953,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "button label on brand-active",
+        "foreground": "#143729",
+        "background": "#B1CFAA",
+        "ratio": 7.6948,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "pending badge",
+        "foreground": "#FFE1A6",
+        "background": "#362B15",
+        "ratio": 10.9519,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "progress badge",
+        "foreground": "#B7F1E2",
+        "background": "#14382F",
+        "ratio": 10.2011,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "success badge",
+        "foreground": "#D0EBBF",
+        "background": "#203A27",
+        "ratio": 9.6216,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "danger badge",
+        "foreground": "#FFCCB4",
+        "background": "#3D241A",
+        "ratio": 9.9259,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "neutral badge",
+        "foreground": "#D7E4D7",
+        "background": "#26392E",
+        "ratio": 9.3538,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "disabled control label",
+        "foreground": "#C1D2C2",
+        "background": "#23362A",
+        "ratio": 8.1253,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "selected text",
+        "foreground": "#F4F8EF",
+        "background": "#38543B",
+        "ratio": 7.8098,
+        "minimum": 7,
+        "kind": "text",
+        "passed": true
+      },
+      {
+        "label": "input boundary on canvas",
+        "foreground": "#819985",
+        "background": "#101A16",
+        "ratio": 5.7802,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "focus indicator on canvas",
+        "foreground": "#B6D8AA",
+        "background": "#101A16",
+        "ratio": 11.3358,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "input boundary on surface",
+        "foreground": "#819985",
+        "background": "#13221C",
+        "ratio": 5.3631,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "focus indicator on surface",
+        "foreground": "#B6D8AA",
+        "background": "#13221C",
+        "ratio": 10.5177,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "input boundary on panel",
+        "foreground": "#819985",
+        "background": "#1B2C23",
+        "ratio": 4.7714,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "focus indicator on panel",
+        "foreground": "#B6D8AA",
+        "background": "#1B2C23",
+        "ratio": 9.3574,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "input boundary on brand-panel",
+        "foreground": "#819985",
+        "background": "#23362A",
+        "ratio": 4.1827,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      },
+      {
+        "label": "focus indicator on brand-panel",
+        "foreground": "#B6D8AA",
+        "background": "#23362A",
+        "ratio": 8.2029,
+        "minimum": 3,
+        "kind": "ui",
+        "passed": true
+      }
+    ]
+  },
+  "rawRequestedComparisons": [
+    {
+      "label": "requested secondary",
+      "foreground": "#5A6B63",
+      "background": "#FFFFFF",
+      "ratio": 5.6482,
+      "passesNormalTextAAA": false
+    },
+    {
+      "label": "requested pending accent",
+      "foreground": "#D97706",
+      "background": "#FFFFFF",
+      "ratio": 3.1858,
+      "passesNormalTextAAA": false
+    },
+    {
+      "label": "requested progress accent",
+      "foreground": "#0D9488",
+      "background": "#FFFFFF",
+      "ratio": 3.7443,
+      "passesNormalTextAAA": false
+    },
+    {
+      "label": "requested danger accent",
+      "foreground": "#C2410C",
+      "background": "#FFFFFF",
+      "ratio": 5.1784,
+      "passesNormalTextAAA": false
+    },
+    {
+      "label": "requested olive accent",
+      "foreground": "#8F9E82",
+      "background": "#FFFFFF",
+      "ratio": 2.8451,
+      "passesNormalTextAAA": false
+    }
+  ]
+}

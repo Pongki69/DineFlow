@@ -8,6 +8,7 @@ import { chairPositions, defaultChairLayout } from "./floorPlanGeometry";
 import { LoaderCircle } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api } from "./api";
+import "./features/staffSage.css";
 const FloorScene = lazy(() =>
   import("./FloorScene").then((module) => ({ default: module.FloorScene })),
 );
@@ -1173,30 +1174,69 @@ export function ReservationDesk({ user = { permissions: [] } }) {
 }
 
 export function TableOccupancy() {
-  const [loading, setLoading] = useState(true);
   const ask = usePrompt();
+  const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [tables, setTables] = useState([]);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [zone, setZone] = useState("");
+  const [floor, setFloor] = useState("");
+  const [status, setStatus] = useState("");
+  const [query, setQuery] = useState("");
+  const [pending, setPending] = useState({});
+  const [now, setNow] = useState(Date.now);
+  const locks = useRef(new Set());
+  const mounted = useRef(true);
+  const requestVersion = useRef(0);
   async function load() {
-    setError("");
+    const version = ++requestVersion.current;
+    setRefreshing(true);
     try {
-      const d = await api("/service/tables");
-      setTables(d.data || []);
-    } catch (e) {
-      setError(e.message);
+      const result = await api("/service/tables");
+      if (!mounted.current || version !== requestVersion.current) return;
+      setTables(result.data || []);
+      setHasLoaded(true);
+      setError("");
+      setNow(Date.now());
+    } catch (failure) {
+      if (mounted.current && version === requestVersion.current)
+        setError(failure.message);
     } finally {
-      setLoading(false);
+      if (mounted.current && version === requestVersion.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }
   useEffect(() => {
+    mounted.current = true;
     load();
-    const id = setInterval(load, 30000);
-    return () => clearInterval(id);
+    const timer = setInterval(() => {
+      setNow(Date.now());
+      if (!document.hidden) load();
+    }, 30000);
+    return () => {
+      mounted.current = false;
+      requestVersion.current += 1;
+      clearInterval(timer);
+    };
   }, []);
-  async function change(table, status) {
+  async function change(table, next) {
+    if (
+      locks.current.has(table.id) ||
+      table.is_active === false ||
+      table.operational_status === next
+    )
+      return;
+    locks.current.add(table.id);
+    setPending((current) => ({ ...current, [table.id]: true }));
+    setNotice("");
+    setError("");
     try {
       let estimate = null;
-      if (status === "occupied") {
+      if (next === "occupied") {
         const suggested = new Date(Date.now() + 90 * 60000);
         const local = new Date(
           suggested.getTime() - suggested.getTimezoneOffset() * 60000,
@@ -1208,64 +1248,316 @@ export function TableOccupancy() {
           local,
         );
         if (!entered) return;
-        estimate = new Date(entered).toISOString();
+        const enteredDate = new Date(entered);
+        if (
+          !Number.isFinite(enteredDate.getTime()) ||
+          enteredDate.getTime() <= Date.now()
+        )
+          throw new Error(
+            "Choose a valid future time for the table availability estimate.",
+          );
+        estimate = enteredDate.toISOString();
       }
-      await api(`/service/tables/${table.id}/occupancy`, {
+      await api("/service/tables/" + table.id + "/occupancy", {
         method: "PATCH",
-        body: JSON.stringify({ status, expected_available_at: estimate }),
+        body: JSON.stringify({ status: next, expected_available_at: estimate }),
       });
+      if (!mounted.current) return;
+      setNotice("Table " + table.table_number + " is now " + next + ".");
       await load();
-    } catch (e) {
-      setError(e.message);
+    } catch (failure) {
+      if (mounted.current) {
+        setError(failure.message);
+        if (failure.uncertain) await load();
+      }
+    } finally {
+      locks.current.delete(table.id);
+      if (mounted.current)
+        setPending((current) => ({ ...current, [table.id]: false }));
     }
   }
+  const zones = [
+    ...new Set(tables.map((table) => table.zone).filter(Boolean)),
+  ].sort();
+  const floors = [
+    ...new Map(
+      tables
+        .filter((table) => table.floor_id != null)
+        .map((table) => [
+          String(table.floor_id),
+          table.floor?.name || "Floor " + table.floor_id,
+        ]),
+    ).entries(),
+  ];
+  const statuses = [
+    ["available", "Available"],
+    ["occupied", "Occupied"],
+    ["cleaning", "Cleaning"],
+    ["unavailable", "Unavailable"],
+  ];
+  const visible = tables.filter(
+    (table) =>
+      (!zone || table.zone === zone) &&
+      (!floor || String(table.floor_id) === floor) &&
+      (!status || table.operational_status === status) &&
+      (!query ||
+        [table.table_number, table.zone]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query.toLowerCase())),
+  );
   return (
-    <section className="welcome">
-      <span className="eyebrow">LIVE SERVICE</span>
-      <h1>Table occupancy</h1>
-      <p>
-        Availability estimates use staff-entered times and reservation
-        schedules. Unknown departure times remain uncertain.
-      </p>
-      {loading && <Skeleton label="Loading your content" />}
-      {!loading && !error && tables.length === 0 && (
-        <EmptyState
-          title="Every great service starts with a table"
-          description="Add and publish tables in the floor plan to get started."
-        />
-      )}
-      {error && <Feedback onRetry={load}>{error}</Feedback>}
-      <div className="staff-list">
-        {tables.map((table) => (
-          <article key={table.id}>
-            <div>
-              <strong>
-                {table.table_number} · {table.operational_status}
-              </strong>
-              <small>
-                Capacity {table.capacity}
-                {table.expected_available_at
-                  ? ` · Estimated ${new Date(table.expected_available_at).toLocaleTimeString()}`
-                  : " · No departure estimate"}
-              </small>
-            </div>
-            <div>
-              <button onClick={() => change(table, "occupied")}>
-                Occupied
-              </button>
-              <button onClick={() => change(table, "cleaning")}>
-                Cleaning
-              </button>
-              <button onClick={() => change(table, "available")}>
-                Available
-              </button>
-              <button onClick={() => change(table, "unavailable")}>
-                Unavailable
-              </button>
-            </div>
+    <section className="welcome sage-staff sage-service">
+      <header className="sage-page-heading">
+        <div>
+          <span className="eyebrow">DINING ROOM SERVICE</span>
+          <h1>Every table, well looked after.</h1>
+          <p>
+            Follow the room at a glance. Seat your guests and keep the next
+            table ready.
+          </p>
+        </div>
+        <button
+          className="sage-button sage-button--secondary"
+          onClick={load}
+          disabled={refreshing}
+          aria-busy={refreshing}
+        >
+          {refreshing ? "Refreshing…" : "Refresh tables"}
+        </button>
+      </header>
+      <div className="sage-stat-grid sage-stat-grid--four">
+        {statuses.map(([value, label]) => (
+          <article key={value}>
+            <span>{label}</span>
+            <strong>
+              {loading || !hasLoaded
+                ? "—"
+                : tables.filter(
+                    (table) =>
+                      table.operational_status === value &&
+                      table.is_active !== false,
+                  ).length}
+            </strong>
+            <small>Active tables</small>
           </article>
         ))}
       </div>
+      <div className="sage-toolbar">
+        <label className="sage-field sage-field--search">
+          Find a table
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Table number or area"
+          />
+        </label>
+        {zones.length > 0 && (
+          <label className="sage-field">
+            Dining area
+            <select
+              value={zone}
+              onChange={(event) => setZone(event.target.value)}
+            >
+              <option value="">All areas</option>
+              {zones.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {(floors.length > 1 || floor) && (
+          <label className="sage-field">
+            Floor
+            <select
+              value={floor}
+              onChange={(event) => setFloor(event.target.value)}
+            >
+              <option value="">All floors</option>
+              {floors.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label className="sage-field">
+          Status
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+          >
+            <option value="">All statuses</option>
+            {statuses.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {(query || zone || floor || status) && (
+          <button
+            className="sage-button sage-button--secondary"
+            onClick={() => {
+              setQuery("");
+              setZone("");
+              setFloor("");
+              setStatus("");
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+      <p className="sage-freshness">
+        {loading
+          ? "Connecting to table service…"
+          : !hasLoaded
+            ? "Table status unavailable. Refresh to reconnect."
+            : visible.length +
+              " of " +
+              tables.length +
+              (tables.length === 1 ? " table" : " tables") +
+              " · checks every 30 seconds"}
+      </p>
+      {loading && <Skeleton label="Loading dining room tables" />}
+      {error && (
+        <Feedback onRetry={load}>
+          {error}
+          {tables.length > 0 && " Last loaded table states remain visible."}
+        </Feedback>
+      )}
+      {notice && <Feedback tone="success">{notice}</Feedback>}
+      {!loading && !error && visible.length === 0 && (
+        <EmptyState
+          title={
+            tables.length
+              ? "No tables match this view"
+              : "Your dining room starts here"
+          }
+          description={
+            tables.length
+              ? "Choose another area or clear the filters to see more tables."
+              : "Tables appear after they are added to the restaurant floor plan."
+          }
+        />
+      )}
+      <div className="sage-service-grid">
+        {visible.map((table) => {
+          const session = table.current_session || table.currentSession;
+          const opened = session?.opened_at
+            ? new Date(session.opened_at)
+            : null;
+          const elapsed =
+            opened && Number.isFinite(opened.getTime())
+              ? Math.max(0, Math.floor((now - opened.getTime()) / 60000))
+              : null;
+          const available = table.expected_available_at
+            ? new Date(table.expected_available_at)
+            : null;
+          const hasEstimate = available && Number.isFinite(available.getTime());
+          const busy = !!pending[table.id];
+          return (
+            <article
+              className="sage-table-card"
+              key={table.id}
+              data-status={table.operational_status}
+              aria-label={"Table " + table.table_number}
+              aria-busy={busy}
+            >
+              <header>
+                <span className="sage-table-symbol" aria-hidden="true">
+                  ▦
+                </span>
+                <span
+                  className="sage-table-state"
+                  data-status={table.operational_status}
+                >
+                  {table.is_active === false
+                    ? "Inactive"
+                    : table.operational_status}
+                </span>
+              </header>
+              <h2>{table.table_number}</h2>
+              <p>
+                {table.zone ||
+                  (table.floor_id != null
+                    ? table.floor?.name || "Floor " + table.floor_id
+                    : "Dining room")}{" "}
+                · {table.capacity} seats
+              </p>
+              <div className="sage-table-session">
+                {session ? (
+                  <>
+                    <strong>
+                      {session.guest_count || "—"} guests
+                      {elapsed === null ? "" : " · " + elapsed + " min seated"}
+                    </strong>
+                    <span>Open dining session</span>
+                  </>
+                ) : (
+                  <>
+                    <strong>
+                      {table.operational_status === "available"
+                        ? "Ready for your next guests"
+                        : table.operational_status === "cleaning"
+                          ? "Getting ready for the next party"
+                          : "No open dining session"}
+                    </strong>
+                    <span>
+                      {table.operational_status === "unavailable"
+                        ? "Temporarily out of service"
+                        : "Capacity " + table.capacity}
+                    </span>
+                  </>
+                )}
+              </div>
+              <p className="sage-table-estimate">
+                {hasEstimate
+                  ? "Estimated available " +
+                    available.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Availability time not estimated"}
+              </p>
+              <fieldset
+                className="sage-table-actions"
+                disabled={busy || table.is_active === false}
+              >
+                <legend className="sr-only">
+                  Update table {table.table_number}
+                </legend>
+                {statuses.map(([value, label]) => (
+                  <button
+                    key={value}
+                    className={
+                      "sage-button " +
+                      (value === "occupied" &&
+                      table.operational_status === "available"
+                        ? ""
+                        : "sage-button--secondary")
+                    }
+                    disabled={table.operational_status === value}
+                    aria-label={
+                      "Mark table " + table.table_number + " " + value
+                    }
+                    onClick={() => change(table, value)}
+                  >
+                    {busy ? "Updating…" : label}
+                  </button>
+                ))}
+              </fieldset>
+            </article>
+          );
+        })}
+      </div>
+      <p className="sage-service-note">
+        Availability times are staff estimates. A table with an unpaid dining
+        bill must be settled before it can be cleared.
+      </p>
     </section>
   );
 }

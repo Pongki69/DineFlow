@@ -25,7 +25,7 @@ test("rider status stays visible on every page and goes online only on request",
   });
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("rider@example.test");
   await page
     .getByLabel("Password", { exact: true })

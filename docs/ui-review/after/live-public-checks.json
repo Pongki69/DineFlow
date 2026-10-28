@@ -1,0 +1,24 @@
+[
+  {
+    "device": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "url": "http://localhost:5173/",
+    "menu": "empty",
+    "violations": 0,
+    "uncaughtErrors": 0
+  },
+  {
+    "device": "mobile",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "url": "http://localhost:5173/",
+    "menu": "empty",
+    "violations": 0,
+    "uncaughtErrors": 0
+  }
+]

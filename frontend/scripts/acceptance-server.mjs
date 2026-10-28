@@ -39,6 +39,9 @@ const env = {
 for (const args of [
   ["migrate:fresh", "--force"],
   ["db:seed", "--class=Database\\Seeders\\AcceptanceSeeder", "--force"],
+  ...(process.env.DINEFLOW_UI_REVIEW_FIXTURES === "1"
+    ? [["db:seed", "--class=Database\\Seeders\\UiReviewSeeder", "--force"]]
+    : []),
 ]) {
   const result = spawnSync(php, ["artisan", ...args], {
     cwd: backend,

@@ -45,6 +45,7 @@ const map = {
   getContainer: () => document.body,
 };
 const openCustomerPopup = vi.fn();
+const scrollMapIntoView = vi.fn();
 const deliveries = [1, 2].map((id) => ({
   id,
   status: "in_transit",
@@ -71,6 +72,10 @@ const response = {
 };
 beforeEach(() => {
   api.mockResolvedValue(response);
+  Object.defineProperty(document.body, "scrollIntoView", {
+    configurable: true,
+    value: scrollMapIntoView,
+  });
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -84,6 +89,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+  delete document.body.scrollIntoView;
 });
 
 it("loads all active stops, keeps paired order, and never starts GPS without a click", async () => {
@@ -157,9 +163,17 @@ it("keeps editable drop-offs in fullscreen, enables wheel zoom, and exits with E
   await screen.findByText("3 km · about 9 min");
   expect(screen.getByTestId("map").dataset.wheel).toBe("true");
   fireEvent.click(
-    screen.getByRole("button", { name: "Fullscreen", exact: true }),
+    screen.getByRole("button", { name: "Enter fullscreen", exact: true }),
   );
-  await screen.findByRole("dialog", { name: "Your delivery route" });
+  const dialog = await screen.findByRole("dialog", {
+    name: "Route & tracking",
+  });
+  expect(dialog.getAttribute("aria-modal")).toBe("true");
+  expect(
+    screen
+      .getByRole("button", { name: "Exit fullscreen" })
+      .getAttribute("aria-expanded"),
+  ).toBe("true");
   expect(
     screen.getByRole("button", { name: "Move DF-2 earlier" }).disabled,
   ).toBe(false);
@@ -167,6 +181,11 @@ it("keeps editable drop-offs in fullscreen, enables wheel zoom, and exits with E
   fireEvent.keyDown(document, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(document.body.style.overflow).toBe("");
+  expect(
+    screen
+      .getByRole("button", { name: "Enter fullscreen" })
+      .getAttribute("aria-expanded"),
+  ).toBe("false");
 });
 
 it("shows per-stop ETAs and overlays red only for returned congestion", async () => {
@@ -209,7 +228,7 @@ it("shows per-stop ETAs and overlays red only for returned congestion", async ()
   ).toBeTruthy();
   expect(
     screen.getAllByTestId("route-line").map((el) => el.dataset.color),
-  ).toEqual(["#ffffff", "#2563eb", "#c43d38"]);
+  ).toEqual(["#ffffff", "#5374b8", "#c43d38"]);
 });
 
 it("keeps the store after the last delivery and requests a return route", async () => {
@@ -256,7 +275,7 @@ it("focuses the chosen customer on the map and opens its pin without reordering 
   fireEvent.click(stop);
   expect(map.setView).toHaveBeenCalledWith(
     [deliveries[1].order.destination.latitude, 121.25],
-    16,
+    19,
     {
       animate: false,
     },
@@ -266,6 +285,57 @@ it("focuses the chosen customer on the map and opens its pin without reordering 
   expect(
     screen.getByRole("button", { name: "Move DF-2 earlier" }).disabled,
   ).toBe(true);
+  expect(
+    api.mock.calls.every(
+      ([, options]) =>
+        JSON.stringify(JSON.parse(options.body).delivery_ids) === "[1,2]",
+    ),
+  ).toBe(true);
+});
+
+it("keeps the page position on initial assignment focus and scrolls the map after explicit rider selection", async () => {
+  function SelectedAssignment() {
+    const [selected, setSelected] = React.useState(1);
+    return (
+      <RiderRoutePlanner
+        deliveries={deliveries}
+        selectedDeliveryId={selected}
+        onSelectDelivery={setSelected}
+      />
+    );
+  }
+  render(<SelectedAssignment />);
+  await screen.findByText("3 km · about 9 min");
+  await waitFor(() =>
+    expect(map.setView).toHaveBeenCalledWith(
+      [deliveries[0].order.destination.latitude, 121.25],
+      19,
+      { animate: false },
+    ),
+  );
+  expect(openCustomerPopup).toHaveBeenCalled();
+  expect(scrollMapIntoView).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: "Show DF-2 on map" }));
+  await waitFor(() =>
+    expect(map.setView).toHaveBeenLastCalledWith(
+      [deliveries[1].order.destination.latitude, 121.25],
+      19,
+      { animate: false },
+    ),
+  );
+  expect(scrollMapIntoView).toHaveBeenCalledWith({
+    block: "nearest",
+    behavior: "smooth",
+  });
+  expect(
+    screen
+      .getByRole("button", { name: "Show DF-2 on map" })
+      .getAttribute("aria-pressed"),
+  ).toBe("true");
+  expect(JSON.parse(api.mock.calls.at(-1)[1].body).delivery_ids).toEqual([
+    1, 2,
+  ]);
 });
 
 it("does not offer map focus when a customer has no valid pin", async () => {

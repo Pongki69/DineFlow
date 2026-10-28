@@ -25,7 +25,8 @@ export function CountUp({ value, decimals = 0 }) {
   }, [target]);
 
   return (
-    <span className="count-up" aria-label={target.toFixed(decimals)}>
+    <span className="count-up">
+      <span className="sr-only">{target.toFixed(decimals)}</span>
       <span aria-hidden="true">{display.toFixed(decimals)}</span>
     </span>
   );

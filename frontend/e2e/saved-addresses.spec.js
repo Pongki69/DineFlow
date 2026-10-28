@@ -43,7 +43,7 @@ test("customers manage presets before ordering and checkout loads their default"
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e8eee4"/></svg>',
     }),
   );
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("customer@example.test");
   await page
     .getByLabel("Password", { exact: true })

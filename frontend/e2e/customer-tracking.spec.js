@@ -40,7 +40,7 @@ test("completed orders stay compact with keyboard-accessible progress, map and t
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e8eee9"/></svg>',
     }),
   );
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("customer@example.test");
   await page
     .getByLabel("Password", { exact: true })
@@ -153,7 +153,7 @@ test("customers follow kitchen and rider progress without refreshing", async ({
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#e8eee9"/></svg>',
     }),
   );
-  await page.goto("/");
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("customer@example.test");
   await page
     .getByLabel("Password", { exact: true })
