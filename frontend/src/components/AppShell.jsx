@@ -38,6 +38,11 @@ import { Notifications } from "./Notifications";
 import { brandTheme } from "./brandTheme";
 import { AdminShell } from "./AdminShell";
 import { useWorkspaceTheme } from "./useWorkspaceTheme";
+import {
+  readTemporaryRiderLocation,
+  setTemporaryRiderIdentity,
+} from "./temporaryRiderLocation";
+import "./temporaryRiderLocation.css";
 
 const icons = {
   "/menu": UtensilsCrossed,
@@ -108,10 +113,13 @@ function Navigation({ user, branding, onNavigate, onSignOut }) {
           </small>
         </span>
       </Link>
-      <div className="workspace-restaurant" title={branding.name}>
-        <UtensilsCrossed size={16} aria-hidden="true" />
-        <span>{branding.name}</span>
-      </div>
+      {branding.name?.trim() &&
+        !/^dineflow\.?$/i.test(branding.name.trim()) && (
+          <div className="workspace-restaurant" title={branding.name}>
+            <UtensilsCrossed size={16} aria-hidden="true" />
+            <span>{branding.name}</span>
+          </div>
+        )}
       <nav aria-label="Main navigation">
         {groups.map((group) => (
           <section className="nav-group" key={group} aria-label={group}>
@@ -187,6 +195,32 @@ export function AppShell(props) {
 
 function StandardAppShell({ user, onSignOut, children }) {
   const { theme, toggleTheme } = useWorkspaceTheme();
+  const riderIdentity = user.roles.includes("rider") ? user.id : null;
+  const [previewTime, setPreviewTime] = useState(Date.now);
+  const temporaryLocation = readTemporaryRiderLocation(
+    riderIdentity,
+    import.meta.env,
+    previewTime,
+  );
+  useEffect(() => {
+    setTemporaryRiderIdentity(riderIdentity);
+    let timer;
+    function syncExpiry() {
+      const now = Date.now();
+      setPreviewTime(now);
+      const preview = readTemporaryRiderLocation(riderIdentity);
+      if (preview)
+        timer = setTimeout(
+          syncExpiry,
+          Math.min(preview.expiresAt - now, 2147483647),
+        );
+    }
+    syncExpiry();
+    return () => {
+      clearTimeout(timer);
+      setTemporaryRiderIdentity(null);
+    };
+  }, [riderIdentity]);
   const [branding, setBranding] = useState({
     name: "DineFlow",
     brand_color: "#245440",
@@ -385,6 +419,30 @@ function StandardAppShell({ user, onSignOut, children }) {
           ref={content}
           tabIndex={-1}
         >
+          {temporaryLocation && (
+            <aside
+              className="temporary-rider-location"
+              role="status"
+              aria-label="Temporary demo location"
+            >
+              <div>
+                <strong>Temporary demo location</strong>
+                <span>
+                  {temporaryLocation.latitude.toFixed(6)},{" "}
+                  {temporaryLocation.longitude.toFixed(6)}
+                </span>
+              </div>
+              <time
+                dateTime={new Date(temporaryLocation.expiresAt).toISOString()}
+              >
+                Expires {new Date(temporaryLocation.expiresAt).toLocaleString()}
+              </time>
+              <p>
+                Location sharing uses these demo coordinates while this preview
+                is active.
+              </p>
+            </aside>
+          )}
           {children}
         </main>
         <footer className="app-footer">

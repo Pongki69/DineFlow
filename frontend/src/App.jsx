@@ -163,6 +163,7 @@ class ScreenBoundary extends Component {
 }
 
 function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
+  const navigate = useNavigate();
   const links = visibleNavigation(user.permissions, user.roles);
   const location = useLocation();
   const riderLoadingVariant =
@@ -179,7 +180,19 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
               : null;
   const screens = {
     "/account": <Account user={user} onUpdated={onUserUpdated} />,
-    "/settings": <WorkspaceSettings user={user} onUpdated={onUserUpdated} />,
+    "/settings": (
+      <WorkspaceSettings
+        user={user}
+        onUpdated={onUserUpdated}
+        onDeleted={() => {
+          onUserUpdated(null);
+          navigate("/login", {
+            replace: true,
+            state: { accountDeleted: true },
+          });
+        }}
+      />
+    ),
     "/menu": <MenuBrowser key={user.id} user={user} />,
     "/my-orders": <OrdersView />,
     "/orders": <OrdersView staff user={user} />,
@@ -407,6 +420,11 @@ function AppContent() {
             ← Back to restaurant
           </Link>
           <AuthScreen
+            initialNotice={
+              location.state?.accountDeleted
+                ? "Your account has been deleted."
+                : ""
+            }
             key={location.pathname}
             initialMode={
               location.pathname === "/register"

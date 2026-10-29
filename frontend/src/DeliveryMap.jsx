@@ -14,6 +14,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { api } from "./api";
 import { GoogleRestaurantPin } from "./components/GoogleRestaurantPin";
+import { MapControls } from "./components/MapControls";
 import { restaurantMapIcon as restaurantPin } from "./components/restaurantMapIcon";
 import {
   DeliveryAddressPicker,
@@ -217,13 +218,24 @@ function RestaurantPinEditor({ location, radius, onChange }) {
         <MapContainer
           center={position || [14.5995, 120.9842]}
           zoom={12}
-          scrollWheelZoom={false}
+          scrollWheelZoom
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <CoverageView position={position} radius={coverage} />
+          <MapControls
+            onRecenter={(map) => {
+              if (position)
+                map.fitBounds(L.latLng(position).toBounds(coverage * 2000), {
+                  padding: [30, 30],
+                  maxZoom: 16,
+                });
+              else map.setView([14.5995, 120.9842], 12);
+            }}
+            recenterLabel="Recenter on restaurant coverage"
+          />
           {position && (
             <Circle
               center={position}

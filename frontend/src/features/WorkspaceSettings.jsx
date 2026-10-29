@@ -11,6 +11,7 @@ import { api } from "../api";
 import { visibleNavigation } from "../navigation";
 import { Button, Feedback, PageHeader, Skeleton } from "../components/ui";
 import { RiderProfileSettings } from "./RiderWorkspace";
+import { DeleteCustomerAccount } from "../components/DeleteCustomerAccount";
 import "./workspaceSettings.css";
 import "./settingsPage.css";
 
@@ -24,7 +25,7 @@ const defaults = {
   show_notification_badge: true,
 };
 
-export function WorkspaceSettings({ user, onUpdated }) {
+export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
   const links = visibleNavigation(user.permissions, user.roles);
   const [draft, setDraft] = useState({
     ...defaults,
@@ -208,6 +209,9 @@ export function WorkspaceSettings({ user, onUpdated }) {
           showAddresses={false}
         />
       </details>
+      {user.roles.length === 1 && user.roles[0] === "customer" && (
+        <DeleteCustomerAccount user={user} onDeleted={onDeleted} />
+      )}
     </section>
   );
 }

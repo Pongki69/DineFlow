@@ -18,6 +18,7 @@ import {
   Mail,
 } from "lucide-react";
 import { api } from "../api";
+import { useRestaurantLocation } from "../components/useRestaurantLocation";
 import { CountUp } from "../components/CountUp";
 import { RiderScreenSkeleton } from "../components/RiderScreenSkeleton";
 import { usePollingResource } from "../components/usePollingResource";
@@ -123,7 +124,8 @@ function RiderDashboardSkeleton() {
   );
 }
 export function RiderOverview({ user }) {
-  const [restaurantContact, setRestaurantContact] = useState(null);
+  const outletResource = useRestaurantLocation();
+  const restaurantContact = outletResource.location;
   const presence = useRiderPresence();
   const { data: recentResult } = usePollingResource(
     async ({ signal }) => {
@@ -135,15 +137,7 @@ export function RiderOverview({ user }) {
     },
     { intervalMs: 60000, eventName: "rider-deliveries-updated" },
   );
-  useEffect(() => {
-    const controller = new AbortController();
-    api("/restaurant/location", { signal: controller.signal })
-      .then((result) => {
-        if (!controller.signal.aborted) setRestaurantContact(result.data || {});
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
+
   const {
     data,
     error,

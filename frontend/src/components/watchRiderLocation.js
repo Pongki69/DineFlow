@@ -1,5 +1,9 @@
+import { watchTemporaryRiderLocation } from "./temporaryRiderLocation";
+
 // Desktops may have network positioning but no high-accuracy GPS fix.
 export function watchRiderLocation(geolocation, onPosition, onError) {
+  const stopPreview = watchTemporaryRiderLocation(onPosition, onError);
+  if (stopPreview) return stopPreview;
   let active = true;
   let watch;
   let generation = 0;

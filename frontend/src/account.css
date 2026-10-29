@@ -1,0 +1,19 @@
+.dineflow-app .account-page .account-form {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--border);
+}
+.dineflow-app .account-page .account-profile {
+  color: var(--ink);
+  background: var(--neutral-soft);
+  border-color: var(--border);
+}
+.dineflow-app .account-page :is(h2, label, legend) {
+  color: var(--ink);
+}
+.dineflow-app .account-page .account-profile > p,
+.dineflow-app .account-page .account-form > div:first-child > p,
+.dineflow-app .account-page .account-form > fieldset > p,
+.dineflow-app .account-page .optional-label {
+  color: var(--muted);
+}

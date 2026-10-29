@@ -177,12 +177,14 @@ export function AdminShell({ user, onSignOut, children }) {
             </small>
           </span>
         </Link>
-        <div className="admin-workspace-tag admin-nav-copy">
-          <Store size={15} aria-hidden="true" />
-          <span className="admin-workspace-name" title={branding}>
-            {branding === "DineFlow" ? "Restaurant operations" : branding}
-          </span>
-        </div>
+        {branding?.trim() && !/^dineflow\.?$/i.test(branding.trim()) && (
+          <div className="admin-workspace-tag admin-nav-copy">
+            <Store size={15} aria-hidden="true" />
+            <span className="admin-workspace-name" title={branding}>
+              {branding === "DineFlow" ? "Restaurant operations" : branding}
+            </span>
+          </div>
+        )}
         <nav
           aria-label="Main navigation"
           className="admin-navigation admin-navigation--flat"

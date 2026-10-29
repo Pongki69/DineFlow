@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Delivery;
 use App\Models\User;
+use App\Support\RiderWorkspacePreview;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -60,19 +61,24 @@ class RiderReviewService
     {
         abort_unless($rider->is_active && $rider->hasRole('rider'), 404);
         abort_unless($viewer->hasRole('customer') || $viewer->id === $rider->id || $viewer->hasPermission('deliveries.manage'), 404);
-        $ratings = DB::table('delivery_ratings')->where('rider_user_id', $rider->id);
+        $ratings = DB::table('delivery_ratings')->where('delivery_ratings.rider_user_id', $rider->id);
         $breakdown = (clone $ratings)->selectRaw('rating, count(*) as total')->groupBy('rating')->pluck('total', 'rating');
         $reviewsQuery = (clone $ratings)->join('users', 'users.id', '=', 'delivery_ratings.customer_id')
-            ->select(['delivery_ratings.id', 'delivery_ratings.rating', 'delivery_ratings.comment', 'delivery_ratings.categories', 'delivery_ratings.show_name', 'delivery_ratings.created_at', 'users.name as reviewer_name'])
-            ->when($rating !== null, fn ($query) => $query->where('delivery_ratings.rating', $rating))
+            ->join('deliveries', 'deliveries.id', '=', 'delivery_ratings.delivery_id')
+            ->join('orders', 'orders.id', '=', 'deliveries.order_id')
+            ->select(['delivery_ratings.id', 'delivery_ratings.rating', 'delivery_ratings.comment', 'delivery_ratings.categories', 'delivery_ratings.show_name', 'delivery_ratings.created_at', 'users.name as reviewer_name', 'orders.order_number', 'orders.customer_notes'])
             ->orderByDesc('delivery_ratings.created_at')->orderByDesc('delivery_ratings.id');
-        $reviews = $reviewsQuery->paginate(10);
+        $demoCount = (clone $reviewsQuery)
+            ->where('orders.order_number', 'like', RiderWorkspacePreview::prefix($rider->id).'%')
+            ->where('orders.customer_notes', RiderWorkspacePreview::marker($rider->id))
+            ->count();
+        $reviews = $reviewsQuery->when($rating !== null, fn ($query) => $query->where('delivery_ratings.rating', $rating))->paginate(10);
 
         return [
             'rider' => ['id' => $rider->id, 'name' => $rider->name, 'vehicle_type' => $rider->riderProfile?->vehicle_type, 'joined_at' => $rider->created_at?->format('Y-m'), 'delivered_total' => Delivery::where('rider_user_id', $rider->id)->where('status', 'delivered')->count()],
-            'summary' => ['average' => (clone $ratings)->avg('rating'), 'count' => (clone $ratings)->count(), 'breakdown' => collect(range(5, 1))->map(fn ($stars) => ['stars' => $stars, 'count' => (int) ($breakdown[$stars] ?? 0)])->all()],
+            'summary' => ['average' => (clone $ratings)->avg('rating'), 'count' => (clone $ratings)->count(), 'demo_count' => $demoCount, 'breakdown' => collect(range(5, 1))->map(fn ($stars) => ['stars' => $stars, 'count' => (int) ($breakdown[$stars] ?? 0)])->all()],
             'categories' => self::CATEGORIES,
-            'reviews' => $reviews->getCollection()->map(fn ($review) => ['id' => $review->id, 'display_name' => $review->show_name ? $review->reviewer_name : self::maskedName($review->reviewer_name), 'name_hidden' => ! (bool) $review->show_name, 'rating' => (int) $review->rating, 'comment' => $review->comment, 'categories' => json_decode($review->categories ?? '[]', true) ?: [], 'created_at' => Carbon::parse($review->created_at)->toIso8601String()])->all(),
+            'reviews' => $reviews->getCollection()->map(fn ($review) => ['id' => $review->id, 'display_name' => $review->show_name ? $review->reviewer_name : self::maskedName($review->reviewer_name), 'name_hidden' => ! (bool) $review->show_name, 'rating' => (int) $review->rating, 'comment' => $review->comment, 'categories' => json_decode($review->categories ?? '[]', true) ?: [], 'created_at' => Carbon::parse($review->created_at)->toIso8601String(), 'is_demo' => RiderWorkspacePreview::matches($review->order_number, $review->customer_notes, $rider->id)])->all(),
             'meta' => ['current_page' => $reviews->currentPage(), 'last_page' => $reviews->lastPage(), 'total' => $reviews->total()],
         ];
     }

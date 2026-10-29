@@ -1,5 +1,55 @@
 import { expect, it } from "vitest";
-import { stopArrivalText, trafficOverlays } from "./riderRouteDisplay";
+import {
+  stopArrivalText,
+  trafficOverlays,
+  roadLegAppearance,
+  routeColors,
+  routeProgressCopy,
+} from "./riderRouteDisplay";
+
+it("keeps return routes visually distinct when they are the next live leg", () => {
+  const returning = roadLegAppearance({ returning: true, next: true });
+  expect(returning.pathOptions.color).toBe(routeColors.return);
+  expect(returning.pathOptions.dashArray).toBe("10 8");
+  const next = roadLegAppearance({ next: true, selected: true });
+  const selected = roadLegAppearance({ selected: true });
+  const context = roadLegAppearance({});
+  expect(
+    new Set([
+      returning.pathOptions.color,
+      next.pathOptions.color,
+      selected.pathOptions.color,
+      context.pathOptions.color,
+    ]).size,
+  ).toBe(4);
+  expect(next.pathOptions).not.toHaveProperty("dashArray");
+  expect(selected.pathOptions.dashArray).toBe("6 7");
+  expect(next.pathOptions.weight).toBeGreaterThan(context.pathOptions.weight);
+});
+
+it("explains pending pickup and identifies the selected later leg between customer stops", () => {
+  const stops = [
+    { kind: "pickup", order_numbers: ["DEMO-1", "DEMO-2"] },
+    { kind: "dropoff", delivery_id: 1, address: "First customer" },
+    { kind: "dropoff", delivery_id: 2, address: "Second customer" },
+  ];
+  const copy = routeProgressCopy(stops, 2, [{ id: 2, status: "accepted" }]);
+  expect(copy.heading).toBe("Next stop: Restaurant pickup");
+  expect(copy.detail).toContain("Collect 2 orders");
+  expect(copy.detail).toContain("Mark your arrival");
+  expect(copy.selectionHint).toBe(
+    "Dashed teal previews the later leg from stop 2 to customer stop 3.",
+  );
+  const collected = routeProgressCopy(stops.slice(1), 1, [
+    { id: 1, status: "picked_up" },
+  ]);
+  expect(collected).toMatchObject({
+    heading: "Next stop: Customer delivery",
+    detail: "First customer",
+    selectionHint: null,
+  });
+  expect(routeProgressCopy([], 1, [])).toBeNull();
+});
 
 it("shows arrival times only when an actual arrival timestamp is supplied", () => {
   const timestamp = "2026-10-24T12:20:00+08:00";

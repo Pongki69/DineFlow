@@ -1,0 +1,91 @@
+.customer-account-delete {
+  margin-top: 24px;
+  background: var(--surface, #fff);
+}
+.workspace-settings .customer-account-delete .account-delete-button,
+.workspace-settings .account-deletion-dialog .account-delete-button {
+  background: #9f2424;
+  border-color: #9f2424;
+  color: #fff;
+  min-height: 44px;
+}
+.workspace-settings .account-deletion-dialog .account-delete-button:disabled {
+  background: #e8e8e8;
+  border-color: #b7b7b7;
+  color: #595959;
+  opacity: 1;
+}
+.account-deletion-dialog {
+  margin: auto;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface, #fff);
+  color: var(--ink);
+  box-shadow: 0 24px 80px #0004;
+}
+.account-deletion-dialog::backdrop {
+  background: #10251ccc;
+}
+.workspace-settings .account-deletion-dialog .ui-button.ui-button--secondary {
+  background: var(--df-color-surface, #fff);
+  color: var(--df-color-ink, #24332b);
+  border-color: var(--border);
+}
+.workspace-settings
+  .account-deletion-dialog
+  .ui-button.ui-button--secondary:hover:not(:disabled) {
+  background: var(--df-color-surface, #fff);
+  color: var(--df-color-ink, #24332b);
+  border-color: var(--ink);
+}
+.workspace-settings
+  .customer-account-delete
+  .account-delete-button:hover:not(:disabled),
+.workspace-settings
+  .account-deletion-dialog
+  .account-delete-button:hover:not(:disabled) {
+  background: #851c1c;
+  border-color: #851c1c;
+  color: #fff;
+}
+.account-deletion-dialog h2 {
+  margin: 0;
+  font-size: 24px;
+}
+.account-deletion-dialog p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.account-deletion-confirmation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  margin-block: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.account-deletion-confirmation input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+}
+.account-deletion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+@media (max-width: 480px) {
+  .account-deletion-actions {
+    flex-direction: column-reverse;
+  }
+  .account-deletion-actions .ui-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

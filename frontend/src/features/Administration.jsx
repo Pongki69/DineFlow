@@ -2,6 +2,8 @@ import { EmptyState, Feedback, Skeleton } from "../components/ui";
 
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { NewPasswordFields } from "../components/NewPasswordFields";
+import { validateNewPasswordForm } from "../components/passwordValidation";
 export function StaffAccounts() {
   const [loading, setLoading] = useState(true);
 
@@ -9,6 +11,8 @@ export function StaffAccounts() {
   const [roles, setRoles] = useState([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [errors, setErrors] = useState({});
   async function load() {
     setError("");
     try {
@@ -29,9 +33,12 @@ export function StaffAccounts() {
   }, []);
   async function create(event) {
     event.preventDefault();
-    setError("");
-    setNotice("");
     const form = event.currentTarget;
+    if (creating || !validateNewPasswordForm(form)) return;
+    setCreating(true);
+    setError("");
+    setErrors({});
+    setNotice("");
     const values = Object.fromEntries(new FormData(form));
     try {
       await api("/admin/users", {
@@ -43,6 +50,9 @@ export function StaffAccounts() {
       await load();
     } catch (e) {
       setError(e.message);
+      setErrors(e.errors || {});
+    } finally {
+      setCreating(false);
     }
   }
   async function toggle(user) {
@@ -84,7 +94,7 @@ export function StaffAccounts() {
       )}
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {notice && <Feedback tone="success">{notice}</Feedback>}
-      <form className="staff-form" onSubmit={create}>
+      <form className="staff-form" onSubmit={create} aria-busy={creating}>
         <label>
           Name
           <input name="name" required maxLength="120" />
@@ -93,19 +103,17 @@ export function StaffAccounts() {
           Email
           <input name="email" type="email" required />
         </label>
-        <label>
-          Temporary password
-          <input name="password" type="password" minLength="12" required />
-        </label>
-        <label>
-          Confirm password
-          <input
-            name="password_confirmation"
-            type="password"
-            minLength="12"
-            required
-          />
-        </label>
+        <NewPasswordFields
+          passwordLabel="Temporary password"
+          errors={errors}
+          onEdit={() =>
+            setErrors((current) => ({
+              ...current,
+              password: undefined,
+              password_confirmation: undefined,
+            }))
+          }
+        />
         <label>
           Role
           <select name="role" required>
@@ -118,7 +126,9 @@ export function StaffAccounts() {
               ))}
           </select>
         </label>
-        <button>Create staff account</button>
+        <button disabled={creating}>
+          {creating ? "Creating account…" : "Create staff account"}
+        </button>
       </form>
       <div className="staff-list">
         <h2>Accounts</h2>

@@ -687,12 +687,6 @@
 .admin-page--tracking .admin-overview-grid {
   grid-template-columns: minmax(0, 1fr);
 }
-.admin-page--tracking .admin-map {
-  height: clamp(430px, 62dvh, 720px);
-}
-.admin-page--tracking .admin-map--fullscreen {
-  height: 100dvh;
-}
 .admin-metric-top {
   display: flex;
   align-items: center;
@@ -929,6 +923,27 @@
 }
 .admin-map-frame {
   min-width: 0;
+}
+.admin-fleet-panel .admin-map-content {
+  container-type: inline-size;
+  padding-inline: 16px;
+}
+.admin-fleet-panel .admin-map-content:has(.admin-map--fullscreen) {
+  container-type: normal;
+}
+.admin-fleet-panel .admin-map:not(.admin-map--fullscreen),
+.admin-fleet-panel .admin-map-loading {
+  height: clamp(520px, 56.25cqw, 900px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.admin-fleet-panel .admin-map-legend {
+  margin: 10px 16px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
 }
 .admin-map.admin-map--fullscreen,
 .admin-map:fullscreen {
@@ -1430,6 +1445,61 @@
   background: var(--surface);
   padding: 16px 20px;
 }
+.admin-outlet-setup {
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--primary-border);
+  border-radius: 9px;
+}
+.admin-outlet-setup h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+.admin-outlet-setup p {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 6px;
+  max-width: 72ch;
+}
+.admin-outlet-setup ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 20px;
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+}
+.admin-outlet-setup li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.admin-outlet-setup li > span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid var(--control-border);
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-outlet-setup li[data-complete="true"] > span {
+  background: var(--primary-soft);
+}
+.admin-outlet-setup strong {
+  display: block;
+  font-size: 14px;
+}
+.admin-outlet-setup small {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
 .admin-outlet-strip strong {
   font-size: 15px;
   font-weight: 600;
@@ -1465,15 +1535,40 @@
   padding: 0 20px 18px;
   gap: 8px;
 }
+.admin-map-search-wrap {
+  position: relative;
+  z-index: 20;
+  margin: 0 20px 18px;
+}
+.admin-map-search-wrap .admin-map-search {
+  padding: 0;
+}
 .admin-map-search .admin-search {
   max-width: none;
 }
 .admin-place-results {
-  margin: -8px 20px 15px;
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  margin: 0;
   border: 1px solid var(--border);
   border-radius: 7px;
-  max-height: 230px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 8px 24px #163c2529;
+  max-height: min(280px, 45dvh);
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.admin-place-results :is(p, .admin-address-search-error) {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.admin-place-results .admin-address-search-error p {
+  padding: 0 0 8px;
 }
 .admin-place-results button {
   display: flex;
@@ -1487,11 +1582,13 @@
   border: 0;
   padding: 12px;
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 .admin-place-results button + button {
   border-top: 1px solid var(--border);
 }
-.admin-place-results button:hover {
+.admin-place-results button:hover,
+.admin-place-results button[aria-selected="true"] {
   background: var(--neutral-soft);
 }
 .admin-coordinate-note {
@@ -2069,12 +2166,6 @@
   .admin-priority-strip > .admin-button {
     margin-left: 34px;
   }
-  .admin-page--tracking .admin-map {
-    height: clamp(340px, 54dvh, 560px);
-  }
-  .admin-page--tracking .admin-map--fullscreen {
-    height: 100dvh;
-  }
   .admin-save-bar[data-pinned="true"] {
     padding: 12px;
     gap: 10px;
@@ -2206,6 +2297,16 @@
   }
   .admin-map-toolbar {
     padding: 0 15px 13px;
+  }
+  .admin-fleet-panel .admin-map-content {
+    padding-inline: 12px;
+  }
+  .admin-fleet-panel .admin-map:not(.admin-map--fullscreen),
+  .admin-fleet-panel .admin-map-loading {
+    height: clamp(380px, 56dvh, 520px);
+  }
+  .admin-fleet-panel .admin-map-legend {
+    margin-inline: 12px;
   }
   .admin-segmented button {
     padding-inline: 9px;

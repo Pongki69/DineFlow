@@ -1,6 +1,8 @@
+import { restaurantMapIcon as storeIcon } from "./restaurantMapIcon";
 import { useEffect, useRef, useState } from "react";
 import {
   Circle,
+  CircleMarker,
   MapContainer,
   Marker,
   Popup,
@@ -9,21 +11,11 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
-import {
-  LocateFixed,
-  MapPin,
-  Maximize2,
-  Minimize2,
-  RefreshCw,
-} from "lucide-react";
+import { MapPin, RefreshCw } from "lucide-react";
+import { MapControls } from "./MapControls";
+import { RiderEdgeNavigation, RiderMapRoster } from "./AdminRiderNavigation";
 import "leaflet/dist/leaflet.css";
 
-const storeIcon = L.divIcon({
-  className: "admin-map-marker admin-map-marker--store",
-  html: '<span aria-hidden="true">⌂</span>',
-  iconSize: [44, 44],
-  iconAnchor: [22, 44],
-});
 const riderIcons = Object.fromEntries(
   ["available", "on_delivery"].map((status) => [
     status,
@@ -53,9 +45,26 @@ export function mapPoint(value) {
     : null;
 }
 
-function MapBehavior({ position, radius, previewKey, onMove, selected }) {
+function MapBehavior({
+  position,
+  radius,
+  previewKey,
+  onMove,
+  selected,
+  fleet,
+  focusVersion,
+  follow,
+  onBrowse,
+}) {
   const map = useMap();
-  useMapEvents({ click: (event) => onMove?.(event.latlng) });
+  const initialized = useRef(false);
+  const focused = useRef(null);
+  const fleetPoints = fleet.map(mapPoint).filter(Boolean);
+  const hasFleet = fleetPoints.length > 0;
+  useMapEvents({
+    click: (event) => onMove?.(event.latlng),
+    dragstart: () => onBrowse?.(),
+  });
   useEffect(() => {
     if (position)
       map.fitBounds(L.latLng(position).toBounds(Math.max(radius, 0.2) * 2000), {
@@ -63,11 +72,31 @@ function MapBehavior({ position, radius, previewKey, onMove, selected }) {
         maxZoom: 16,
         animate: false,
       });
-  }, [map, position?.[0], position?.[1], radius, previewKey]);
+    else if (hasFleet && !initialized.current) {
+      map.fitBounds(fleetPoints, {
+        padding: [60, 60],
+        maxZoom: 15,
+        animate: false,
+      });
+      initialized.current = true;
+    }
+  }, [map, position?.[0], position?.[1], radius, previewKey, hasFleet]);
   useEffect(() => {
     const point = mapPoint(selected);
-    if (point) map.setView(point, 15, { animate: false });
-  }, [map, selected]);
+    const key = point ? `${selected.id}-${focusVersion}` : null;
+    if (point && key !== focused.current) {
+      map.setView(point, 15, { animate: false });
+      focused.current = key;
+    } else if (point && follow) map.panTo(point, { animate: false });
+    if (!selected) focused.current = null;
+  }, [
+    map,
+    selected?.id,
+    selected?.latitude,
+    selected?.longitude,
+    focusVersion,
+    follow,
+  ]);
   useEffect(() => {
     const observer = new ResizeObserver(() => map.invalidateSize());
     observer.observe(map.getContainer());
@@ -194,6 +223,12 @@ export default function AdminDeliveryMap({
   onMove,
   previewKey = 0,
   selected,
+  focusVersion = 0,
+  follow = false,
+  onBrowse,
+  onSelect,
+  onFollow,
+  showRiderList = false,
   showCoverage = true,
 }) {
   const position = mapPoint(location);
@@ -202,6 +237,7 @@ export default function AdminDeliveryMap({
   const [tileError, setTileError] = useState(false);
   const [tileAttempt, setTileAttempt] = useState(0);
   const [reset, setReset] = useState(0);
+  const [hovered, setHovered] = useState(null);
   const fullscreen = useMapFullscreen();
   const located = fleet.filter((rider) => mapPoint(rider));
   return (
@@ -211,16 +247,16 @@ export default function AdminDeliveryMap({
     >
       <div
         ref={fullscreen.element}
-        className={`admin-map${editable ? " admin-map--editor" : ""}${fullscreen.expanded ? " admin-map--fullscreen" : ""}`}
+        className={`admin-map${editable ? " admin-map--editor" : ""}${showRiderList ? " admin-map--with-roster" : ""}${fullscreen.expanded ? " admin-map--fullscreen" : ""}`}
         role={fullscreen.expanded ? "dialog" : undefined}
         aria-modal={fullscreen.expanded ? true : undefined}
         aria-label={fullscreen.expanded ? "Fullscreen delivery map" : undefined}
         onKeyDown={fullscreen.keydown}
       >
         <MapContainer
-          center={position || [14.5995, 120.9842]}
+          center={position || mapPoint(located[0]) || [14.5995, 120.9842]}
           zoom={12}
-          scrollWheelZoom={false}
+          scrollWheelZoom
           aria-label={
             editable
               ? "Set restaurant location by clicking the map or dragging the restaurant pin"
@@ -239,6 +275,26 @@ export default function AdminDeliveryMap({
             previewKey={`${previewKey}-${reset}`}
             onMove={editable ? onMove : undefined}
             selected={selected}
+            fleet={fleet}
+            focusVersion={focusVersion}
+            follow={follow}
+            onBrowse={onBrowse}
+          />
+          {!editable && onSelect && (
+            <RiderEdgeNavigation fleet={located} onSelect={onSelect} />
+          )}
+          <MapControls
+            fullscreen={fullscreen}
+            onRecenter={(map) => {
+              if (position) setReset((value) => value + 1);
+              else if (located.length)
+                map.fitBounds(located.map(mapPoint), {
+                  padding: [45, 45],
+                  maxZoom: 15,
+                });
+              else map.setView([14.5995, 120.9842], 12);
+            }}
+            recenterLabel="Recenter on restaurant coverage"
           />
           {position && (
             <>
@@ -289,6 +345,11 @@ export default function AdminDeliveryMap({
               icon={riderIcons[rider.status] || riderIcons.available}
               title={rider.name}
               alt={`Rider ${rider.name}`}
+              eventHandlers={{
+                click: () => onSelect?.(rider.id),
+                mouseover: () => setHovered(rider.id),
+                mouseout: () => setHovered(null),
+              }}
             >
               <Popup>
                 <strong>{rider.name}</strong>
@@ -304,36 +365,35 @@ export default function AdminDeliveryMap({
               </Popup>
             </Marker>
           ))}
+          {located
+            .filter(
+              (rider) => rider.id === selected?.id || rider.id === hovered,
+            )
+            .map((rider) => (
+              <CircleMarker
+                key={`halo-${rider.id}`}
+                center={mapPoint(rider)}
+                radius={27}
+                interactive={false}
+                pathOptions={{
+                  color: "#246b55",
+                  weight: 3,
+                  fillColor: "#246b55",
+                  fillOpacity: 0.1,
+                  className: "admin-rider-focus-ring",
+                }}
+              />
+            ))}
         </MapContainer>
-        <button
-          type="button"
-          className="admin-map-recenter"
-          aria-label="Recenter on restaurant coverage"
-          onClick={() => setReset((value) => value + 1)}
-        >
-          <LocateFixed size={19} />
-        </button>
-        <button
-          ref={fullscreen.button}
-          type="button"
-          className="admin-map-fullscreen"
-          aria-label={
-            fullscreen.expanded ? "Exit fullscreen map" : "Enter fullscreen map"
-          }
-          title={
-            fullscreen.expanded
-              ? "Exit fullscreen map (Esc)"
-              : "Enter fullscreen map"
-          }
-          aria-expanded={fullscreen.expanded}
-          onClick={fullscreen.toggle}
-        >
-          {fullscreen.expanded ? (
-            <Minimize2 size={19} aria-hidden="true" />
-          ) : (
-            <Maximize2 size={19} aria-hidden="true" />
-          )}
-        </button>
+        {showRiderList && (
+          <RiderMapRoster
+            fleet={fleet}
+            selected={selected}
+            onSelect={onSelect}
+            follow={follow}
+            onFollowChange={onFollow}
+          />
+        )}
         {tileError && (
           <div className="admin-map-notice" role="status">
             Map tiles could not load. Coordinates are still available.

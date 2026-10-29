@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Check, LocateFixed, MapPin, Search } from "lucide-react";
 import {
   MapContainer,
-  CircleMarker,
   Marker,
   Popup,
   TileLayer,
@@ -11,7 +10,10 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { api } from "../api";
+import { useRestaurantLocation } from "./useRestaurantLocation";
 import { AutoTextarea } from "./AutoTextarea";
+import { MapControls } from "./MapControls";
+import { restaurantMapIcon } from "./restaurantMapIcon";
 import "./deliveryAddressPicker.css";
 
 const dropoffPin = L.divIcon({
@@ -46,9 +48,14 @@ function DestinationMap({
     <MapContainer
       center={center || [14.5995, 120.9842]}
       zoom={position ? 17 : 13}
-      scrollWheelZoom={false}
+      scrollWheelZoom
     >
       <MapInteraction position={center} active={active} onMove={onMove} />
+      <MapControls
+        center={center || [14.5995, 120.9842]}
+        zoom={position ? 17 : 13}
+        recenterLabel="Recenter on selected location"
+      />
       <TileLayer
         key={tileVersion}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -68,13 +75,14 @@ function DestinationMap({
         />
       )}
       {deliveryPosition(restaurant) && (
-        <CircleMarker
-          center={deliveryPosition(restaurant)}
-          radius={7}
-          pathOptions={{ color: "#2e5a43", fillOpacity: 0.3 }}
+        <Marker
+          key={restaurant.name || "Restaurant pickup"}
+          position={deliveryPosition(restaurant)}
+          icon={restaurantMapIcon}
+          title={restaurant.name || "Restaurant pickup"}
         >
           <Popup>{restaurant.name || "Restaurant"} · Pickup location</Popup>
-        </CircleMarker>
+        </Marker>
       )}
     </MapContainer>
   );
@@ -106,8 +114,9 @@ export function DeliveryAddressPicker({
 }) {
   const id = useId();
   const [addresses, setAddresses] = useState([]);
-  const [restaurant, setRestaurant] = useState(null);
-  const [provider, setProvider] = useState(null);
+  const outlet = useRestaurantLocation();
+  const restaurant = outlet.location;
+  const provider = outlet.provider;
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -159,12 +168,7 @@ export function DeliveryAddressPicker({
         }
       })
       .catch(() => {});
-    api("/restaurant/location", { signal: controller.signal })
-      .then((r) => {
-        setRestaurant(r.data);
-        setProvider(r.map_provider);
-      })
-      .catch(() => {});
+
     return () => {
       alive.current = false;
       controller.abort();
@@ -226,7 +230,15 @@ export function DeliveryAddressPicker({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [position?.[0], position?.[1], itemsJson, retry, active, mode]);
+  }, [
+    position?.[0],
+    position?.[1],
+    itemsJson,
+    retry,
+    active,
+    mode,
+    outlet.revision,
+  ]);
 
   function update(patch) {
     latest.current.onChange({ ...latest.current.value, ...patch });

@@ -21,6 +21,32 @@ it('normalizes Geoapify addresses and filters invalid coordinates', function () 
     Http::assertSent(fn ($request) => $request['filter'] === 'countrycode:ph' && $request['apiKey'] === 'test-key');
 });
 
+it('verifies HTTPS using the Windows trust store when available', function () {
+    $options = null;
+    Http::fake(function ($request, $requestOptions) use (&$options) {
+        $options = $requestOptions;
+
+        return Http::response(['results' => []]);
+    });
+    app(MapProviderService::class)->search('Bay Laguna');
+    expect($options['verify'] ?? true)->not->toBeFalse();
+    if (PHP_OS_FAMILY === 'Windows' && defined('CURLSSLOPT_NATIVE_CA')) {
+        expect($options['curl'][CURLOPT_SSL_OPTIONS] & CURLSSLOPT_NATIVE_CA)->toBe(CURLSSLOPT_NATIVE_CA);
+    }
+});
+
+it('does not expose provider keys or raw URLs when routing cannot connect securely', function () {
+    Http::fake(fn () => Http::failedConnection('cURL error 60: https://api.geoapify.com/v1/routing?apiKey=test-private-provider-key'));
+    try {
+        app(MapProviderService::class)->route(14.6, 120.98, 14.61, 120.99);
+        $this->fail('Expected a safe connection error.');
+    } catch (RuntimeException $exception) {
+        expect($exception->getMessage())->toContain('could not connect securely')
+            ->not->toContain('apiKey', 'test-private-provider-key', 'cURL', 'https://');
+        expect($exception->getPrevious())->toBeNull();
+    }
+});
+
 it('finds the address for a restaurant pin without changing the chosen coordinates', function () {
     Http::fake(['api.geoapify.com/v1/geocode/reverse*' => Http::response(['results' => [
         ['formatted' => 'Los Banos, Laguna, Philippines', 'lat' => 14.18, 'lon' => 121.23],
@@ -93,23 +119,23 @@ it('uses traffic annotations only when enabled and maps them to the correct road
     config(['services.maps.provider' => 'mapbox', 'services.maps.token' => 'test-token', 'services.maps.traffic_enabled' => true]);
     Http::fake(['api.mapbox.com/directions/*' => Http::response(['routes' => [[
         'distance' => 3000, 'duration' => 720,
-        'geometry' => ['coordinates' => [[121.1,14.1],[121.2,14.2],[121.3,14.3],[121.4,14.4]]],
-        'legs' => [['annotation' => ['congestion' => ['low','heavy','heavy']]]],
+        'geometry' => ['coordinates' => [[121.1, 14.1], [121.2, 14.2], [121.3, 14.3], [121.4, 14.4]]],
+        'legs' => [['annotation' => ['congestion' => ['low', 'heavy', 'heavy']]]],
     ]]])]);
-    $route = app(MapProviderService::class)->route(14.1,121.1,14.4,121.4,true,true);
+    $route = app(MapProviderService::class)->route(14.1, 121.1, 14.4, 121.4, true, true);
     expect($route['traffic_available'])->toBeTrue();
     expect($route['traffic_segments'])->toHaveCount(2);
-    expect($route['traffic_segments'][1])->toBe(['congestion' => 'heavy', 'geometry' => [[121.2,14.2],[121.3,14.3],[121.4,14.4]]]);
+    expect($route['traffic_segments'][1])->toBe(['congestion' => 'heavy', 'geometry' => [[121.2, 14.2], [121.3, 14.3], [121.4, 14.4]]]);
     Http::assertSent(fn ($request) => str_contains($request->url(), '/driving-traffic/') && $request['annotations'] === 'congestion');
 });
 
 it('does not invent congestion when the traffic annotation length does not match the route', function () {
     config(['services.maps.provider' => 'mapbox', 'services.maps.token' => 'test-token', 'services.maps.traffic_enabled' => true]);
     Http::fake(['api.mapbox.com/directions/*' => Http::response(['routes' => [[
-        'distance' => 1000, 'duration' => 120, 'geometry' => ['coordinates' => [[121.1,14.1],[121.2,14.2]]],
-        'legs' => [['annotation' => ['congestion' => ['heavy','heavy']]]],
+        'distance' => 1000, 'duration' => 120, 'geometry' => ['coordinates' => [[121.1, 14.1], [121.2, 14.2]]],
+        'legs' => [['annotation' => ['congestion' => ['heavy', 'heavy']]]],
     ]]])]);
-    $route = app(MapProviderService::class)->route(14.1,121.1,14.2,121.2,true,true);
+    $route = app(MapProviderService::class)->route(14.1, 121.1, 14.2, 121.2, true, true);
     expect($route['traffic_available'])->toBeFalse();
     expect($route['traffic_segments'])->toBe([]);
 });
@@ -117,10 +143,53 @@ it('does not invent congestion when the traffic annotation length does not match
 it('keeps a regular route when traffic routing is unavailable', function () {
     config(['services.maps.provider' => 'mapbox', 'services.maps.token' => 'test-token', 'services.maps.traffic_enabled' => true]);
     Http::fake([
-        'api.mapbox.com/directions/v5/mapbox/driving-traffic/*' => Http::response([],403),
-        'api.mapbox.com/directions/v5/mapbox/driving/*' => Http::response(['routes' => [['distance'=>1000,'duration'=>120,'geometry'=>['coordinates'=>[[121.1,14.1],[121.2,14.2]]]]]]),
+        'api.mapbox.com/directions/v5/mapbox/driving-traffic/*' => Http::response([], 403),
+        'api.mapbox.com/directions/v5/mapbox/driving/*' => Http::response(['routes' => [['distance' => 1000, 'duration' => 120, 'geometry' => ['coordinates' => [[121.1, 14.1], [121.2, 14.2]]]]]]),
     ]);
-    $route = app(MapProviderService::class)->route(14.1,121.1,14.2,121.2,true,true);
+    $route = app(MapProviderService::class)->route(14.1, 121.1, 14.2, 121.2, true, true);
     expect($route['duration_minutes'])->toBe(2);
     expect($route['traffic_available'] ?? false)->toBeFalse();
+});
+
+it('keeps real road geometry after a valid zero-distance multi-stop leg', function () {
+    $this->app->detectEnvironment(fn () => 'local');
+    config(['services.maps.geoapify_key' => null, 'services.maps.local_osrm_fallback' => true, 'services.maps.local_osrm_url' => 'https://routing.example.test/route/v1/driving']);
+    $start = [121.231433, 14.186648];
+    $road = [$start, [121.2315, 14.1868], [121.232, 14.187]];
+    Http::fake(['routing.example.test/*' => Http::response(['code' => 'Ok', 'routes' => [['legs' => [
+        ['distance' => 0, 'duration' => 0, 'steps' => [['geometry' => ['coordinates' => [$start, $start]]], ['geometry' => ['coordinates' => [$start, $start]]]]],
+        ['distance' => 250, 'duration' => 45, 'steps' => [['geometry' => ['coordinates' => array_slice($road, 0, 2)]], ['geometry' => ['coordinates' => array_slice($road, 1)]]]],
+    ]]]])]);
+    $result = app(MapProviderService::class)->routeSequence([
+        ['latitude' => $start[1], 'longitude' => $start[0]],
+        ['latitude' => $start[1], 'longitude' => $start[0]],
+        ['latitude' => 14.187, 'longitude' => 121.232],
+    ]);
+    expect($result['legs'])->toHaveCount(2);
+    expect($result['legs'][0])->toMatchArray(['distance_km' => 0, 'duration_minutes' => 0, 'geometry' => []]);
+    expect($result['legs'][1])->toMatchArray(['distance_km' => 0.25, 'duration_minutes' => 1, 'geometry' => $road, 'traffic_available' => false]);
+    Http::assertSentCount(1);
+    Http::assertSent(fn ($request) => $request['steps'] === 'true' && $request['geometries'] === 'geojson');
+});
+
+it('still rejects incomplete geometry for a segment that actually requires travel', function () {
+    $this->app->detectEnvironment(fn () => 'local');
+    config(['services.maps.geoapify_key' => null, 'services.maps.local_osrm_fallback' => true, 'services.maps.local_osrm_url' => 'https://routing.example.test/route/v1/driving']);
+    Http::fake(['routing.example.test/*' => Http::response(['code' => 'Ok', 'routes' => [['legs' => [
+        ['distance' => 100, 'duration' => 30, 'steps' => [['geometry' => ['coordinates' => [[121.23, 14.18]]]]]],
+    ]]]])]);
+    expect(fn () => app(MapProviderService::class)->routeSequence([
+        ['latitude' => 14.18, 'longitude' => 121.23], ['latitude' => 14.19, 'longitude' => 121.24],
+    ]))->toThrow(RuntimeException::class, 'incomplete route geometry');
+});
+
+it('does not enable the local routing fallback in production', function () {
+    $this->app->detectEnvironment(fn () => 'production');
+    config(['services.maps.geoapify_key' => null, 'services.maps.local_osrm_fallback' => true]);
+    Http::fake();
+    expect(app(MapProviderService::class)->supportsRouteSequence())->toBeFalse();
+    expect(fn () => app(MapProviderService::class)->routeSequence([
+        ['latitude' => 14.18, 'longitude' => 121.23], ['latitude' => 14.19, 'longitude' => 121.24],
+    ]))->toThrow(RuntimeException::class, 'not enabled');
+    Http::assertNothingSent();
 });

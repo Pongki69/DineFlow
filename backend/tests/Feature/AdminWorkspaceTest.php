@@ -51,6 +51,19 @@ it('rejects invalid coordinates and hours without partially changing the outlet'
     expect(RestaurantSetting::where('key', 'restaurant_location')->value('value')['latitude'])->toBe(14.6);
 });
 
+it('shares an administrator configured pickup point with the outlet editor and tracking map', function () {
+    $this->actingAs(adminWorkspaceUser('administrator'));
+    $this->getJson('/api/v1/admin/delivery-policy')->assertOk()->assertJsonPath('data.location', []);
+    $this->putJson('/api/v1/admin/outlet-config', outletPayload())->assertOk();
+    foreach (['/api/v1/admin/delivery-policy', '/api/v1/admin/operations-overview'] as $endpoint) {
+        $this->getJson($endpoint)->assertOk()
+            ->assertJsonPath('data.location.name', 'Main outlet')
+            ->assertJsonPath('data.location.address', 'Manila restaurant')
+            ->assertJsonPath('data.location.latitude', 14.6)
+            ->assertJsonPath('data.location.longitude', 120.98);
+    }
+});
+
 it('counts only fresh online riders as available and omits stale GPS coordinates', function () {
     $fresh = adminWorkspaceUser('rider');
     $stale = adminWorkspaceUser('rider');

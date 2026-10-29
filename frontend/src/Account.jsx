@@ -1,6 +1,9 @@
 import { lazy, Suspense, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { api } from "./api";
+import { NewPasswordFields } from "./components/NewPasswordFields";
+import { validateNewPasswordForm } from "./components/passwordValidation";
+import "./account.css";
 import {
   Button,
   Feedback,
@@ -24,9 +27,11 @@ export function Account({
     [errors, setErrors] = useState({}),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   async function save(event) {
     event.preventDefault();
     const form = event.currentTarget;
+    if (busy || !validateNewPasswordForm(form, { optional: true })) return;
     const fields = Object.fromEntries(new FormData(form));
     if (!fields.password) {
       delete fields.password;
@@ -99,24 +104,22 @@ export function Account({
               name="current_password"
               type="password"
               autoComplete="current-password"
+              required={changingPassword}
               error={errors.current_password?.[0]}
             />
-            <Field
-              label="New password"
-              name="password"
-              type="password"
-              minLength={12}
-              autoComplete="new-password"
-              error={errors.password?.[0]}
-              hint="At least 12 characters with uppercase, lowercase, a number and a symbol."
-            />
-            <Field
-              label="Confirm new password"
-              name="password_confirmation"
-              type="password"
-              minLength={12}
-              autoComplete="new-password"
-              error={errors.password_confirmation?.[0]}
+            <NewPasswordFields
+              passwordLabel="New password"
+              confirmationLabel="Confirm new password"
+              optional
+              errors={errors}
+              onActiveChange={setChangingPassword}
+              onEdit={() =>
+                setErrors((current) => ({
+                  ...current,
+                  password: undefined,
+                  password_confirmation: undefined,
+                }))
+              }
             />
           </fieldset>
           <Button type="submit" busy={busy}>

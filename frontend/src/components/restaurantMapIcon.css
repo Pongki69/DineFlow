@@ -1,4 +1,6 @@
 .restaurant-map-pin {
+  min-width: 44px;
+  min-height: 52px;
   background: transparent;
   border: 0;
 }

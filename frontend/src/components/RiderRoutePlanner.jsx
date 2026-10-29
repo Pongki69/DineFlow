@@ -23,9 +23,17 @@ import {
 import { api } from "../api";
 import { Button } from "./ui";
 import { subscribeRiderLocation } from "./riderLocationSession";
-import { stopArrivalText, trafficOverlays } from "./riderRouteDisplay";
+import {
+  stopArrivalText,
+  trafficOverlays,
+  roadLegAppearance,
+  routeColors,
+  routeProgressCopy,
+} from "./riderRouteDisplay";
 import { restaurantMapIcon as storeIcon } from "./restaurantMapIcon";
+import { MapControls } from "./MapControls";
 import { useRiderPresence } from "./riderPresence";
+import { activeTemporaryRiderLocation } from "./temporaryRiderLocation";
 import {
   nearestDeliveryOrder,
   respectsBatchOrder,
@@ -45,22 +53,27 @@ function RouteViewport({
   fitRoutePoints,
   focusTarget,
   customerMarkers,
+  expanded,
 }) {
   const map = useMap();
   const lastSelectedFit = useRef(0);
   const stopKey = JSON.stringify(stops.map((s) => [s.latitude, s.longitude]));
   useEffect(() => {
+    map.invalidateSize();
     const points = JSON.parse(stopKey);
     if (position && Number(position.accuracy || 0) <= 1000)
       points.push([position.latitude, position.longitude]);
     if (points.length)
       map.fitBounds(points, {
-        paddingTopLeft: [40, 64],
-        paddingBottomRight: [40, 40],
+        paddingTopLeft: [40, expanded ? 100 : 64],
+        paddingBottomRight: [
+          expanded && map.getContainer().clientWidth >= 700 ? 390 : 40,
+          expanded ? 100 : 40,
+        ],
         maxZoom: STREET_MAX_ZOOM,
       });
     // Live updates move only the marker unless Follow me is selected.
-  }, [map, stopKey, fitVersion]);
+  }, [map, stopKey, fitVersion, expanded]);
   useEffect(() => {
     if (fitRouteVersion <= lastSelectedFit.current) return;
     lastSelectedFit.current = fitRouteVersion;
@@ -166,6 +179,7 @@ const stopIcon = (number, kind, selected = false, compact = false) =>
 
 export function RiderRoutePlanner({
   deliveries,
+  restaurantLocation,
   deliveryOrder,
   onOrderChange,
   onApplyOrder,
@@ -200,11 +214,44 @@ export function RiderRoutePlanner({
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [returnToStore, setReturnToStore] = useState(false);
+  const [showFullRoute, setShowFullRoute] = useState(false);
+  const lastNavigationTarget = useRef("");
   const [returnStoreKey, setReturnStoreKey] = useState("");
+  const outletSignature = validRoutePoint(restaurantLocation)
+    ? JSON.stringify([
+        restaurantLocation.name,
+        restaurantLocation.address,
+        Number(restaurantLocation.latitude),
+        Number(restaurantLocation.longitude),
+      ])
+    : "";
+  useEffect(() => setReturnStoreKey(""), [outletSignature]);
   const [locating, setLocating] = useState(false);
-  const [position, setPosition] = useState(null);
-  const [origin, setOrigin] = useState(null);
-  const [locationPreview, setLocationPreview] = useState(false);
+  const configuredPreview = activeTemporaryRiderLocation();
+  const [position, setPosition] = useState(() =>
+    configuredPreview
+      ? {
+          ...configuredPreview,
+          accuracy: 15,
+          recordedAt: "Preview",
+          preview: true,
+          temporaryPreview: true,
+        }
+      : null,
+  );
+  const [origin, setOrigin] = useState(() =>
+    configuredPreview
+      ? {
+          latitude: configuredPreview.latitude,
+          longitude: configuredPreview.longitude,
+        }
+      : null,
+  );
+  const routeOriginRef = useRef(origin);
+  routeOriginRef.current = origin;
+  const [locationPreview, setLocationPreview] = useState(
+    Boolean(configuredPreview),
+  );
   const [gpsError, setGpsError] = useState("");
   const [follow, setFollow] = useState(true);
   const [fitVersion, setFitVersion] = useState(0);
@@ -224,14 +271,38 @@ export function RiderRoutePlanner({
   const ordered = orderedRouteDeliveries(available, order);
   const ids = ordered.map((d) => d.id);
   useEffect(() => {
+    if (!configuredPreview || !locationPreview) return;
+    let timer;
+    function expireWhenDue() {
+      const remaining = configuredPreview.expiresAt - Date.now();
+      if (remaining > 0) {
+        timer = setTimeout(expireWhenDue, Math.min(remaining, 2147483647));
+        return;
+      }
+      setPosition(null);
+      setOrigin(null);
+      setLocationPreview(false);
+    }
+    expireWhenDue();
+    return () => clearTimeout(timer);
+  }, [configuredPreview?.expiresAt, locationPreview]);
+  useEffect(() => {
     if (selectedDeliveryId == null) {
       lastFocusedDeliveryId.current = null;
       return;
     }
     const selectedId = String(selectedDeliveryId);
-    if (lastFocusedDeliveryId.current === selectedId) return;
     const delivery = ordered.find((item) => String(item.id) === selectedId);
     if (!delivery || !validRoutePoint(delivery.order.destination)) return;
+    if (plan?.navigation && !showFullRoute) {
+      if (lastFocusedDeliveryId.current !== `navigation-${selectedId}`) {
+        lastFocusedDeliveryId.current = `navigation-${selectedId}`;
+        setFocusTarget(null);
+        setFollow(true);
+      }
+      return;
+    }
+    if (lastFocusedDeliveryId.current === selectedId) return;
     const scroll = lastFocusedDeliveryId.current !== null;
     lastFocusedDeliveryId.current = selectedId;
     setFollow(false);
@@ -241,9 +312,18 @@ export function RiderRoutePlanner({
       longitude: Number(delivery.order.destination.longitude),
       scroll,
     });
-  }, [selectedDeliveryId, ordered]);
+  }, [
+    selectedDeliveryId,
+    ordered,
+    plan?.navigation?.delivery_id,
+    showFullRoute,
+  ]);
   const requestKey = JSON.stringify({
+    outlet_signature: outletSignature,
     delivery_ids: ids,
+    ...(ids.includes(Number(selectedDeliveryId))
+      ? { navigation_delivery_id: Number(selectedDeliveryId) }
+      : {}),
     origin,
     return_to_store: returnToStore || !ids.length,
     ...(returnStoreKey ? { return_store_key: returnStoreKey } : {}),
@@ -262,6 +342,7 @@ export function RiderRoutePlanner({
       try {
         const payload = JSON.parse(requestKey);
         delete payload.statuses;
+        delete payload.outlet_signature;
         const result = await api("/rider/route-plan", {
           method: "POST",
           body: JSON.stringify(payload),
@@ -269,7 +350,19 @@ export function RiderRoutePlanner({
         });
         if (!controller.signal.aborted) {
           setPlan(result.data);
-          if (result.data.stores?.length) setKnownStores(result.data.stores);
+          const targetKey = JSON.stringify([
+            result.data.navigation?.delivery_id,
+            result.data.navigation?.target,
+          ]);
+          if (
+            result.data.navigation &&
+            targetKey !== lastNavigationTarget.current
+          ) {
+            lastNavigationTarget.current = targetKey;
+            setFitRouteVersion((value) => value + 1);
+          }
+          if (Array.isArray(result.data.stores))
+            setKnownStores(result.data.stores);
           if (locationPreview) {
             const firstLegStart = result.data.legs?.find(
               (leg) => Number(leg.stop_index) === 0,
@@ -293,7 +386,8 @@ export function RiderRoutePlanner({
               snappedOrigin &&
               Number.isFinite(snappedOrigin.latitude) &&
               Number.isFinite(snappedOrigin.longitude) &&
-              snapDistance > 20
+              snapDistance > 20 &&
+              !activeTemporaryRiderLocation()
             ) {
               // Align the demo marker with the router's snapped road start so
               // the highlighted route visibly connects to the location dot.
@@ -331,6 +425,7 @@ export function RiderRoutePlanner({
           latitude: p.coords.latitude,
           longitude: p.coords.longitude,
           accuracy: p.coords.accuracy,
+          temporaryPreview: p.source === "temporary-preview",
           recordedAt: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -338,18 +433,31 @@ export function RiderRoutePlanner({
         };
         setPosition(next);
         setGpsError("");
-        if (Date.now() - lastRouteAt.current >= 45000) {
+        const previousOrigin = routeOriginRef.current;
+        const movement = previousOrigin
+          ? Math.hypot(
+              (next.latitude - previousOrigin.latitude) * 111000,
+              (next.longitude - previousOrigin.longitude) * 107000,
+            )
+          : Infinity;
+        if (
+          next.accuracy <= 100 &&
+          Date.now() - lastRouteAt.current >= 15000 &&
+          movement >= 25
+        ) {
           lastRouteAt.current = Date.now();
           setOrigin({ latitude: next.latitude, longitude: next.longitude });
         }
       },
       (e) => {
         setGpsError(
-          e.code === 1
-            ? "Location access was denied. Allow location access for this site in your browser and enable Windows Location services, then try again."
-            : "Your device could not determine its location, including network positioning. Enable Windows Location services and browser location access, then retry. A phone with GPS may provide a better fix.",
+          e.temporaryLocationExpired
+            ? e.message
+            : e.code === 1
+              ? "Location access was denied. Allow location access for this site in your browser and enable Windows Location services, then try again."
+              : "Your device could not determine its location, including network positioning. Enable Windows Location services and browser location access, then retry. A phone with GPS may provide a better fix.",
         );
-        if (e.code === 1) {
+        if (e.code === 1 || e.temporaryLocationExpired) {
           setLocating(false);
           setPosition(null);
           setOrigin(null);
@@ -463,17 +571,20 @@ export function RiderRoutePlanner({
           ? firstDelivery.order.pickup
           : firstDelivery.order.destination
       : null;
-    const target = plan?.stops?.[0] || fallbackTarget;
+    const temporary = activeTemporaryRiderLocation();
+    const target = temporary || plan?.stops?.[0] || fallbackTarget;
     if (!validRoutePoint(target)) {
       setGpsError("Add a pinned first delivery stop to preview the route.");
       return;
     }
     // Simulate a rider position roughly 450 m south-east of the first route stop.
     // This is map-only demo state and is never sent as a GPS location update.
-    const preview = {
-      latitude: Number(target.latitude) - 0.0027,
-      longitude: Number(target.longitude) + 0.0032,
-    };
+    const preview = temporary
+      ? { latitude: temporary.latitude, longitude: temporary.longitude }
+      : {
+          latitude: Number(target.latitude) - 0.0027,
+          longitude: Number(target.longitude) + 0.0032,
+        };
     setLocating(false);
     setGpsError("");
     setFollow(false);
@@ -483,6 +594,7 @@ export function RiderRoutePlanner({
       accuracy: 35,
       recordedAt: "Preview",
       preview: true,
+      temporaryPreview: Boolean(temporary),
     });
     setOrigin(preview);
   }
@@ -521,29 +633,65 @@ export function RiderRoutePlanner({
     else customerMarkers.current.delete(id);
   }
   const stops = plan?.stops || [];
+  const navigation = plan?.navigation;
+  const showingNavigation = Boolean(navigation) && !showFullRoute;
+  const routeStops = showingNavigation ? [navigation.target] : stops;
+  const roadLegs = showingNavigation
+    ? navigation.leg
+      ? [navigation.leg]
+      : []
+    : plan?.legs || [];
+  const routeUnavailable = showingNavigation
+    ? navigation.route_unavailable
+    : plan?.route_unavailable;
+  const routeSummary = showingNavigation
+    ? {
+        ...navigation.leg,
+        route_unavailable: navigation.route_unavailable,
+        starts_at_live_location: !navigation.requires_location,
+        missing_locations: [],
+        has_congestion: trafficOverlays(navigation.leg || {}).length > 0,
+      }
+    : plan;
+  const progressCopy = showingNavigation
+    ? {
+        heading: navigation.requires_location
+          ? "Enable live location to start riding"
+          : navigation.target.kind === "pickup"
+            ? "Ride to: Restaurant pickup"
+            : "Ride to: Customer delivery",
+        detail: navigation.requires_location
+          ? "Use live location to get a road route from your current position."
+          : `From your ${locationPreview ? "preview" : "GPS"} location to ${navigation.target.address || "the selected stop"}.`,
+        selectionHint: navigation.batch_predecessor
+          ? "This paired delivery has an earlier stop. Follow the assigned drop-off sequence."
+          : navigation.target.kind === "pickup"
+            ? "After you pick up this order, this route switches to the customer."
+            : null,
+      }
+    : routeProgressCopy(stops, selectedDeliveryId, ordered);
   const nextDeliveryId =
     stops[0]?.kind === "dropoff"
       ? String(stops[0].delivery_id)
       : !stops.length && ordered[0]
         ? String(ordered[0].id)
         : null;
-  const hasRoadGeometry = (plan?.legs || []).some(
+  const hasRoadGeometry = roadLegs.some(
     (leg) => (leg.geometry || []).length > 1,
   );
   const selectedRouteLeg =
     selectedDeliveryId == null
       ? null
-      : (plan?.legs || []).find(
+      : roadLegs.find(
           (leg) =>
-            String(stops[leg.stop_index]?.delivery_id) ===
+            String(routeStops[leg.stop_index]?.delivery_id) ===
             String(selectedDeliveryId),
         );
   const selectedRoutePoints = (selectedRouteLeg?.geometry || []).map(
     (point) => [point[1], point[0]],
   );
-  const firstRouteLeg = (plan?.legs || []).find(
-    (leg) => Number(leg.stop_index) === 0,
-  );
+  const firstRouteLeg = roadLegs.find((leg) => (leg.geometry || []).length > 1);
+  const firstRoadStopIndex = firstRouteLeg?.stop_index;
   const firstRoutePoints = (firstRouteLeg?.geometry || []).map((point) => [
     point[1],
     point[0],
@@ -563,24 +711,49 @@ export function RiderRoutePlanner({
             Number(other.longitude) === Number(p.longitude),
         ) === i,
     );
-  const stores = plan?.stores?.length
+  const recordedStores = plan?.stores?.length
     ? plan.stores
     : knownStores.length
       ? knownStores
       : fallbackStores;
+  const currentOutlet = validRoutePoint(restaurantLocation)
+    ? { ...restaurantLocation, key: "current-outlet", is_primary: true }
+    : null;
+  const stores = currentOutlet
+    ? [
+        currentOutlet,
+        ...recordedStores.filter(
+          (store) =>
+            !store.is_primary &&
+            (Number(store.latitude) !== Number(currentOutlet.latitude) ||
+              Number(store.longitude) !== Number(currentOutlet.longitude)),
+        ),
+      ]
+    : recordedStores;
+  const primaryOutlet = stores.find((store) => store.is_primary);
+  const returnOptions = stores.filter(
+    (store) => !store.is_primary && store.key,
+  );
   const fallbackPoints = ordered
     .flatMap((d) => [d.order.pickup, d.order.destination])
     .filter(validRoutePoint);
-  const approximateRoute = hasRoadGeometry
-    ? []
-    : (stops.length ? stops : fallbackPoints)
-        .filter(validRoutePoint)
-        .map((point) => [Number(point.latitude), Number(point.longitude)]);
+  const approximateRoute =
+    hasRoadGeometry || showingNavigation
+      ? []
+      : (stops.length ? stops : fallbackPoints)
+          .filter(validRoutePoint)
+          .map((point) => [Number(point.latitude), Number(point.longitude)]);
   const first = stops[0] || stores[0] || fallbackPoints[0];
 
   return (
     <section
       ref={sectionRef}
+      style={{
+        "--route-next": routeColors.next,
+        "--route-selected": routeColors.selected,
+        "--route-context": routeColors.context,
+        "--route-return": routeColors.return,
+      }}
       className={`rider-route-planner${expanded ? " is-expanded" : ""}`}
       role={expanded ? "dialog" : undefined}
       aria-modal={expanded || undefined}
@@ -620,11 +793,21 @@ export function RiderRoutePlanner({
             aria-label={
               locationPreview
                 ? "Clear temporary location preview"
-                : "Preview route from near the first stop"
+                : configuredPreview
+                  ? "Preview demo location"
+                  : "Preview route from near the first stop"
             }
-            title="Show the first route from a temporary point near stop 1"
+            title={
+              configuredPreview
+                ? "Show the configured temporary demo location"
+                : "Show the first route from a temporary point near stop 1"
+            }
           >
-            {locationPreview ? "Clear preview" : "Preview near stop 1"}
+            {locationPreview
+              ? "Clear preview"
+              : configuredPreview
+                ? "Preview demo location"
+                : "Preview near stop 1"}
           </Button>
           <Button
             ref={fullscreenButtonRef}
@@ -639,7 +822,9 @@ export function RiderRoutePlanner({
             ) : (
               <Maximize2 size={16} aria-hidden="true" />
             )}
-            {expanded ? "Exit fullscreen" : "Fullscreen"}
+            <span className="rider-fullscreen-label">
+              {expanded ? "Exit fullscreen" : "Fullscreen"}
+            </span>
           </Button>
         </div>
       </header>
@@ -690,6 +875,13 @@ export function RiderRoutePlanner({
               className="rider-route-map"
               scrollWheelZoom
             >
+              <MapControls
+                onRecenter={() => setFitVersion((value) => value + 1)}
+                recenterLabel="Fit all delivery locations"
+                fullscreen={
+                  expanded ? { expanded, toggle: toggleFullscreen } : undefined
+                }
+              />
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -697,7 +889,12 @@ export function RiderRoutePlanner({
                 maxNativeZoom={STREET_MAX_ZOOM}
               />
               <RouteViewport
-                stops={[...(stops.length ? stops : fallbackPoints), ...stores]}
+                expanded={expanded}
+                stops={
+                  showingNavigation
+                    ? routeStops.filter(validRoutePoint)
+                    : [...(stops.length ? stops : fallbackPoints), ...stores]
+                }
                 position={position}
                 follow={locating && follow}
                 fitVersion={fitVersion}
@@ -712,7 +909,7 @@ export function RiderRoutePlanner({
               />
               {stores.map((store, i) => (
                 <Marker
-                  key={`store-${store.key || i}`}
+                  key={`store-${store.key || i}-${store.name || ""}`}
                   position={[Number(store.latitude), Number(store.longitude)]}
                   icon={storeIcon}
                   title={store.name || "Pickup store"}
@@ -724,6 +921,12 @@ export function RiderRoutePlanner({
                       <Store size={15} aria-hidden="true" />{" "}
                       {store.name || "Pickup store"}
                     </b>
+                    <br />
+                    <small>
+                      {store.is_primary
+                        ? "Current restaurant outlet"
+                        : "Recorded pickup for existing deliveries"}
+                    </small>
                     <br />
                     {store.address}
                     <br />
@@ -822,61 +1025,56 @@ export function RiderRoutePlanner({
                       </Marker>
                     ),
                 )}
-              {[...(plan?.legs || [])]
+              {[...roadLegs]
                 .map((leg, index) => ({ leg, index }))
+                .filter(({ leg }) => (leg.geometry || []).length > 1)
                 .sort((a, b) => {
                   const priority = (entry) => {
                     const isLiveFirstLeg =
-                      hasLiveRouteStart && Number(entry.leg.stop_index) === 0;
+                      hasLiveRouteStart &&
+                      Number(entry.leg.stop_index) ===
+                        Number(firstRoadStopIndex);
                     const isSelectedLeg =
                       selectedDeliveryId != null &&
-                      String(stops[entry.leg.stop_index]?.delivery_id) ===
+                      String(routeStops[entry.leg.stop_index]?.delivery_id) ===
                         String(selectedDeliveryId);
                     return isLiveFirstLeg ? 2 : isSelectedLeg ? 1 : 0;
                   };
                   return priority(a) - priority(b);
                 })
                 .map(({ leg, index: i }) => {
-                  const isReturn = stops[leg.stop_index]?.kind === "return";
+                  const isReturn =
+                    routeStops[leg.stop_index]?.kind === "return";
                   const direction = routeDirection(leg.geometry || []);
-                  const directionColor = isReturn ? "#8056b3" : "#2563eb";
                   const denseRoute = ordered.length > 8;
                   const isLiveFirstLeg =
-                    hasLiveRouteStart && Number(leg.stop_index) === 0;
+                    hasLiveRouteStart &&
+                    Number(leg.stop_index) === Number(firstRoadStopIndex);
                   const selectedLeg =
                     selectedDeliveryId != null &&
-                    String(stops[leg.stop_index]?.delivery_id) ===
+                    String(routeStops[leg.stop_index]?.delivery_id) ===
                       String(selectedDeliveryId);
-                  const highlightedLeg = hasLiveRouteStart
-                    ? isLiveFirstLeg
-                    : selectedLeg;
-                  const routeColor = isLiveFirstLeg
-                    ? "#0f766e"
-                    : selectedLeg && !hasLiveRouteStart
-                      ? directionColor
-                      : "#5374b8";
+                  const appearance = roadLegAppearance({
+                    returning: isReturn,
+                    next: isLiveFirstLeg,
+                    selected: selectedLeg,
+                  });
                   const showDirection =
-                    direction &&
-                    (hasLiveRouteStart ? isLiveFirstLeg : selectedLeg);
+                    direction && (isLiveFirstLeg || selectedLeg);
                   return (
-                    <Fragment key={i}>
+                    <Fragment key={`${i}-${appearance.kind}`}>
                       <Polyline
+                        interactive={false}
                         positions={(leg.geometry || []).map((p) => [
                           p[1],
                           p[0],
                         ])}
                         pathOptions={{
                           color: "#ffffff",
-                          weight: highlightedLeg
-                            ? 12
-                            : hasLiveRouteStart
-                              ? 5
-                              : 8,
-                          opacity: highlightedLeg
-                            ? 0.96
-                            : hasLiveRouteStart
-                              ? 0.34
-                              : 0.86,
+                          weight: appearance.emphasized ? 10 : 7,
+                          opacity: 0.94,
+                          lineCap: "round",
+                          lineJoin: "round",
                         }}
                       />
                       <Polyline
@@ -884,37 +1082,48 @@ export function RiderRoutePlanner({
                           p[1],
                           p[0],
                         ])}
-                        pathOptions={{
-                          color: routeColor,
-                          weight: highlightedLeg ? 7 : 3.5,
-                          opacity: highlightedLeg
-                            ? 0.98
-                            : hasLiveRouteStart
-                              ? 0.22
-                              : 0.72,
-                          ...(isReturn ? { dashArray: "9 7" } : {}),
-                        }}
-                      />
+                        pathOptions={appearance.pathOptions}
+                      >
+                        <Popup>
+                          <strong>
+                            {isLiveFirstLeg
+                              ? "Next road leg"
+                              : "Planned later leg"}
+                          </strong>
+                          <br />
+                          {routeStops[leg.stop_index]?.kind === "pickup"
+                            ? "Restaurant pickup"
+                            : isReturn
+                              ? "Return to store"
+                              : `Customer stop ${Number(leg.stop_index) + 1}`}
+                          <br />
+                          {routeStops[leg.stop_index]?.address}
+                        </Popup>
+                      </Polyline>
                       {showDirection && (
                         <Marker
                           key={`direction-${i}`}
                           position={direction.position}
                           icon={routeDirectionIcon(
                             direction.angle,
-                            isLiveFirstLeg ? "#0f766e" : directionColor,
+                            appearance.pathOptions.color,
                             denseRoute,
                           )}
                           zIndexOffset={200}
                           title={
-                            isReturn
-                              ? "Continue toward the pickup store"
-                              : `Continue toward stop ${Number(leg.stop_index) + 1}`
+                            showingNavigation
+                              ? `Ride to ${navigation.target.kind === "pickup" ? "pickup" : "customer"} from your position`
+                              : isReturn
+                                ? "Continue toward the pickup store"
+                                : `Continue toward stop ${Number(leg.stop_index) + 1}`
                           }
                         >
                           <Popup>
-                            {isReturn
-                              ? "Continue toward the pickup store"
-                              : `Continue toward stop ${Number(leg.stop_index) + 1}`}
+                            {showingNavigation
+                              ? `Ride to ${navigation.target.kind === "pickup" ? "pickup" : "customer"} from your position`
+                              : isReturn
+                                ? "Continue toward the pickup store"
+                                : `Continue toward stop ${Number(leg.stop_index) + 1}`}
                           </Popup>
                         </Marker>
                       )}
@@ -960,12 +1169,20 @@ export function RiderRoutePlanner({
                     position={[position.latitude, position.longitude]}
                     icon={locationIcon}
                     zIndexOffset={1000}
-                    title="Your live location · Route starts here"
+                    title={
+                      position.temporaryPreview
+                        ? "Temporary demo location · Route starts here"
+                        : locationPreview
+                          ? "Temporary preview · Route starts here"
+                          : "Your live location · Route starts here"
+                    }
                   >
                     <Popup>
-                      {locationPreview
-                        ? "Temporary preview · near stop 1"
-                        : `Route starts here · updated ${position.recordedAt}`}
+                      {position.temporaryPreview
+                        ? "Temporary demo location"
+                        : locationPreview
+                          ? "Temporary preview · near stop 1"
+                          : `Route starts here · updated ${position.recordedAt}`}
                     </Popup>
                   </Marker>
                 </>
@@ -977,12 +1194,14 @@ export function RiderRoutePlanner({
               delivery coordinates.
             </div>
           )}
-          {plan?.route_unavailable && !busy && (
+          {routeUnavailable && !busy && (
             <div className="rider-route-fallback-notice" role="status">
               <span>
                 {hasRoadGeometry
                   ? "Some road directions are unavailable; the route may be incomplete."
-                  : "Road directions are unavailable. Dashed lines are straight-line estimates."}
+                  : showingNavigation
+                    ? "Road directions from your position are unavailable. Try the route again."
+                    : "Road directions are unavailable. Dashed lines are straight-line estimates."}
               </span>
               <Button
                 variant="secondary"
@@ -999,51 +1218,43 @@ export function RiderRoutePlanner({
             <span>
               <i className="dropoff" /> Customer
             </span>
-            <span>
-              <i
-                className={`route${hasRoadGeometry ? "" : " approximate"}${selectedDeliveryId == null ? " is-muted" : ""}`}
-              />
-              {hasRoadGeometry
-                ? selectedDeliveryId != null
-                  ? "Selected route"
-                  : "Routes · select a delivery to highlight"
-                : "Approximate route"}
-            </span>
-            {hasRoadGeometry &&
-              (hasLiveRouteStart
-                ? firstRoutePoints.length > 1
-                : selectedDeliveryId != null) && (
+            {!hasRoadGeometry && approximateRoute.length > 1 && (
+              <span>
+                <i className="route approximate" /> Straight-line estimate
+              </span>
+            )}
+            {hasLiveRouteStart &&
+              firstRoutePoints.length > 1 &&
+              routeStops[firstRoadStopIndex]?.kind !== "return" && (
                 <span>
-                  <i
-                    className={
-                      hasLiveRouteStart
-                        ? "direction is-live-route"
-                        : "direction"
-                    }
-                  />
-                  {hasLiveRouteStart
-                    ? "Direction to stop 1"
-                    : "Direction to selected stop"}
+                  <i className="route is-live-route" />
+                  {showingNavigation
+                    ? `Rider → ${navigation.target.kind === "pickup" ? "pickup" : "customer"}`
+                    : `Next leg · ${routeStops[firstRoadStopIndex]?.kind === "pickup" ? "pickup" : "customer"} · stop ${Number(firstRoadStopIndex) + 1}`}
                 </span>
               )}
-            {hasLiveRouteStart && (
+            {!showingNavigation &&
+              hasRoadGeometry &&
+              selectedRoutePoints.length > 1 && (
+                <span>
+                  <i className="route is-selected" /> Selected leg · planned
+                </span>
+              )}
+            {!showingNavigation && hasRoadGeometry && ordered.length > 1 && (
               <span>
-                <i className="route is-live-route" /> Your location → stop 1
+                <i className="route is-context" /> Later legs · dashed
               </span>
             )}
-            {selectedDeliveryId != null && (
+            {!showingNavigation && plan?.return_to_store && (
               <span>
-                <i className="route is-context" /> Other route legs
+                <i className="route is-return" /> Return · dashed
               </span>
             )}
-            {plan?.return_to_store && (
+            {roadLegs.some((leg) => trafficOverlays(leg).length > 0) && (
               <span>
-                <i className="return" /> Return to store
+                <i className="traffic" /> Reported congestion
               </span>
             )}
-            <span>
-              <i className="traffic" /> Reported congestion
-            </span>
             {position && (
               <span>
                 <i className="live" />
@@ -1051,6 +1262,20 @@ export function RiderRoutePlanner({
               </span>
             )}
           </div>
+          {progressCopy && (
+            <div
+              className="rider-route-progress-copy"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <strong>{progressCopy.heading}</strong>
+              <p>{progressCopy.detail}</p>
+              {progressCopy.selectionHint && (
+                <p>{progressCopy.selectionHint}</p>
+              )}
+            </div>
+          )}
           <div className="rider-route-map-tools">
             {(selectedDeliveryId != null || hasLiveRouteStart) && (
               <Button
@@ -1059,7 +1284,11 @@ export function RiderRoutePlanner({
                 disabled={fitRoutePoints.length < 2}
               >
                 <Route size={15} aria-hidden="true" />{" "}
-                {hasLiveRouteStart ? "Fit first leg" : "Fit selected route"}
+                {showingNavigation
+                  ? "Fit rider route"
+                  : hasLiveRouteStart
+                    ? "Fit next road leg"
+                    : "Fit selected route"}
               </Button>
             )}
             <Button
@@ -1187,6 +1416,16 @@ export function RiderRoutePlanner({
               </Button>
             </div>
             <div className="rider-route-return-control">
+              {navigation && (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={showFullRoute}
+                    onChange={(event) => setShowFullRoute(event.target.checked)}
+                  />
+                  Show full route plan
+                </label>
+              )}
               <label>
                 <input
                   type="checkbox"
@@ -1197,17 +1436,21 @@ export function RiderRoutePlanner({
                 <CornerDownLeft size={16} aria-hidden="true" /> Return to store{" "}
                 {ids.length ? "after last drop-off" : "route"}
               </label>
-              {stores.length > 1 && (
+              {returnOptions.length > 0 && (
                 <label>
                   Return destination
                   <select
                     value={returnStoreKey}
                     onChange={(e) => setReturnStoreKey(e.target.value)}
                   >
-                    <option value="">Original pickup store</option>
-                    {stores.map((store) => (
+                    <option value="">
+                      {primaryOutlet
+                        ? `Current outlet · ${primaryOutlet.name}`
+                        : "Original pickup store"}
+                    </option>
+                    {returnOptions.map((store) => (
                       <option key={store.key} value={store.key}>
-                        {store.name || store.address}
+                        {store.address || store.name}
                       </option>
                     ))}
                   </select>
@@ -1337,44 +1580,45 @@ export function RiderRoutePlanner({
                   </Button>
                 </>
               ) : (
-                plan && (
+                routeSummary && (
                   <>
                     <p
-                      className={`rider-traffic-state${plan.has_congestion ? " has-congestion" : ""}`}
+                      className={`rider-traffic-state${routeSummary.has_congestion ? " has-congestion" : ""}`}
                     >
-                      {plan.has_congestion
+                      {routeSummary.has_congestion
                         ? "Congestion reported · red route sections"
-                        : plan.traffic_available
+                        : routeSummary.traffic_available
                           ? "Traffic data available"
                           : "Live traffic unavailable"}
                     </p>
-                    {plan.duration_minutes != null && (
+                    {routeSummary.duration_minutes != null && (
                       <strong>
-                        {plan.distance_km} km · about {plan.duration_minutes}{" "}
-                        min
+                        {routeSummary.distance_km} km · about{" "}
+                        {routeSummary.duration_minutes} min
                       </strong>
                     )}
                     <details className="rider-route-details">
                       <summary>Route details</summary>
                       <div>
                         <p>
-                          {plan.starts_at_live_location
+                          {routeSummary.starts_at_live_location
                             ? "Estimate starts from your live location."
                             : "Estimate covers pinned stops and excludes travel to the first stop."}
                         </p>
-                        {!plan.starts_at_live_location && (
+                        {!routeSummary.starts_at_live_location && (
                           <p>Enable live location to see arrival times.</p>
                         )}
-                        {plan.route_unavailable && (
+                        {routeSummary.route_unavailable && (
                           <p className="rider-route-warning">
-                            Some roads could not be routed; dashed lines show
-                            straight-line estimates.
+                            Road directions are unavailable. Retry the route. We
+                            cannot show a road route until the provider
+                            responds.
                           </p>
                         )}
-                        {!!plan.missing_locations?.length && (
+                        {!!routeSummary.missing_locations?.length && (
                           <p className="rider-route-warning">
-                            Missing map pins: {plan.missing_locations.join(",")}
-                            .
+                            Missing map pins:{" "}
+                            {routeSummary.missing_locations.join(",")}.
                           </p>
                         )}
                       </div>

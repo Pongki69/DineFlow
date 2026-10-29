@@ -1,0 +1,39 @@
+.app-shell .temporary-rider-location {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 20px;
+  min-width: 0;
+  flex-shrink: 0;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--df-status-pending-border, #d8b980);
+  border-radius: 12px;
+  background: var(--df-status-pending-bg, #fff4dc);
+  color: var(--df-status-pending-text, #74470c);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.temporary-rider-location strong,
+.temporary-rider-location time {
+  display: block;
+}
+.temporary-rider-location strong {
+  font-size: 14px;
+}
+.temporary-rider-location span {
+  font-variant-numeric: tabular-nums;
+}
+.app-shell .temporary-rider-location p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+@media (max-width: 600px) {
+  .app-shell .temporary-rider-location {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+}

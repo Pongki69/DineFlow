@@ -1,7 +1,10 @@
 .rider-route-planner {
   --route-delivery: #2563eb;
   --route-live: #3375c7;
-  --route-return: #8056b3;
+  --route-next: #1d4ed8;
+  --route-selected: #0f766e;
+  --route-context: #64748b;
+  --route-return: #7c3aed;
   --route-traffic: #c43d38;
   margin: 24px 0;
   border: 1px solid var(--border);
@@ -190,7 +193,8 @@
     padding: 8px 8px 10px;
     border-right: 0;
   }
-  .rider-route-planner:is(.is-expanded, :fullscreen) .rider-route-location-note {
+  .rider-route-planner:is(.is-expanded, :fullscreen)
+    .rider-route-location-note {
     display: none;
   }
   .rider-route-planner:is(.is-expanded, :fullscreen) .rider-route-map {
@@ -342,14 +346,18 @@
   border-radius: 12px;
   background: #fff;
   align-items: center;
-  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
 }
 .rider-route-itinerary li:has(> .rider-route-stop-select[aria-pressed="true"]) {
   border-color: #b8d0b5;
   background: #edf5eb;
   box-shadow: inset 3px 0 0 var(--primary);
 }
-.rider-route-itinerary li:hover:not(:has(> .rider-route-stop-select[aria-pressed="true"])) {
+.rider-route-itinerary
+  li:hover:not(:has(> .rider-route-stop-select[aria-pressed="true"])) {
   border-color: #c7d6c6;
   background: #f8faf7;
 }
@@ -451,14 +459,14 @@
   padding-top: 0;
 }
 .rider-customer-marker.is-selected .rider-customer-pin {
-  background: var(--route-delivery);
+  background: var(--route-selected);
   color: white;
   box-shadow:
-    0 0 0 5px #2563eb24,
+    0 0 0 5px #0f766e24,
     0 3px 10px #163a6350;
 }
 .rider-customer-marker.is-selected .rider-customer-pin::after {
-  background: var(--route-delivery);
+  background: var(--route-selected);
 }
 .rider-route-legend {
   display: flex;
@@ -490,17 +498,34 @@
   width: 15px;
   height: 4px;
   border-radius: 99px;
-  background: var(--route-delivery);
+  background: var(--route-selected);
+}
+.rider-route-legend i.route.is-selected {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--route-selected) 0 5px,
+    transparent 5px 8px
+  );
 }
 .rider-route-legend i.route.is-muted {
   background: #718096;
 }
 .rider-route-legend i.route.is-context {
-  background: #718096;
-  opacity: 0.58;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--route-context) 0 4px,
+    transparent 4px 7px
+  );
 }
 .rider-route-legend i.route.is-live-route {
-  background: #0f766e;
+  background: var(--route-next);
+}
+.rider-route-legend i.route.is-return {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--route-return) 0 5px,
+    transparent 5px 8px
+  );
 }
 .rider-route-legend i.route.approximate {
   background: repeating-linear-gradient(
@@ -547,7 +572,7 @@
   color: #59446e;
   font-size: var(--rider-meta-size, 13px);
 }
-.rider-route-return-control label + label {
+.rider-route-return-control label:has(select) {
   display: grid;
   margin-top: 10px;
 }
@@ -690,7 +715,11 @@
   color: #365944;
   box-shadow: 0 1px 2px rgb(28 51 36 / 8%);
   cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
 }
 .rider-content .rider-route-reorder button:hover:not(:disabled) {
   border-color: #b8d0b5;
@@ -824,7 +853,8 @@
   gap: var(--rider-space-2);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-route-heading-actions .ui-button {
+  .rider-route-heading-actions
+  .ui-button {
   min-height: var(--rider-control-height);
   border-radius: var(--rider-control-radius);
   white-space: nowrap;
@@ -863,7 +893,8 @@
   background: rgb(255 255 255 / 96%);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-selected-workbench .rider-delivery-head,
+  .rider-selected-workbench
+  .rider-delivery-head,
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
   .rider-selected-route-progress,
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
@@ -871,17 +902,20 @@
   border-radius: var(--rider-control-radius);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-selected-workbench .rider-delivery-head {
+  .rider-selected-workbench
+  .rider-delivery-head {
   border-color: var(--rider-card-border);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-selected-workbench .rider-card-completion {
+  .rider-selected-workbench
+  .rider-card-completion {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--rider-space-3);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-selected-workbench .delivery-proof {
+  .rider-selected-workbench
+  .delivery-proof {
   margin: 0;
   padding: var(--rider-space-4);
   border-color: var(--rider-card-border);
@@ -889,7 +923,9 @@
   background: var(--rider-card-soft);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-selected-workbench .delivery-proof-heading > span {
+  .rider-selected-workbench
+  .delivery-proof-heading
+  > span {
   padding: 4px 9px;
   border-radius: 999px;
   background: #fff;
@@ -897,7 +933,8 @@
   font-weight: 600;
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-selected-workbench .delivery-photo-picker {
+  .rider-selected-workbench
+  .delivery-photo-picker {
   min-height: 64px;
   margin: var(--rider-space-3) 0;
   padding: var(--rider-space-3);
@@ -905,7 +942,8 @@
   border-radius: var(--rider-control-radius);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-selected-workbench .delivery-proof-result {
+  .rider-selected-workbench
+  .delivery-proof-result {
   gap: var(--rider-space-3);
   margin-top: var(--rider-space-3);
   padding: var(--rider-space-3);
@@ -914,7 +952,8 @@
   background: #fff;
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-selected-workbench .delivery-proof-result-copy {
+  .rider-selected-workbench
+  .delivery-proof-result-copy {
   gap: var(--rider-space-2);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
@@ -923,16 +962,20 @@
   gap: var(--rider-space-1);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .delivery-proof-file-status strong {
+  .delivery-proof-file-status
+  strong {
   color: var(--ink);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .delivery-proof-file-status small {
+  .delivery-proof-file-status
+  small {
   margin: 0;
   color: var(--muted);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-selected-workbench .rider-card-completion > .ui-button {
+  .rider-selected-workbench
+  .rider-card-completion
+  > .ui-button {
   justify-self: end;
   min-height: 48px;
   border-radius: var(--rider-control-radius);
@@ -947,7 +990,8 @@
     width: 100%;
   }
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-    .rider-route-heading-actions .ui-button {
+    .rider-route-heading-actions
+    .ui-button {
     flex: 1 1 auto;
   }
 }
@@ -958,7 +1002,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-    .rider-route-heading-actions .ui-button {
+    .rider-route-heading-actions
+    .ui-button {
     min-width: 0;
     padding-inline: var(--rider-space-2);
     white-space: normal;
@@ -970,7 +1015,8 @@
     gap: var(--rider-space-2);
   }
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-    .rider-selected-workbench .delivery-proof-result {
+    .rider-selected-workbench
+    .delivery-proof-result {
     grid-template-columns: minmax(72px, 112px) minmax(0, 1fr);
   }
 }
@@ -1000,7 +1046,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-heading p {
+    .rider-route-heading
+    p {
     display: none;
   }
 
@@ -1014,22 +1061,15 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-switcher .ui-button {
+    .rider-route-switcher
+    .ui-button {
     min-height: 44px;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-legend i.route {
-    width: 15px;
-    height: 3px;
-    border-radius: 2px;
-    background: #2563eb;
-  }
-
-  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-    .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-legend i.route.approximate {
+    .rider-route-legend
+    i.route.approximate {
     background: repeating-linear-gradient(
       90deg,
       #2563eb 0 4px,
@@ -1072,7 +1112,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-workbench-tabs .ui-button {
+    .rider-workbench-tabs
+    .ui-button {
     justify-content: center;
     min-height: 42px;
     border-color: transparent;
@@ -1081,7 +1122,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-workbench-tabs .ui-button[aria-pressed="true"] {
+    .rider-workbench-tabs
+    .ui-button[aria-pressed="true"] {
     border-color: #d3e1d1;
     border-radius: 9px;
     background: #fff;
@@ -1090,7 +1132,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-itinerary ol {
+    .rider-route-itinerary
+    ol {
     display: grid;
     gap: 8px;
     margin: 12px 0 16px;
@@ -1098,7 +1141,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-itinerary li {
+    .rider-route-itinerary
+    li {
     align-items: center;
     gap: 6px;
     padding: 7px;
@@ -1113,7 +1157,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-itinerary li:has(> .rider-route-stop-select[aria-pressed="true"]) {
+    .rider-route-itinerary
+    li:has(> .rider-route-stop-select[aria-pressed="true"]) {
     border-color: #b8d0b5;
     background: #edf5eb;
     box-shadow: inset 3px 0 0 var(--primary);
@@ -1121,13 +1166,15 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-itinerary li:has(> .rider-route-stop-select[aria-pressed="true"]):hover {
+    .rider-route-itinerary
+    li:has(> .rider-route-stop-select[aria-pressed="true"]):hover {
     background: #edf5eb;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-itinerary li:hover:not(:has(> .rider-route-stop-select[aria-pressed="true"])) {
+    .rider-route-itinerary
+    li:hover:not(:has(> .rider-route-stop-select[aria-pressed="true"])) {
     border-color: #c7d6c6;
     background: #f8faf7;
   }
@@ -1179,7 +1226,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-itinerary-heading h3 {
+    .rider-route-itinerary-heading
+    h3 {
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.015em;
@@ -1187,7 +1235,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-itinerary-heading .ui-button {
+    .rider-route-itinerary-heading
+    .ui-button {
     min-height: 44px;
     border-radius: 9px;
   }
@@ -1205,7 +1254,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-stop-select[aria-pressed="true"] .rider-route-stop-number {
+    .rider-route-stop-select[aria-pressed="true"]
+    .rider-route-stop-number {
     background: var(--primary);
     color: #fff;
   }
@@ -1222,13 +1272,15 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-stop-copy > * {
+    .rider-route-stop-copy
+    > * {
     grid-column: 1 / -1;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-stop-copy strong {
+    .rider-route-stop-copy
+    strong {
     font-size: 12px;
     line-height: 1.35;
     font-weight: 700;
@@ -1249,10 +1301,12 @@
     .rider-route-stop-address,
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-stop-copy small,
+    .rider-route-stop-copy
+    small,
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-stop-copy .rider-stop-eta {
+    .rider-route-stop-copy
+    .rider-stop-eta {
     grid-column: 1 / -1;
   }
 
@@ -1273,7 +1327,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-reorder button {
+    .rider-route-reorder
+    button {
     width: 44px;
     height: 44px;
     min-width: 44px;
@@ -1284,7 +1339,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-reorder button:hover:not(:disabled) {
+    .rider-route-reorder
+    button:hover:not(:disabled) {
     border-color: #b8d0b5;
     background: #f3f7f1;
   }
@@ -1302,7 +1358,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-summary .rider-traffic-state {
+    .rider-route-summary
+    .rider-traffic-state {
     margin: 0 0 5px;
     color: #52645a;
     font-weight: 650;
@@ -1310,13 +1367,15 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-summary .rider-traffic-state.has-congestion {
+    .rider-route-summary
+    .rider-traffic-state.has-congestion {
     color: #8a5d19;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-summary p {
+    .rider-route-summary
+    p {
     margin: 4px 0;
     line-height: 1.5;
   }
@@ -1333,7 +1392,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-apply p {
+    .rider-route-apply
+    p {
     margin: 0;
     color: var(--muted);
     font-size: 12px;
@@ -1342,7 +1402,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-apply .ui-button {
+    .rider-route-apply
+    .ui-button {
     min-height: 44px;
     justify-content: center;
     border-radius: 10px;
@@ -1350,7 +1411,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-apply .ui-button:disabled {
+    .rider-route-apply
+    .ui-button:disabled {
     opacity: 0.58;
     background: #e8eee8;
     color: #64736a;
@@ -1390,7 +1452,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-heading > div:first-child {
+    .rider-route-heading
+    > div:first-child {
     min-width: 0;
     flex: 1 1 auto;
   }
@@ -1404,14 +1467,16 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-heading h2 {
+    .rider-route-heading
+    h2 {
     font-size: clamp(16px, 1.2vw, 20px);
     white-space: nowrap;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-heading p {
+    .rider-route-heading
+    p {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1431,7 +1496,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-focus-heading h3 {
+    .rider-selected-focus-heading
+    h3 {
     margin: 0;
     color: var(--ink);
     font-size: 16px;
@@ -1441,7 +1507,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-focus-heading span {
+    .rider-selected-focus-heading
+    span {
     flex: 0 0 auto;
     padding: 6px 9px;
     border: 1px solid #dce8d9;
@@ -1454,7 +1521,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-delivery-head {
+    .rider-selected-workbench
+    .rider-delivery-head {
     display: block;
     padding: 10px;
     border: 1px solid #e1e8e0;
@@ -1464,7 +1532,9 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-delivery-head > div {
+    .rider-selected-workbench
+    .rider-delivery-head
+    > div {
     display: grid;
     grid-template-columns: 28px minmax(0, 1fr) auto;
     min-width: 0;
@@ -1474,13 +1544,15 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-priority-label {
+    .rider-selected-workbench
+    .rider-card-priority-label {
     display: none;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-order-title {
+    .rider-selected-workbench
+    .rider-card-order-title {
     min-width: 0;
     font-size: 14px;
     line-height: 1.35;
@@ -1489,7 +1561,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-sequence {
+    .rider-selected-workbench
+    .rider-card-sequence {
     grid-row: 1 / span 2;
     width: 28px;
     height: 28px;
@@ -1500,7 +1573,9 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-delivery-head .delivery-state {
+    .rider-selected-workbench
+    .rider-delivery-head
+    .delivery-state {
     grid-column: 2 / -1;
     justify-self: start;
     padding: 4px 8px;
@@ -1514,7 +1589,9 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-delivery-head .delivery-state:is(.state-in_transit, .state-picked_up) {
+    .rider-selected-workbench
+    .rider-delivery-head
+    .delivery-state:is(.state-in_transit, .state-picked_up) {
     border-color: #d1def4;
     background: #edf4ff;
     color: #355b9a;
@@ -1522,14 +1599,16 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-body {
+    .rider-selected-workbench
+    .rider-card-body {
     gap: 12px;
     padding: 16px 0 10px !important;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-section-title {
+    .rider-selected-workbench
+    .rider-card-section-title {
     margin: 2px 0 6px;
     color: #526258;
     font-size: 12px;
@@ -1539,21 +1618,24 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-journey {
+    .rider-selected-workbench
+    .rider-card-journey {
     gap: 0;
     padding: 4px 0 8px;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-stop {
+    .rider-selected-workbench
+    .rider-card-stop {
     gap: 10px;
     padding: 8px 0;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-stop-icon {
+    .rider-selected-workbench
+    .rider-card-stop-icon {
     width: 30px;
     height: 30px;
     border: 1px solid #e5ebe4;
@@ -1564,7 +1646,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-stop-icon.pickup {
+    .rider-selected-workbench
+    .rider-card-stop-icon.pickup {
     border-color: #e5ebe4;
     background: #eff5ed;
     color: #315b43;
@@ -1572,7 +1655,9 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-stop p {
+    .rider-selected-workbench
+    .rider-card-stop
+    p {
     color: var(--ink);
     font-size: 13px;
     line-height: 1.5;
@@ -1581,7 +1666,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-recipient {
+    .rider-selected-workbench
+    .rider-card-recipient {
     gap: 10px;
     margin: 4px 0 0;
     padding: 12px 0;
@@ -1590,14 +1676,18 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-recipient strong {
+    .rider-selected-workbench
+    .rider-card-recipient
+    strong {
     color: var(--ink);
     font-size: 13px;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-recipient a {
+    .rider-selected-workbench
+    .rider-card-recipient
+    a {
     min-height: 40px;
     margin-left: auto;
     border-color: #dfe8df;
@@ -1608,7 +1698,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-instructions {
+    .rider-selected-workbench
+    .rider-card-instructions {
     gap: 10px;
     padding: 10px 0 12px;
     border-top: 1px solid #e6ebe5;
@@ -1617,7 +1708,9 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-instructions p {
+    .rider-selected-workbench
+    .rider-card-instructions
+    p {
     margin: 0;
     color: var(--ink);
     font-size: 12px;
@@ -1627,7 +1720,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-items {
+    .rider-selected-workbench
+    .rider-card-items {
     margin: 0;
     padding: 0;
     border-top: 1px solid #e6ebe5;
@@ -1635,7 +1729,9 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-card-items summary {
+    .rider-selected-workbench
+    .rider-card-items
+    summary {
     min-height: 44px;
     color: var(--ink);
     font-size: 12px;
@@ -1643,14 +1739,17 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-primary-actions {
+    .rider-selected-workbench
+    .rider-primary-actions {
     gap: 8px;
     padding: 12px 0 8px;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-primary-actions > .ui-button:first-child {
+    .rider-selected-workbench
+    .rider-primary-actions
+    > .ui-button:first-child {
     min-width: 0;
     min-height: 44px;
     flex: 1 1 100%;
@@ -1660,7 +1759,8 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-action-status {
+    .rider-selected-workbench
+    .rider-action-status {
     flex: 1 1 100%;
     width: 100%;
     min-width: 0;
@@ -1679,7 +1779,9 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-primary-actions .rider-card-navigation {
+    .rider-selected-workbench
+    .rider-primary-actions
+    .rider-card-navigation {
     min-height: 42px;
     margin: 0;
     padding: 0 11px;
@@ -1690,14 +1792,17 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-actions {
+    .rider-selected-workbench
+    .rider-actions {
     padding: 0 !important;
     border-top: 1px solid #e6ebe5;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-selected-workbench .rider-secondary-actions summary {
+    .rider-selected-workbench
+    .rider-secondary-actions
+    summary {
     min-height: 42px;
     display: flex;
     align-items: center;
@@ -1710,13 +1815,15 @@
 @media (min-width: 700px) and (max-width: 1100px) {
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-heading p {
+    .rider-route-heading
+    p {
     display: none;
   }
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-heading-actions .ui-button {
+    .rider-route-heading-actions
+    .ui-button {
     width: 44px;
     min-width: 44px;
     height: 44px;
@@ -1729,7 +1836,9 @@
 
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:is(.is-expanded, :fullscreen)
-    .rider-route-heading-actions .ui-button svg {
+    .rider-route-heading-actions
+    .ui-button
+    svg {
     flex: 0 0 auto;
   }
 
@@ -2184,7 +2293,8 @@
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
   .rider-route-planner
   .rider-selected-workbench
-  .delivery-proof-heading > span {
+  .delivery-proof-heading
+  > span {
   border-color: var(--primary-border);
   background: var(--primary-soft);
   color: var(--primary);
@@ -2210,4 +2320,154 @@
     padding-inline: var(--rider-space-2);
     white-space: normal;
   }
+}
+/* Mobile fullscreen gives the map and stop list their own space. */
+@media (max-width: 699px) {
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner:is(.is-expanded, :fullscreen) {
+    .rider-route-heading {
+      position: relative;
+      inset: auto;
+      flex: 0 0 auto;
+      width: auto;
+      min-height: 60px;
+      margin: 0;
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 0;
+      gap: 8px;
+      flex-wrap: nowrap;
+      box-shadow: none;
+    }
+    .rider-route-heading h2 {
+      font-size: 16px;
+      white-space: nowrap;
+    }
+    .rider-route-heading-actions {
+      flex: 0 0 auto;
+      width: auto;
+      display: flex;
+    }
+    .rider-route-heading-actions > button:not(:last-child) {
+      display: none;
+    }
+    .rider-route-heading-actions > button:last-child {
+      width: 44px;
+      min-width: 44px;
+      height: 44px;
+      padding: 0;
+      font-size: 0;
+      justify-content: center;
+      gap: 0;
+    }
+    .rider-fullscreen-label {
+      display: none;
+    }
+    .rider-route-heading-actions > button:last-child svg {
+      display: block;
+      flex: 0 0 18px;
+      width: 18px;
+      height: 18px;
+    }
+    .rider-active-switcher {
+      position: relative;
+      inset: auto;
+      flex: 0 0 auto;
+      width: auto;
+      margin: 0;
+      padding: 4px 12px 8px;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .rider-route-switcher-label {
+      display: none;
+    }
+    .rider-route-switcher-control {
+      width: 100%;
+      max-width: none;
+    }
+    .rider-route-layout {
+      position: relative;
+      inset: auto;
+      flex: 1 1 auto;
+      min-height: 0;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) minmax(0, 29dvh);
+    }
+    .rider-route-map-area {
+      position: relative;
+      inset: auto;
+      min-height: 0;
+      height: 100%;
+      padding: 0;
+    }
+    .rider-route-map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      border-radius: 0;
+    }
+    .rider-route-itinerary {
+      position: relative;
+      inset: auto;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      padding: 14px;
+      border-radius: 0;
+      overflow: auto;
+    }
+    .rider-route-map .leaflet-top.leaflet-left {
+      top: 8px;
+      left: 8px;
+    }
+    .rider-route-map-tools {
+      top: 8px;
+      right: 62px;
+      bottom: auto;
+      left: 62px;
+      padding: 3px;
+      margin: 0;
+      gap: 3px;
+      flex-wrap: nowrap;
+    }
+    .rider-route-map-tools .ui-button {
+      min-width: 0;
+      min-height: 44px;
+      padding: 6px;
+      font-size: 11px;
+      flex: 1 1 0;
+    }
+    .rider-route-legend {
+      top: auto;
+      right: 8px;
+      bottom: 8px;
+      left: 8px;
+      gap: 6px 12px;
+      padding: 8px;
+      font-size: 11px;
+    }
+  }
+}
+.rider-route-progress-copy {
+  flex: 0 0 auto;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--route-next);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.rider-route-progress-copy p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+.rider-route-planner:is(.is-expanded, :fullscreen) .rider-route-progress-copy {
+  display: none;
 }

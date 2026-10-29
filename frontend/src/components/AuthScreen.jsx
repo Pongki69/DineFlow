@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { api, csrf } from "../api";
 import { Button, Feedback, Field } from "./ui";
+import { NewPasswordFields } from "./NewPasswordFields";
+import { validateNewPasswordForm } from "./passwordValidation";
 import {
   getSavedLogin,
   offerToSaveLogin,
@@ -31,7 +33,11 @@ const descriptions = {
   reset: "Choose a strong password to keep your account secure.",
 };
 
-export function AuthScreen({ onSignedIn, initialMode = "login" }) {
+export function AuthScreen({
+  onSignedIn,
+  initialMode = "login",
+  initialNotice = "",
+}) {
   const formRef = useRef(null);
   const [savedLoginsAvailable] = useState(supportsSavedLogins);
   const [selectingLogin, setSelectingLogin] = useState(false);
@@ -39,7 +45,7 @@ export function AuthScreen({ onSignedIn, initialMode = "login" }) {
   const [mode, setMode] = useState(params.has("token") ? "reset" : initialMode);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialNotice);
   const [busy, setBusy] = useState(false);
   const [reveal, setReveal] = useState(false);
   function changeMode(value) {
@@ -52,6 +58,11 @@ export function AuthScreen({ onSignedIn, initialMode = "login" }) {
   async function submit(event) {
     event.preventDefault();
     if (busy || selectingLogin) return;
+    if (
+      ["register", "reset"].includes(mode) &&
+      !validateNewPasswordForm(event.currentTarget)
+    )
+      return;
     setError("");
     setErrors({});
     setMessage("");
@@ -189,7 +200,7 @@ export function AuthScreen({ onSignedIn, initialMode = "login" }) {
               required
               error={errors.email?.[0]}
             />
-            {mode !== "forgot" && (
+            {mode === "login" && (
               <div className="password-field">
                 <Field
                   label="Password"
@@ -198,14 +209,8 @@ export function AuthScreen({ onSignedIn, initialMode = "login" }) {
                   autoComplete={
                     mode === "login" ? "current-password" : "new-password"
                   }
-                  minLength={mode === "login" ? undefined : 12}
                   required
                   error={errors.password?.[0]}
-                  hint={
-                    mode === "register" || mode === "reset"
-                      ? "At least 12 characters with uppercase, lowercase, a number and a symbol."
-                      : undefined
-                  }
                 />
                 <button
                   className="password-toggle"
@@ -223,13 +228,15 @@ export function AuthScreen({ onSignedIn, initialMode = "login" }) {
               </div>
             )}
             {["register", "reset"].includes(mode) && (
-              <Field
-                label="Confirm password"
-                name="password_confirmation"
-                type="password"
-                autoComplete="new-password"
-                minLength={12}
-                required
+              <NewPasswordFields
+                errors={errors}
+                onEdit={() =>
+                  setErrors((current) => ({
+                    ...current,
+                    password: undefined,
+                    password_confirmation: undefined,
+                  }))
+                }
               />
             )}
             {mode === "login" && (

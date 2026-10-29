@@ -1,3 +1,12 @@
+.review-demo-notice {
+  padding: 16px;
+  border: 1px solid var(--primary-border, #9ba891);
+  border-radius: 12px;
+  background: var(--primary-soft, #e8efe0);
+  color: var(--ink, #1a2921);
+  font-size: 14px;
+  line-height: 1.6;
+}
 .rider-review-form,
 .review-card,
 .review-summary-card,
@@ -430,13 +439,13 @@
   color: #687a60;
   font-size: var(--text-caption);
   font-weight: 700;
-  letter-spacing: .12em;
+  letter-spacing: 0.12em;
 }
 .review-first-empty-copy h2 {
   margin: 8px 0 6px;
   color: var(--ink);
   font-size: clamp(20px, 2vw, 25px);
-  letter-spacing: -.035em;
+  letter-spacing: -0.035em;
 }
 .review-first-empty-copy p {
   max-width: 58ch;

@@ -1,3 +1,4 @@
+import { restaurantMapIcon as restaurantIcon } from "./restaurantMapIcon";
 import { useEffect, useState } from "react";
 import {
   Clock3,
@@ -6,14 +7,13 @@ import {
   Phone,
   Mail,
   Copy,
-  LocateFixed,
   ArrowUpRight,
   Utensils,
 } from "lucide-react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import L from "leaflet";
-import { api } from "../api";
+import { useRestaurantLocation } from "./useRestaurantLocation";
 import { Feedback, Skeleton } from "./ui";
+import { MapControls } from "./MapControls";
 import "leaflet/dist/leaflet.css";
 import "./restaurantLocation.css";
 
@@ -26,13 +26,6 @@ const days = [
   "saturday",
   "sunday",
 ];
-const restaurantIcon = L.divIcon({
-  className: "visit-map-marker",
-  html: '<span role="img" aria-label="Restaurant location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v6m3-6v6M5 6h3M6.5 9v12M16 3c-3 3-3 8 0 9h2m0-9v18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>',
-  iconSize: [48, 56],
-  iconAnchor: [24, 52],
-  popupAnchor: [0, -48],
-});
 
 export function openingTime(value) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value || "")) return null;
@@ -44,42 +37,17 @@ function MapRecenter({ center }) {
   const map = useMap();
   useEffect(() => {
     map.invalidateSize();
-  }, [map]);
+    if (center) map.setView(center, 16);
+  }, [map, center?.[0], center?.[1]]);
   return (
-    <button
-      type="button"
-      className="visit-recenter"
-      onClick={() => map.setView(center, 16)}
-    >
-      <LocateFixed size={17} aria-hidden="true" />
-      Center restaurant
-    </button>
+    <MapControls center={center} zoom={16} recenterLabel="Center restaurant" />
   );
 }
 
 export function RestaurantLocation() {
-  const [location, setLocation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [attempt, setAttempt] = useState(0);
+  const { location, loading, error, refresh } = useRestaurantLocation();
   const [copyStatus, setCopyStatus] = useState("");
   const [mapError, setMapError] = useState(false);
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError("");
-    api("/restaurant/location", { signal: controller.signal })
-      .then((result) => {
-        if (!controller.signal.aborted) setLocation(result.data || {});
-      })
-      .catch((failure) => {
-        if (!controller.signal.aborted) setError(failure.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [attempt]);
   const lat = Number(location?.latitude),
     lng = Number(location?.longitude);
   const hasPin =
@@ -115,7 +83,7 @@ export function RestaurantLocation() {
           <h1 id="visit-title">{location?.name || "Find our restaurant"}</h1>
           <p>A good meal starts here. Find your way to our door.</p>
         </div>
-        {!loading && !error && directions && (
+        {!loading && directions && (
           <a
             className="visit-directions"
             href={directions}
@@ -128,12 +96,16 @@ export function RestaurantLocation() {
           </a>
         )}
       </header>
+      {error && location && (
+        <Feedback onRetry={refresh}>
+          Restaurant details could not refresh. Your last loaded location is
+          still shown.
+        </Feedback>
+      )}
       {loading ? (
         <Skeleton label="Loading restaurant details" />
-      ) : error ? (
-        <Feedback onRetry={() => setAttempt((value) => value + 1)}>
-          {error}
-        </Feedback>
+      ) : error && !location ? (
+        <Feedback onRetry={refresh}>{error}</Feedback>
       ) : (
         <div className="visit-layout">
           <section className="visit-map-card" aria-labelledby="visit-map-title">
@@ -152,7 +124,7 @@ export function RestaurantLocation() {
                 role="region"
                 aria-label="Restaurant map"
               >
-                <MapContainer center={center} zoom={16} scrollWheelZoom={false}>
+                <MapContainer center={center} zoom={16} scrollWheelZoom>
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -162,6 +134,7 @@ export function RestaurantLocation() {
                     }}
                   />
                   <Marker
+                    key={location.name || "Restaurant"}
                     position={center}
                     icon={restaurantIcon}
                     title={location.name || "Restaurant"}

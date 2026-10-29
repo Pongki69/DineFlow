@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
+import { useRestaurantLocation } from "../components/useRestaurantLocation";
 import {
   EmptyState,
   Feedback,
@@ -21,7 +22,11 @@ import {
   CheckCircle2,
   Phone,
   Mail,
+  Store,
+  Navigation,
 } from "lucide-react";
+import { hasOutletCoordinates } from "./outletConfiguration";
+import "./riderCurrentOutlet.css";
 import {
   RiderDeliveryDetails,
   RiderDeliveryNavigation,
@@ -52,22 +57,15 @@ export function RiderDeliveries() {
   const [routeOrder, setRouteOrder] = useState([]);
   const ask = usePrompt();
   const presence = useRiderPresence();
-  const [restaurantContact, setRestaurantContact] = useState(null);
+  const outletResource = useRestaurantLocation();
+  const restaurantContact = outletResource.location;
   const [deliveries, setDeliveries] = useState([]),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [trackingId, setTrackingId] = useState(null),
     [geoError, setGeoError] = useState("");
   const sendAt = useRef(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    api("/restaurant/location", { signal: controller.signal })
-      .then((result) => {
-        if (!controller.signal.aborted) setRestaurantContact(result.data || {});
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
+
   const {
     data: assignmentResult,
     error: refreshError,
@@ -86,7 +84,8 @@ export function RiderDeliveries() {
       setRouteOrder(r.delivery_order);
     setSelectedId((current) => {
       const currentDelivery = (r.data || []).find(
-        (delivery) => current != null && String(delivery.id) === String(current),
+        (delivery) =>
+          current != null && String(delivery.id) === String(current),
       );
       const nextDelivery = (r.data || []).find(
         (delivery) => String(delivery.id) === String(r.next_delivery_id),
@@ -258,7 +257,8 @@ export function RiderDeliveries() {
   const selectedDeliveryPanel = (
     <div className="rider-delivery-list">
       {queueDeliveries.map((d, index) => {
-        if (selectedId == null || String(d.id) !== String(selectedId)) return null;
+        if (selectedId == null || String(d.id) !== String(selectedId))
+          return null;
         const o = d.order;
         const next =
           d.status === "accepted"
@@ -295,22 +295,21 @@ export function RiderDeliveries() {
                     : "Mark delivered"}
             </Button>
           ) : null;
-        const primaryAction =
-          waitingForKitchen ? (
-            <p className="rider-action-status" role="status">
-              Waiting for the kitchen to mark this order ready
-            </p>
-          ) : d.status === "assigned" ? (
-            <Button
-              busy={!!pending[d.id]}
-              disabled={!!pending[d.id]}
-              onClick={() => act(d, `/rider/deliveries/${d.id}/accept`)}
-            >
-              Accept assignment
-            </Button>
-          ) : d.status !== "in_transit" ? (
-            progressAction
-          ) : null;
+        const primaryAction = waitingForKitchen ? (
+          <p className="rider-action-status" role="status">
+            Waiting for the kitchen to mark this order ready
+          </p>
+        ) : d.status === "assigned" ? (
+          <Button
+            busy={!!pending[d.id]}
+            disabled={!!pending[d.id]}
+            onClick={() => act(d, `/rider/deliveries/${d.id}/accept`)}
+          >
+            Accept assignment
+          </Button>
+        ) : d.status !== "in_transit" ? (
+          progressAction
+        ) : null;
         return (
           <article
             className="rider-delivery-card"
@@ -357,7 +356,9 @@ export function RiderDeliveries() {
             <div className="rider-selected-route-progress">
               <div>
                 <strong>Route position</strong>
-                <span>Delivery {index + 1} of {deliveries.length} active</span>
+                <span>
+                  Delivery {index + 1} of {deliveries.length} active
+                </span>
               </div>
               <progress
                 max={Math.max(deliveries.length, 1)}
@@ -528,11 +529,15 @@ export function RiderDeliveries() {
         );
       })}
       {!queueDeliveries.some(
-        (delivery) => selectedId != null && String(delivery.id) === String(selectedId),
+        (delivery) =>
+          selectedId != null && String(delivery.id) === String(selectedId),
       ) && (
         <div className="rider-selected-delivery-empty" role="status">
           <strong>Choose an active delivery</strong>
-          <p>Select a delivery above or from the queue to see its next action and stop details.</p>
+          <p>
+            Select a delivery above or from the queue to see its next action and
+            stop details.
+          </p>
         </div>
       )}
     </div>
@@ -561,6 +566,35 @@ export function RiderDeliveries() {
           </Button>
         }
       />
+      {hasOutletCoordinates(restaurantContact) && (
+        <aside
+          className="rider-current-outlet"
+          aria-label="Current restaurant outlet"
+        >
+          <Store size={22} aria-hidden="true" />
+          <div>
+            <span>Current restaurant outlet</span>
+            <strong>{restaurantContact.name || "Restaurant"}</strong>
+            <p>{restaurantContact.address}</p>
+          </div>
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${Number(restaurantContact.latitude)},${Number(restaurantContact.longitude)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Navigation size={16} aria-hidden="true" />
+            Directions
+          </a>
+        </aside>
+      )}
+      {outletResource.error && (
+        <Feedback onRetry={outletResource.refresh}>
+          Restaurant details could not refresh.{" "}
+          {restaurantContact
+            ? "Your last loaded outlet is still shown."
+            : "Try again to load the saved outlet."}
+        </Feedback>
+      )}
       {loading && deliveries.length === 0 && (
         <div
           className="rider-assignments-loading"
@@ -587,12 +621,18 @@ export function RiderDeliveries() {
               <i className="route-skeleton-pin route-skeleton-pin-two" />
             </div>
             <div className="rider-assignments-route-skeleton">
-              <div className="route-skeleton-tabs"><i /><i /></div>
+              <div className="route-skeleton-tabs">
+                <i />
+                <i />
+              </div>
               <div className="route-skeleton-heading" />
               {[0, 1, 2].map((item) => (
                 <div className="route-skeleton-stop" key={item}>
                   <i />
-                  <span><b /><em /></span>
+                  <span>
+                    <b />
+                    <em />
+                  </span>
                 </div>
               ))}
             </div>
@@ -633,9 +673,20 @@ export function RiderDeliveries() {
         </div>
       )}
       {notice && <Feedback tone="success">{notice}</Feedback>}
+      {!loading &&
+        deliveries.length === 0 &&
+        hasOutletCoordinates(restaurantContact) && (
+          <RiderRoutePlanner
+            deliveries={[]}
+            restaurantLocation={restaurantContact}
+          />
+        )}
       {deliveries.length > 0 && (
         <>
-          <nav className="rider-mobile-workspace-tabs" aria-label="Delivery workspace view">
+          <nav
+            className="rider-mobile-workspace-tabs"
+            aria-label="Delivery workspace view"
+          >
             <Button
               variant="secondary"
               aria-pressed={mobileWorkspaceView === "map"}
@@ -653,6 +704,7 @@ export function RiderDeliveries() {
           </nav>
           <RiderRoutePlanner
             deliveries={deliveries}
+            restaurantLocation={restaurantContact}
             deliveryOrder={routeOrder}
             onOrderChange={(ids) => {
               if (routeSaveLock.current) return;
@@ -670,7 +722,10 @@ export function RiderDeliveries() {
             selectedDeliveryPanel={selectedDeliveryPanel}
           />
           <div className="rider-delivery-lower-grid">
-            <section className="rider-delivery-queue" aria-labelledby="rider-queue-heading">
+            <section
+              className="rider-delivery-queue"
+              aria-labelledby="rider-queue-heading"
+            >
               <header>
                 <div>
                   <h2 id="rider-queue-heading">Your delivery queue</h2>
@@ -681,7 +736,9 @@ export function RiderDeliveries() {
               <div className="rider-delivery-queue-list">
                 {visibleQueueDeliveries.map((delivery, index) => {
                   const statusLabel = title(delivery.status);
-                  const nextStop = ["picked_up", "in_transit"].includes(delivery.status)
+                  const nextStop = ["picked_up", "in_transit"].includes(
+                    delivery.status,
+                  )
                     ? delivery.order.destination?.address
                     : delivery.order.pickup?.address;
                   return (
@@ -689,7 +746,10 @@ export function RiderDeliveries() {
                       className="rider-delivery-queue-row"
                       type="button"
                       key={delivery.id}
-                      aria-pressed={selectedId != null && String(selectedId) === String(delivery.id)}
+                      aria-pressed={
+                        selectedId != null &&
+                        String(selectedId) === String(delivery.id)
+                      }
                       onClick={() => {
                         setSelectedId(delivery.id);
                         setOpenDeliveryRequest((request) => request + 1);
@@ -697,54 +757,89 @@ export function RiderDeliveries() {
                       }}
                     >
                       <span className="rider-queue-number">
-                        {currentDeliveryQueuePage * DELIVERY_QUEUE_PAGE_SIZE + index + 1}
+                        {currentDeliveryQueuePage * DELIVERY_QUEUE_PAGE_SIZE +
+                          index +
+                          1}
                       </span>
                       <span className="rider-queue-order">
                         <strong>{delivery.order.order_number}</strong>
                         <small>{nextStop || "Stop address not recorded"}</small>
                       </span>
-                      <span className={`rider-route-stop-state state-${delivery.status}`}>{statusLabel}</span>
+                      <span
+                        className={`rider-route-stop-state state-${delivery.status}`}
+                      >
+                        {statusLabel}
+                      </span>
                       <span className="rider-queue-action">
-                        {selectedId != null && String(selectedId) === String(delivery.id) ? "Viewing" : "View"}
+                        {selectedId != null &&
+                        String(selectedId) === String(delivery.id)
+                          ? "Viewing"
+                          : "View"}
                       </span>
                     </button>
                   );
                 })}
               </div>
               {deliveryQueuePageCount > 1 && (
-                <nav className="rider-delivery-queue-pagination" aria-label="Delivery queue pages">
+                <nav
+                  className="rider-delivery-queue-pagination"
+                  aria-label="Delivery queue pages"
+                >
                   <Button
                     variant="secondary"
-                    onClick={() => setDeliveryQueuePage((page) => Math.max(0, page - 1))}
+                    onClick={() =>
+                      setDeliveryQueuePage((page) => Math.max(0, page - 1))
+                    }
                     disabled={currentDeliveryQueuePage === 0}
                   >
                     Previous
                   </Button>
                   <span aria-live="polite">
-                    Page {currentDeliveryQueuePage + 1} of {deliveryQueuePageCount}
+                    Page {currentDeliveryQueuePage + 1} of{" "}
+                    {deliveryQueuePageCount}
                   </span>
                   <Button
                     variant="secondary"
-                    onClick={() => setDeliveryQueuePage((page) => Math.min(deliveryQueuePageCount - 1, page + 1))}
-                    disabled={currentDeliveryQueuePage >= deliveryQueuePageCount - 1}
+                    onClick={() =>
+                      setDeliveryQueuePage((page) =>
+                        Math.min(deliveryQueuePageCount - 1, page + 1),
+                      )
+                    }
+                    disabled={
+                      currentDeliveryQueuePage >= deliveryQueuePageCount - 1
+                    }
                   >
                     Next
                   </Button>
                 </nav>
               )}
-              <p className="rider-queue-hint">Select a delivery to focus it on the map. Change stop order from Route order in the route panel.</p>
+              <p className="rider-queue-hint">
+                Select a delivery to focus it on the map. Change stop order from
+                Route order in the route panel.
+              </p>
             </section>
-            <aside className="rider-before-pickup" aria-labelledby="rider-before-pickup-heading">
+            <aside
+              className="rider-before-pickup"
+              aria-labelledby="rider-before-pickup-heading"
+            >
               <header>
                 <h2 id="rider-before-pickup-heading">Before pickup</h2>
-                <span>{presence.state === "online" ? "Online" : "Offline"}</span>
+                <span>
+                  {presence.state === "online" ? "Online" : "Offline"}
+                </span>
               </header>
               <div className="rider-before-pickup-message">
                 <Radio size={17} aria-hidden="true" />
-                <p>{presence.state === "online" ? "You’re ready to receive nearby offers." : "Offers are paused. Go online to refresh your assignments before your next pickup."}</p>
+                <p>
+                  {presence.state === "online"
+                    ? "You’re ready to receive nearby offers."
+                    : "Offers are paused. Go online to refresh your assignments before your next pickup."}
+                </p>
               </div>
               <Link className="ui-button ui-button--primary" to="/rider/offers">
-                {presence.state === "online" ? "View delivery offers" : "Go online"}
+                {presence.state === "online"
+                  ? "View delivery offers"
+                  : "Go online"}
               </Link>
               <h3>Pickup checklist</h3>
               <ol>

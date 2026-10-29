@@ -15,7 +15,7 @@ async function login(page) {
   await expect(
     page.getByRole("heading", { name: "Operations overview", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(/Updated .*refreshes every 15s/)).toBeVisible();
+  await expect(page.getByText(/Updated .*refreshes every 5s/)).toBeVisible();
 }
 
 async function navigate(page, name) {

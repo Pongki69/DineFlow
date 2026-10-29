@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, googlePosition } from "../googleMaps";
+import { restaurantPinSvg } from "./restaurantMapIcon";
+import { MapActionButtons, useMapFullscreen } from "./MapControls";
 
 export function GoogleRestaurantPin({ location, radius, onChange, apiKey }) {
   const container = useRef(null);
+  const frame = useRef(null);
   const runtime = useRef(null);
   const current = useRef({ location, onChange });
   const request = useRef(0);
@@ -12,6 +15,7 @@ export function GoogleRestaurantPin({ location, radius, onChange, apiKey }) {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const fullscreen = useMapFullscreen(frame.current);
   useEffect(() => {
     current.current = { location, onChange };
   }, [location, onChange]);
@@ -24,7 +28,7 @@ export function GoogleRestaurantPin({ location, radius, onChange, apiKey }) {
         const maps = await loadGoogleMaps(apiKey);
         const [
           { Map, Circle },
-          { AdvancedMarkerElement, PinElement },
+          { AdvancedMarkerElement },
           { Place },
           { Geocoder },
         ] = await Promise.all([
@@ -41,14 +45,16 @@ export function GoogleRestaurantPin({ location, radius, onChange, apiKey }) {
           mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
           streetViewControl: false,
           mapTypeControl: false,
-          scrollwheel: false,
+          scrollwheel: true,
+          gestureHandling: "greedy",
+          zoomControl: true,
+          zoomControlOptions: { position: maps.ControlPosition?.TOP_LEFT },
+          fullscreenControl: false,
         });
-        const pin = new PinElement({
-          background: "#245440",
-          borderColor: "#ffffff",
-          glyphColor: "#ffffff",
-          scale: 1.3,
-        });
+        const pin = document.createElement("div");
+        pin.className = "restaurant-map-pin";
+        // This SVG is a static application asset; no user content enters the marker.
+        pin.innerHTML = restaurantPinSvg;
         const marker = new AdvancedMarkerElement({
           map,
           position,
@@ -237,10 +243,27 @@ export function GoogleRestaurantPin({ location, radius, onChange, apiKey }) {
         <p className="restaurant-pin-help">Loading Google Maps…</p>
       )}
       <div
-        ref={container}
-        className="restaurant-settings-map"
+        ref={frame}
+        className="restaurant-settings-map dineflow-google-map"
         aria-label="Google restaurant location map"
-      />
+      >
+        <div ref={container} className="dineflow-google-canvas" />
+        {ready && (
+          <MapActionButtons
+            fullscreen={fullscreen}
+            recenterLabel="Recenter on restaurant coverage"
+            onRecenter={() => {
+              const view = runtime.current;
+              const bounds = view?.circle.getBounds();
+              if (bounds) view.map.fitBounds(bounds);
+              else {
+                const point = googlePosition(current.current.location);
+                if (point) view?.map.setCenter?.(point);
+              }
+            }}
+          />
+        )}
+      </div>
       {status && (
         <p className="restaurant-address-status" role="status">
           {status}

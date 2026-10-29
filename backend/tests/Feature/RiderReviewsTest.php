@@ -1,10 +1,14 @@
 <?php
 
 use App\Models\Delivery;
+use App\Models\MenuCategory;
+use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\RiderProfile;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\MapProviderService;
+use App\Support\RiderWorkspacePreview;
 use Database\Seeders\AuthSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -62,8 +66,8 @@ it('rejects unverified orders invalid categories scores and oversized comments',
 });
 
 it('keeps history order details exclusive to the assigned rider and profiles limited to authorized viewers', function () {
-    $category = \App\Models\MenuCategory::create(['name' => 'Meals', 'slug' => 'review-meals']);
-    $menuItem = \App\Models\MenuItem::create(['category_id' => $category->id, 'name' => 'Current dish name', 'slug' => 'review-dish', 'base_price' => 250, 'description' => 'Fresh noodles with vegetables.', 'image_source_url' => 'https://images.example.test/noodles.jpg']);
+    $category = MenuCategory::create(['name' => 'Meals', 'slug' => 'review-meals']);
+    $menuItem = MenuItem::create(['category_id' => $category->id, 'name' => 'Current dish name', 'slug' => 'review-dish', 'base_price' => 250, 'description' => 'Fresh noodles with vegetables.', 'image_source_url' => 'https://images.example.test/noodles.jpg']);
     $this->order->items()->create(['menu_item_id' => $menuItem->id, 'category_id' => $category->id, 'item_name_snapshot' => 'Original dish name', 'category_name_snapshot' => 'Meals', 'base_unit_price' => 100, 'quantity' => 1, 'line_total' => 100]);
     $menuItem->delete();
     $this->delivery->update(['pickup_latitude' => 14.6, 'pickup_longitude' => 120.98]);
@@ -73,7 +77,7 @@ it('keeps history order details exclusive to the assigned rider and profiles lim
     expect((float) $result->json('data.pickup.latitude'))->toBe(14.6);
     expect((float) $result->json('data.destination.longitude'))->toBe(120.99);
     $result->assertJsonPath('data.items.0.item_name_snapshot', 'Original dish name')->assertJsonPath('data.items.0.line_total', '100.00')->assertJsonPath('data.items.0.description', 'Fresh noodles with vegetables.')->assertJsonPath('data.items.0.image_url', 'https://images.example.test/noodles.jpg');
-    $this->mock(\App\Services\MapProviderService::class, function ($mock) {
+    $this->mock(MapProviderService::class, function ($mock) {
         $mock->shouldReceive('route')->once()->with(14.6, 120.98, 14.62, 120.99, true)->andReturn(['geometry' => [[120.98, 14.6], [120.985, 14.61], [120.99, 14.62]], 'duration_minutes' => 7]);
     });
     $this->getJson($details.'/route')->assertOk()->assertJsonPath('data.kind', 'suggested_route')->assertJsonCount(3, 'data.geometry');
@@ -96,4 +100,16 @@ it('paginates reviews and keeps legacy ratings masked with empty optional fields
     }
     $this->actingAs($this->customer)->getJson($this->profileUrl)->assertOk()->assertJsonCount(10, 'data.reviews')->assertJsonPath('data.meta.last_page', 2)->assertJsonPath('data.summary.count', 12)->assertJsonPath('data.reviews.0.name_hidden', true)->assertJsonPath('data.reviews.0.categories', []);
     $this->getJson($this->profileUrl.'?page=2')->assertJsonCount(2, 'data.reviews');
+});
+
+it('labels generated feedback without exposing order notes or relabeling real reviews', function () {
+    $this->actingAs($this->customer)->postJson($this->url, ['rating' => 4])->assertOk();
+    $this->getJson($this->profileUrl)->assertOk()->assertJsonPath('data.summary.demo_count', 0)->assertJsonPath('data.reviews.0.is_demo', false);
+    $this->order->update([
+        'order_number' => RiderWorkspacePreview::prefix($this->rider->id).'H-001',
+        'customer_notes' => RiderWorkspacePreview::marker($this->rider->id),
+    ]);
+    $this->getJson($this->profileUrl)->assertOk()->assertJsonPath('data.summary.demo_count', 1)->assertJsonPath('data.reviews.0.is_demo', true)->assertJsonMissingPath('data.reviews.0.customer_notes')->assertJsonMissingPath('data.reviews.0.order_number');
+    $this->order->update(['customer_notes' => 'A real customer note']);
+    $this->getJson($this->profileUrl)->assertOk()->assertJsonPath('data.summary.demo_count', 0)->assertJsonPath('data.reviews.0.is_demo', false);
 });

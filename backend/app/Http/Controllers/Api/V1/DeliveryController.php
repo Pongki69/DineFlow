@@ -21,7 +21,7 @@ class DeliveryController extends Controller
     public function restaurant(DeliveryQuoteService $quotes): JsonResponse
     {
         $location = $quotes->location();
-        return response()->json(['map_provider' => config('services.maps.provider'), 'data' => $location ? $location + ['navigation_url' => isset($location['latitude'], $location['longitude']) ? 'https://www.google.com/maps/dir/?api=1&destination='.$location['latitude'].','.$location['longitude'] : null] : null]);
+        return response()->json(['map_provider' => config('services.maps.provider'), 'location_version' => hash('sha256', json_encode([$location, $quotes->policy()])), 'data' => $location ? $location + ['navigation_url' => isset($location['latitude'], $location['longitude']) ? 'https://www.google.com/maps/dir/?api=1&destination='.$location['latitude'].','.$location['longitude'] : null] : null])->header('Cache-Control', 'no-store');
     }
 
     public function branding(): JsonResponse

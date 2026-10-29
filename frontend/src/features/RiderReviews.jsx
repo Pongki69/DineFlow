@@ -4,11 +4,7 @@ import { CheckCircle2, Star } from "lucide-react";
 import { RiderVehicle } from "../components/RiderVehicle";
 import { RiderScreenSkeleton } from "../components/RiderScreenSkeleton";
 import { api } from "../api";
-import {
-  Button,
-  Feedback,
-  PageHeader,
-} from "../components/ui";
+import { Button, Feedback, PageHeader } from "../components/ui";
 import { RatingStars, reviewCategories } from "../components/RiderReviewForm";
 import "../components/riderReviews.css";
 
@@ -31,9 +27,7 @@ export function RiderReviews({ own = false }) {
     const query = new URLSearchParams({ page: String(page) });
     if (filterRating != null) query.set("rating", String(filterRating));
     api(
-      own
-        ? `/rider/reviews?${query}`
-        : `/riders/${riderId}/profile?${query}`,
+      own ? `/rider/reviews?${query}` : `/riders/${riderId}/profile?${query}`,
       { signal: controller.signal },
     )
       .then((result) => {
@@ -57,7 +51,13 @@ export function RiderReviews({ own = false }) {
     <section className="rider-public-profile">
       <PageHeader
         title={own ? "Ratings & reviews" : "Rider profile"}
-        description={own ? "Feedback from verified deliveries." : undefined}
+        description={
+          own
+            ? data?.summary?.demo_count > 0
+              ? "Preview feedback from sample deliveries."
+              : "Feedback from verified deliveries."
+            : undefined
+        }
       />
       {loading ? (
         <RiderScreenSkeleton variant="reviews" label="Loading rider profile" />
@@ -68,6 +68,13 @@ export function RiderReviews({ own = false }) {
       ) : (
         data && (
           <>
+            {data.summary.demo_count > 0 && (
+              <p className="review-demo-notice" role="status">
+                <strong>Demo reviews enabled.</strong> This preview includes{" "}
+                {data.summary.demo_count} sample reviews. They are generated
+                test feedback, not customer endorsements.
+              </p>
+            )}
             <section
               className="review-profile-header"
               aria-label="Rider information"
@@ -93,10 +100,14 @@ export function RiderReviews({ own = false }) {
             </section>
             {Number(data.summary?.count || 0) === 0 ? (
               <div className="review-profile-layout review-profile-layout-empty">
-                <section className="review-summary-card" aria-label="Rating summary">
+                <section
+                  className="review-summary-card"
+                  aria-label="Rating summary"
+                >
                   <h2 className="review-summary-label">Overall rating</h2>
                   <div className="review-scoreline">
-                    <strong>—</strong><span>/ 5</span>
+                    <strong>—</strong>
+                    <span>/ 5</span>
                   </div>
                   <RatingStars value={0} />
                   <p>No ratings yet</p>
@@ -104,19 +115,28 @@ export function RiderReviews({ own = false }) {
                     {data.summary.breakdown.map((row) => (
                       <div key={row.stars}>
                         <span>{row.stars} ★</span>
-                        <progress max={1} value={0} aria-label={`${row.stars} star reviews: 0`} />
+                        <progress
+                          max={1}
+                          value={0}
+                          aria-label={`${row.stars} star reviews: 0`}
+                        />
                         <span>0</span>
                       </div>
                     ))}
                   </div>
                 </section>
-                <section className="review-first-empty" aria-labelledby="review-first-heading">
+                <section
+                  className="review-first-empty"
+                  aria-labelledby="review-first-heading"
+                >
                   <div className="review-first-empty-icon" aria-hidden="true">
                     <Star size={29} strokeWidth={1.7} />
                   </div>
                   <div className="review-first-empty-copy">
                     <span>WHAT TO EXPECT</span>
-                    <h2 id="review-first-heading">Your first review will appear here</h2>
+                    <h2 id="review-first-heading">
+                      Your first review will appear here
+                    </h2>
                     <p>
                       {data.rider.delivered_total > 0
                         ? "Customers can leave a review after a completed delivery. Your verified rating and comments will appear here once they submit one."
@@ -144,11 +164,12 @@ export function RiderReviews({ own = false }) {
                     value={Math.round(Number(data.summary.average || 0))}
                   />
                   <p>
-                    {data.summary.count} verified{" "}
+                    {data.summary.count}{" "}
+                    {data.summary.demo_count > 0 ? "" : "verified "}
                     {data.summary.count === 1 ? "review" : "reviews"}
                   </p>
                   <div className="review-distribution">
-                  {data.summary.breakdown.map((row) => (
+                    {data.summary.breakdown.map((row) => (
                       <button
                         className={
                           filterRating === row.stars
@@ -184,7 +205,8 @@ export function RiderReviews({ own = false }) {
                     </div>
                     <div className="review-list-actions">
                       <span>
-                        {data.meta.total} verified{" "}
+                        {data.meta.total}{" "}
+                        {data.summary.demo_count > 0 ? "" : "verified "}
                         {data.meta.total === 1 ? "review" : "reviews"}
                       </span>
                       {filterRating != null && (
@@ -210,7 +232,11 @@ export function RiderReviews({ own = false }) {
                           </time>
                         </div>
                         <RatingStars value={review.rating} />
-                        <span className="review-verified">Verified delivery</span>
+                        <span className="review-verified">
+                          {review.is_demo
+                            ? "Demo delivery"
+                            : "Verified delivery"}
+                        </span>
                         <div className="review-tags">
                           {review.categories.map((category) => (
                             <span key={category}>

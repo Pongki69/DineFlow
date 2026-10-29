@@ -36,13 +36,14 @@ class DeliveryOperationsController extends Controller
             'delivery_ids' => ['present', 'array', 'max:25'],
             'return_to_store' => ['sometimes', 'boolean'],
             'return_store_key' => ['nullable', 'string', 'max:64'],
+            'navigation_delivery_id' => ['nullable', 'integer', 'min:1'],
             'delivery_ids.*' => ['required', 'integer', 'distinct'],
             'origin' => ['nullable', 'array:latitude,longitude'],
             'origin.latitude' => ['required_with:origin', 'numeric', 'between:-90,90'],
             'origin.longitude' => ['required_with:origin', 'numeric', 'between:-180,180'],
         ]);
 
-        return response()->json(['data' => $planner->plan($request->user(), $data['delivery_ids'], $data['origin'] ?? null, $data['return_to_store'] ?? false, $data['return_store_key'] ?? null)])->header('Cache-Control', 'private, no-store');
+        return response()->json(['data' => $planner->plan($request->user(), $data['delivery_ids'], $data['origin'] ?? null, $data['return_to_store'] ?? false, $data['return_store_key'] ?? null, $data['navigation_delivery_id'] ?? null)])->header('Cache-Control', 'private, no-store');
     }
 
     public function uploadProof(Request $request, Delivery $delivery, DeliveryProofService $service): JsonResponse

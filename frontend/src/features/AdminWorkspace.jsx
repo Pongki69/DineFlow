@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   ArrowRight,
@@ -18,9 +18,15 @@ import {
   UsersRound,
 } from "lucide-react";
 import { api } from "../api";
+import { subscribeToOperations } from "../realtime";
+import { OutletAddressSearch } from "../components/OutletAddressSearch";
 import { usePollingResource } from "../components/usePollingResource";
 import { useSaveDock } from "../components/useSaveDock";
 import { Button, EmptyState, Feedback, Skeleton } from "../components/ui";
+import {
+  hasOutletCoordinates,
+  isOutletConfigured,
+} from "./outletConfiguration";
 import {
   OperatingHoursEditor,
   outletDays as days,
@@ -42,13 +48,15 @@ const time = (value) =>
     : "—";
 
 function useOverview() {
-  return usePollingResource(
+  const resource = usePollingResource(
     ({ signal }) =>
       api("/admin/operations-overview", { signal }).then(
         (result) => result.data,
       ),
-    { resourceKey: "admin-overview", intervalMs: 15000 },
+    { resourceKey: "admin-overview", intervalMs: 5000 },
   );
+  useEffect(() => subscribeToOperations(resource.refresh), [resource.refresh]);
+  return resource;
 }
 export function AdminBadge({ status, children }) {
   return (
@@ -97,7 +105,7 @@ function Freshness({ resource }) {
       {resource.error
         ? "Updates interrupted · showing last loaded data"
         : resource.updatedAt
-          ? `Updated ${time(resource.updatedAt)} · refreshes every 15s`
+          ? `Updated ${time(resource.updatedAt)} · refreshes every 5s`
           : "Connecting to operations…"}
     </span>
   );
@@ -187,7 +195,9 @@ function Metrics({ data, loading, user }) {
 function FleetMapPanel({ resource, large = false }) {
   const { pathname } = useLocation();
   const [filter, setFilter] = useState("all");
-  const [selected, setSelected] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [focusVersion, setFocusVersion] = useState(0);
+  const [follow, setFollow] = useState(false);
   const fleet = resource.data?.fleet || [];
   const visible = fleet.filter(
     (rider) => filter === "all" || rider.status === filter,
@@ -196,6 +206,12 @@ function FleetMapPanel({ resource, large = false }) {
     (rider) => rider.latitude != null && rider.longitude != null,
   );
   const store = resource.data?.location;
+  const selected = visible.find((rider) => rider.id === selectedId);
+  function selectRider(id) {
+    setSelectedId(id);
+    setFocusVersion((version) => version + 1);
+    setFollow(true);
+  }
   return (
     <article
       className={`admin-panel admin-fleet-panel${large ? " admin-fleet-panel--large" : ""}`}
@@ -238,7 +254,8 @@ function FleetMapPanel({ resource, large = false }) {
               aria-pressed={filter === value}
               onClick={() => {
                 setFilter(value);
-                setSelected(null);
+                setSelectedId(null);
+                setFollow(false);
               }}
             >
               {label}
@@ -263,6 +280,12 @@ function FleetMapPanel({ resource, large = false }) {
             radius={resource.data?.radius_km}
             fleet={visible}
             selected={selected}
+            focusVersion={focusVersion}
+            follow={follow}
+            onBrowse={() => setFollow(false)}
+            onSelect={selectRider}
+            onFollow={(value) => setFollow(value)}
+            showRiderList={large || pathname === "/admin/riders"}
           />
         </Suspense>
       </div>
@@ -289,7 +312,7 @@ function FleetMapPanel({ resource, large = false }) {
             <button
               key={rider.id}
               className={selected?.id === rider.id ? "is-selected" : ""}
-              onClick={() => setSelected(rider)}
+              onClick={() => selectRider(rider.id)}
               aria-pressed={selected?.id === rider.id}
             >
               <span className="admin-small-avatar">
@@ -586,7 +609,7 @@ export function AdminDashboard({ user, tracking = false }) {
                   status={
                     !data
                       ? "neutral"
-                      : !data.location?.address
+                      : !isOutletConfigured(data.location)
                         ? "pending"
                         : data.location?.is_active === false
                           ? "offline"
@@ -597,7 +620,7 @@ export function AdminDashboard({ user, tracking = false }) {
                     ? resource.error
                       ? "Outlet unavailable"
                       : "Loading outlet"
-                    : !data.location?.address
+                    : !isOutletConfigured(data.location)
                       ? "Setup needed"
                       : data.location?.is_active === false
                         ? "Offline"
@@ -606,10 +629,13 @@ export function AdminDashboard({ user, tracking = false }) {
                 {user?.permissions?.includes("settings.manage") && (
                   <Link
                     to="/admin/outlets"
-                    className="admin-icon-button"
+                    className="admin-button admin-button--secondary"
                     aria-label="Configure restaurant outlet"
                   >
                     <Settings2 size={17} />
+                    {isOutletConfigured(data?.location)
+                      ? "Manage outlet"
+                      : "Set up outlet"}
                   </Link>
                 )}
               </div>
@@ -863,7 +889,8 @@ export function RiderFleet({ user }) {
   );
 }
 
-function normalizedLocation(value = {}) {
+function normalizedLocation(value) {
+  value = value || {};
   return {
     name: value.name || "",
     address: value.address || "",
@@ -892,11 +919,10 @@ export function OutletManager() {
   const [preview, setPreview] = useState(0);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [searching, setSearching] = useState(false);
+  const [resolvingAddress, setResolvingAddress] = useState(false);
+  const [addressStatus, setAddressStatus] = useState("");
+  const addressRequest = useRef(null);
   const saveLock = useRef(false);
-  const searchRequest = useRef(0);
   const resource = usePollingResource(
     async ({ signal }) => {
       const result = await api("/admin/delivery-policy", { signal });
@@ -908,6 +934,10 @@ export function OutletManager() {
     { resourceKey: "outlet-config", intervalMs: 0 },
   );
   const location = draft || resource.data?.location;
+  const savedLocation = (saved || resource.data)?.location;
+  const setupNeeded = !!location && !isOutletConfigured(savedLocation);
+  const hasPin = hasOutletCoordinates(location);
+  const detailsReady = !!location?.name.trim() && !!location?.address.trim();
   const radiusValue = draft ? radius : (resource.data?.radius ?? 8);
   const changed =
     !!draft &&
@@ -923,7 +953,9 @@ export function OutletManager() {
           ? "discarded"
           : feedback?.tone === "success"
             ? "saved"
-            : "clean";
+            : setupNeeded
+              ? "setup"
+              : "clean";
   const saveStatus = {
     saving: [
       "Saving outlet settings…",
@@ -939,16 +971,28 @@ export function OutletManager() {
     ],
     discarded: [
       "Changes discarded",
-      "Your saved outlet settings have been restored.",
+      setupNeeded
+        ? "No pickup location is saved yet. Complete the setup when you’re ready."
+        : "Your saved outlet settings have been restored.",
     ],
     saved: [
       "Outlet settings saved",
       "Your pickup location and delivery settings are up to date.",
     ],
     clean: ["All changes saved", "Make an edit to enable saving."],
+    setup: [
+      "Your outlet needs setup",
+      "Add the outlet details, place its pickup pin, then save your settings.",
+    ],
   }[saveState];
   const dockPinned = useSaveDock(saveState);
+  useEffect(() => () => addressRequest.current?.abort(), []);
   function update(key, value) {
+    if (["address", "latitude", "longitude"].includes(key)) {
+      addressRequest.current?.abort();
+      setResolvingAddress(false);
+      setAddressStatus("");
+    }
     setFeedback(null);
     if (!draft) {
       setSaved(resource.data);
@@ -959,34 +1003,54 @@ export function OutletManager() {
       [key]: value,
     }));
   }
-  async function search(event) {
-    event.preventDefault();
-    if (query.trim().length < 3 || searching) return;
-    const request = ++searchRequest.current;
-    setSearching(true);
-    setFeedback(null);
+  async function moveOutlet(point) {
+    const latitude = Number(point.lat.toFixed(6));
+    const longitude = Number(point.lng.toFixed(6));
+    update("latitude", latitude);
+    setDraft((current) => ({ ...current, longitude, address: "" }));
+    const controller = new AbortController();
+    addressRequest.current = controller;
+    setResolvingAddress(true);
+    setAddressStatus("Finding the street address for this pin…");
     try {
       const response = await api(
-        `/maps/search?q=${encodeURIComponent(query.trim())}`,
+        `/maps/reverse?latitude=${latitude}&longitude=${longitude}`,
+        { signal: controller.signal },
       );
-      if (request !== searchRequest.current) return;
-      setResults(response.data || []);
-      if (!response.data?.length)
-        setFeedback({
-          tone: "warning",
-          message:
-            "No matching places. Try another address or place the pin on the map.",
-        });
-    } catch (error) {
-      if (request === searchRequest.current)
-        setFeedback({ tone: "error", message: error.message });
+      if (controller.signal.aborted) return;
+      const address = response.data?.label;
+      setDraft((current) =>
+        Number(current.latitude) === latitude &&
+        Number(current.longitude) === longitude &&
+        !current.address
+          ? { ...current, address: address || "" }
+          : current,
+      );
+      setAddressStatus(
+        address
+          ? "Address filled from the pin. Review it and add entrance details if needed."
+          : "No street address found. Enter the store address manually; your pin is kept.",
+      );
+    } catch {
+      if (!controller.signal.aborted)
+        setAddressStatus(
+          "Address lookup is unavailable. Enter the store address manually; your pin is kept.",
+        );
     } finally {
-      if (request === searchRequest.current) setSearching(false);
+      if (!controller.signal.aborted) setResolvingAddress(false);
     }
   }
   async function save(event) {
     event.preventDefault();
-    if (saveLock.current) return;
+    if (saveLock.current || resolvingAddress) return;
+    if (!isOutletConfigured(location)) {
+      setFeedback({
+        tone: "error",
+        message:
+          "Enter an outlet name and address, then place a valid pickup pin before saving.",
+      });
+      return;
+    }
     saveLock.current = true;
     setSaving(true);
     setFeedback(null);
@@ -1045,15 +1109,35 @@ export function OutletManager() {
               <RefreshCw size={15} className="spin" aria-hidden="true" />
             ) : changed ? (
               <TriangleAlert size={15} aria-hidden="true" />
+            ) : setupNeeded ? (
+              <MapPin size={15} aria-hidden="true" />
             ) : (
               <Check size={15} aria-hidden="true" />
             )}
-            {saving ? "Saving…" : changed ? "Unsaved changes" : "Saved"}
+            {saving
+              ? "Saving…"
+              : changed
+                ? "Unsaved changes"
+                : setupNeeded
+                  ? "Setup needed"
+                  : "Saved"}
           </span>
         )}
         {location && (
-          <AdminBadge status={location.is_active ? "active" : "offline"}>
-            {location.is_active ? "Accepting deliveries" : "Outlet offline"}
+          <AdminBadge
+            status={
+              setupNeeded
+                ? "pending"
+                : savedLocation?.is_active
+                  ? "active"
+                  : "offline"
+            }
+          >
+            {setupNeeded
+              ? "Pickup location not configured"
+              : savedLocation?.is_active
+                ? "Accepting deliveries"
+                : "Outlet offline"}
           </AdminBadge>
         )}
       </AdminHeading>
@@ -1068,6 +1152,56 @@ export function OutletManager() {
       ) : (
         location && (
           <>
+            {setupNeeded && (
+              <article
+                className="admin-outlet-setup"
+                aria-labelledby="outlet-setup-title"
+              >
+                <div>
+                  <span className="admin-eyebrow">FIRST-TIME SETUP</span>
+                  <h2 id="outlet-setup-title">Set up your restaurant outlet</h2>
+                  <p>
+                    Save your restaurant’s pickup location to show it on the
+                    administrator map and use it for new delivery orders.
+                  </p>
+                </div>
+                <ol>
+                  <li data-complete={detailsReady}>
+                    <span aria-hidden="true">
+                      {detailsReady ? <Check size={17} /> : "1"}
+                    </span>
+                    <div>
+                      <strong>Add outlet details</strong>
+                      <small>
+                        Enter the restaurant name and full street address.
+                      </small>
+                    </div>
+                  </li>
+                  <li data-complete={hasPin}>
+                    <span aria-hidden="true">
+                      {hasPin ? <Check size={17} /> : "2"}
+                    </span>
+                    <div>
+                      <strong>Place the pickup pin</strong>
+                      <small>
+                        Search for the address, click the map, or enter
+                        coordinates.
+                      </small>
+                    </div>
+                  </li>
+                  <li data-complete={false}>
+                    <span aria-hidden="true">3</span>
+                    <div>
+                      <strong>Review and save</strong>
+                      <small>
+                        Set the delivery radius, hours and availability, then
+                        save.
+                      </small>
+                    </div>
+                  </li>
+                </ol>
+              </article>
+            )}
             <div className="admin-outlet-strip">
               <span className="admin-outlet-icon">
                 <Store size={23} />
@@ -1077,7 +1211,9 @@ export function OutletManager() {
                   {location.name || "Configure your primary outlet"}
                 </strong>
                 <small>
-                  Primary outlet · your restaurant’s pickup location
+                  {setupNeeded
+                    ? "Primary outlet · setup has not been saved yet"
+                    : "Primary outlet · your restaurant’s pickup location"}
                 </small>
               </div>
               <span className="admin-outlet-strip-radius">
@@ -1091,58 +1227,25 @@ export function OutletManager() {
                     <div>
                       <h2>Location & delivery coverage</h2>
                       <p>
-                        Click the map or drag the pin to set your pickup point.
+                        {hasPin
+                          ? "Drag the pin to the entrance where riders collect orders."
+                          : "Search your address or click the map to place your first pickup pin."}
                       </p>
                     </div>
                     <MapPin size={19} />
                   </div>
-                  <form onSubmit={search} className="admin-map-search">
-                    <label className="admin-search">
-                      <Search size={17} aria-hidden="true" />
-                      <input
-                        aria-label="Find outlet address"
-                        placeholder="Search a street, city or restaurant…"
-                        value={query}
-                        minLength={3}
-                        maxLength={180}
-                        onChange={(event) => setQuery(event.target.value)}
-                      />
-                    </label>
-                    <Button
-                      type="submit"
-                      className="admin-button admin-button--secondary"
-                      variant="secondary"
-                      busy={searching}
-                    >
-                      Search
-                    </Button>
-                  </form>
-                  {!!results.length && (
-                    <div
-                      className="admin-place-results"
-                      aria-label="Matching addresses"
-                    >
-                      {results.map((place, index) => (
-                        <button
-                          key={`${place.label}-${index}`}
-                          type="button"
-                          onClick={() => {
-                            update("address", place.label);
-                            setDraft((current) => ({
-                              ...current,
-                              latitude: Number(place.latitude),
-                              longitude: Number(place.longitude),
-                            }));
-                            setResults([]);
-                            setPreview((value) => value + 1);
-                          }}
-                        >
-                          <MapPin size={16} />
-                          {place.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <OutletAddressSearch
+                    disabled={saving}
+                    onSelect={(place) => {
+                      update("address", place.label);
+                      setDraft((current) => ({
+                        ...current,
+                        latitude: Number(place.latitude),
+                        longitude: Number(place.longitude),
+                      }));
+                      setPreview((value) => value + 1);
+                    }}
+                  />
                   <Suspense
                     fallback={
                       <div className="admin-map-loading" role="status">
@@ -1154,13 +1257,7 @@ export function OutletManager() {
                       location={location}
                       radius={radiusValue}
                       editable={!saving}
-                      onMove={(point) => {
-                        update("latitude", Number(point.lat.toFixed(6)));
-                        setDraft((current) => ({
-                          ...current,
-                          longitude: Number(point.lng.toFixed(6)),
-                        }));
-                      }}
+                      onMove={moveOutlet}
                       previewKey={preview}
                     />
                   </Suspense>
@@ -1176,10 +1273,14 @@ export function OutletManager() {
                   </div>
                   <div className="admin-coordinate-note">
                     <MapPin size={15} aria-hidden="true" />
-                    {location.latitude !== "" && location.longitude !== ""
+                    {hasPin
                       ? `${Number(location.latitude).toFixed(6)}, ${Number(location.longitude).toFixed(6)}`
                       : "No pickup coordinates set"}
-                    <span>Update the street address if you move the pin.</span>
+                    <span>
+                      {hasPin
+                        ? "Moving the pin looks up its address automatically. Review the address before saving."
+                        : "No store marker appears until you place a pin. You can also enter latitude and longitude in Outlet details."}
+                    </span>
                   </div>
                 </article>
                 <article className="admin-coverage-note">
@@ -1233,6 +1334,8 @@ export function OutletManager() {
                         </label>
                         <textarea
                           id="admin-outlet-address"
+                          aria-describedby="admin-outlet-address-status"
+                          aria-busy={resolvingAddress}
                           required
                           maxLength={500}
                           rows={2}
@@ -1243,6 +1346,14 @@ export function OutletManager() {
                           placeholder="Building, street, barangay, city"
                           autoComplete="street-address"
                         />
+                        <small
+                          id="admin-outlet-address-status"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          {addressStatus ||
+                            "The address fills automatically when you click the map or drop the store pin."}
+                        </small>
                       </div>
                       <div className="admin-field-pair">
                         {[
@@ -1324,9 +1435,11 @@ export function OutletManager() {
                         <span>
                           <strong>Accept delivery orders</strong>
                           <small>
-                            {location.is_active
-                              ? "Your outlet is active and accepting deliveries."
-                              : "New delivery orders are paused."}
+                            {setupNeeded
+                              ? "Choose whether to accept new deliveries once setup is saved."
+                              : location.is_active
+                                ? "Your outlet is active and accepting deliveries."
+                                : "New delivery orders are paused."}
                           </small>
                         </span>
                         <input
@@ -1401,6 +1514,8 @@ export function OutletManager() {
                   <RefreshCw size={19} className="spin" aria-hidden="true" />
                 ) : saveState === "dirty" || saveState === "error" ? (
                   <TriangleAlert size={19} aria-hidden="true" />
+                ) : setupNeeded ? (
+                  <MapPin size={19} aria-hidden="true" />
                 ) : (
                   <Check size={19} aria-hidden="true" />
                 )}
@@ -1415,6 +1530,9 @@ export function OutletManager() {
                   className="admin-button admin-button--secondary"
                   disabled={!changed || saving}
                   onClick={() => {
+                    addressRequest.current?.abort();
+                    setResolvingAddress(false);
+                    setAddressStatus("");
                     const baseline = saved || resource.data;
                     setDraft(baseline.location);
                     setRadius(baseline.radius);
@@ -1433,7 +1551,7 @@ export function OutletManager() {
                   form="admin-outlet-form"
                   className="admin-button"
                   busy={saving}
-                  disabled={!changed}
+                  disabled={!changed || resolvingAddress}
                 >
                   <Check size={17} />
                   Save changes

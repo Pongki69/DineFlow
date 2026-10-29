@@ -1,0 +1,57 @@
+.rider-current-outlet {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 18px 20px;
+  margin-block: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.rider-current-outlet > svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.rider-current-outlet > div {
+  min-width: 0;
+  flex: 1;
+}
+.rider-current-outlet span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.rider-current-outlet strong {
+  display: block;
+  font-size: 16px;
+  margin-top: 3px;
+}
+.rider-current-outlet p {
+  margin: 3px 0 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+.rider-current-outlet a {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  color: var(--primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .rider-current-outlet {
+    flex-wrap: wrap;
+    padding: 15px;
+  }
+  .rider-current-outlet a {
+    width: 100%;
+  }
+}

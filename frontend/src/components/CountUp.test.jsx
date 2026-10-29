@@ -38,12 +38,14 @@ function advance(time) {
 
 it("counts up, retains the exact accessible value, and does not restart on unchanged data", () => {
   const { rerender } = render(<CountUp value={20} />);
-  const counter = screen.getByLabelText("20");
+  const accessible = screen.getByText("20", { selector: ".sr-only" });
+  const counter = screen.getByText("0", { selector: '[aria-hidden="true"]' });
   expect(counter.textContent).toBe("0");
   advance(0);
   advance(375);
   expect(Number(counter.textContent)).toBeGreaterThan(0);
   expect(Number(counter.textContent)).toBeLessThan(20);
+  expect(accessible.textContent).toBe("20");
   advance(750);
   expect(counter.textContent).toBe("20");
   rerender(<CountUp value={20} />);
@@ -54,7 +56,12 @@ it("respects reduced motion and cancels pending animation on unmount", () => {
   matchMedia.mockReturnValue({ matches: true });
   const { unmount } = render(<CountUp value={4.8} decimals={1} />);
   advance(0);
-  expect(screen.getByLabelText("4.8").textContent).toBe("4.8");
+  expect(screen.getByText("4.8", { selector: ".sr-only" }).textContent).toBe(
+    "4.8",
+  );
+  expect(
+    screen.getByText("4.8", { selector: '[aria-hidden="true"]' }).textContent,
+  ).toBe("4.8");
   expect(frames.size).toBe(0);
   unmount();
   matchMedia.mockReturnValue({ matches: false });

@@ -11,6 +11,7 @@ import {
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { RiderRoutePlanner } from "./RiderRoutePlanner";
 import { api } from "../api";
+import { setTemporaryRiderIdentity } from "./temporaryRiderLocation";
 
 vi.mock("../api", () => ({ api: vi.fn() }));
 vi.mock("react-leaflet", () => ({
@@ -28,8 +29,13 @@ vi.mock("react-leaflet", () => ({
     return <div>{children}</div>;
   },
   Popup: ({ children }) => <div>{children}</div>,
-  Polyline: ({ pathOptions, children }) => (
-    <div data-testid="route-line" data-color={pathOptions.color}>
+  Polyline: ({ pathOptions, children, positions }) => (
+    <div
+      data-testid="route-line"
+      data-color={pathOptions.color}
+      data-opacity={pathOptions.opacity}
+      data-points={JSON.stringify(positions)}
+    >
       {children}
     </div>
   ),
@@ -86,10 +92,53 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  setTemporaryRiderIdentity(null);
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
   delete document.body.scrollIntoView;
+});
+
+it("starts the configured rider map at the exact demo point without starting GPS or presence sharing", async () => {
+  vi.stubEnv("DEV", true);
+  vi.stubEnv("VITE_RIDER_PREVIEW_USER_ID", "4");
+  vi.stubEnv("VITE_RIDER_PREVIEW_LATITUDE", "14.186648");
+  vi.stubEnv("VITE_RIDER_PREVIEW_LONGITUDE", "121.231433");
+  vi.stubEnv(
+    "VITE_RIDER_PREVIEW_EXPIRES_AT",
+    new Date(Date.now() + 3600000).toISOString(),
+  );
+  setTemporaryRiderIdentity(4);
+  const watchPosition = vi.fn();
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: { watchPosition },
+  });
+  render(<RiderRoutePlanner deliveries={deliveries} />);
+  await screen.findByText("3 km · about 9 min");
+  expect(JSON.parse(api.mock.calls[0][1].body).origin).toEqual({
+    latitude: 14.186648,
+    longitude: 121.231433,
+  });
+  expect(screen.getByText("Temporary demo location")).toBeTruthy();
+  expect(watchPosition).not.toHaveBeenCalled();
+  expect(api.mock.calls.every(([url]) => url === "/rider/route-plan")).toBe(
+    true,
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Clear temporary location preview" }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Preview demo location" }),
+  );
+  await waitFor(() =>
+    expect(JSON.parse(api.mock.calls.at(-1)[1].body).origin).toEqual({
+      latitude: 14.186648,
+      longitude: 121.231433,
+    }),
+  );
+  expect(watchPosition).not.toHaveBeenCalled();
 });
 
 it("loads all active stops, keeps paired order, and never starts GPS without a click", async () => {
@@ -105,6 +154,41 @@ it("loads all active stops, keeps paired order, and never starts GPS without a c
     screen.getByRole("button", { name: "Move DF-2 earlier" }).disabled,
   ).toBe(true);
   expect(watchPosition).not.toHaveBeenCalled();
+});
+
+it("links the current outlet immediately and recalculates when the saved location changes", async () => {
+  const first = {
+    name: "Current Bay outlet",
+    address: "Current entrance",
+    latitude: 14.19,
+    longitude: 121.28,
+  };
+  const { rerender } = render(
+    <RiderRoutePlanner deliveries={deliveries} restaurantLocation={first} />,
+  );
+  await screen.findByText("3 km · about 9 min");
+  expect(screen.getByText("Current Bay outlet")).toBeTruthy();
+  expect(screen.getByText("Current restaurant outlet")).toBeTruthy();
+  const before = api.mock.calls.length;
+  rerender(
+    <RiderRoutePlanner
+      deliveries={deliveries}
+      restaurantLocation={{
+        ...first,
+        name: "Updated outlet",
+        longitude: 121.29,
+      }}
+    />,
+  );
+  await waitFor(() => expect(api.mock.calls.length).toBeGreaterThan(before));
+  expect(screen.getByText("Updated outlet")).toBeTruthy();
+  expect(JSON.parse(api.mock.calls.at(-1)[1].body)).not.toHaveProperty(
+    "outlet_signature",
+  );
+  expect(deliveries[0].order.pickup).toEqual({
+    latitude: 14.18,
+    longitude: 121.23,
+  });
 });
 
 it("updates live location, limits road refresh frequency, and clears GPS on exit", async () => {
@@ -135,6 +219,20 @@ it("updates live location, limits road refresh frequency, and clears GPS on exit
     update({ coords: { latitude: 14.11, longitude: 121.21, accuracy: 10 } }),
   );
   expect(api).toHaveBeenCalledTimes(2);
+  const nextRefresh = Date.now() + 16000;
+  vi.spyOn(Date, "now").mockReturnValue(nextRefresh);
+  act(() =>
+    update({ coords: { latitude: 14.10001, longitude: 121.2, accuracy: 10 } }),
+  );
+  expect(api).toHaveBeenCalledTimes(2);
+  act(() =>
+    update({ coords: { latitude: 14.12, longitude: 121.22, accuracy: 10 } }),
+  );
+  await waitFor(() => expect(api).toHaveBeenCalledTimes(3));
+  expect(JSON.parse(api.mock.calls[2][1].body).origin).toEqual({
+    latitude: 14.12,
+    longitude: 121.22,
+  });
   unmount();
   expect(clearWatch).toHaveBeenCalledWith(7);
 });
@@ -228,7 +326,7 @@ it("shows per-stop ETAs and overlays red only for returned congestion", async ()
   ).toBeTruthy();
   expect(
     screen.getAllByTestId("route-line").map((el) => el.dataset.color),
-  ).toEqual(["#ffffff", "#5374b8", "#c43d38"]);
+  ).toEqual(["#ffffff", "#64748b", "#c43d38"]);
 });
 
 it("keeps the store after the last delivery and requests a return route", async () => {
@@ -357,4 +455,192 @@ it("does not offer map focus when a customer has no valid pin", async () => {
     screen.getByRole("button", { name: "Show DF-1 on map" }).disabled,
   ).toBe(true);
   expect(map.setView).not.toHaveBeenCalled();
+});
+
+it("shows the next drivable road leg and highlights a selected route after a stationary pickup", async () => {
+  vi.stubEnv("DEV", true);
+  vi.stubEnv("VITE_RIDER_PREVIEW_USER_ID", "4");
+  vi.stubEnv("VITE_RIDER_PREVIEW_LATITUDE", "14.186648");
+  vi.stubEnv("VITE_RIDER_PREVIEW_LONGITUDE", "121.231433");
+  vi.stubEnv(
+    "VITE_RIDER_PREVIEW_EXPIRES_AT",
+    new Date(Date.now() + 60_000).toISOString(),
+  );
+  setTemporaryRiderIdentity(4);
+  const firstRoad = [
+    [121.231433, 14.186648],
+    [121.24, 14.19],
+    [121.25, 14.21],
+  ];
+  api.mockResolvedValue({
+    data: {
+      stops: [
+        {
+          kind: "pickup",
+          latitude: 14.186648,
+          longitude: 121.231433,
+          order_numbers: ["DF-1"],
+        },
+        {
+          kind: "dropoff",
+          delivery_id: 1,
+          latitude: 14.21,
+          longitude: 121.25,
+          order_numbers: ["DF-1"],
+        },
+        {
+          kind: "dropoff",
+          delivery_id: 2,
+          latitude: 14.22,
+          longitude: 121.25,
+          order_numbers: ["DF-2"],
+        },
+      ],
+      legs: [
+        { stop_index: 0, distance_km: 0, duration_minutes: 0, geometry: [] },
+        {
+          stop_index: 1,
+          distance_km: 1,
+          duration_minutes: 3,
+          geometry: firstRoad,
+        },
+        {
+          stop_index: 2,
+          distance_km: 1,
+          duration_minutes: 3,
+          geometry: [
+            [121.25, 14.21],
+            [121.251, 14.215],
+            [121.25, 14.22],
+          ],
+        },
+      ],
+      distance_km: 2,
+      duration_minutes: 6,
+      missing_locations: [],
+      route_unavailable: false,
+    },
+  });
+  render(<RiderRoutePlanner deliveries={deliveries} selectedDeliveryId={2} />);
+  await screen.findByText("2 km · about 6 min");
+  const lines = screen.getAllByTestId("route-line");
+  expect(lines).toHaveLength(4);
+  expect(
+    lines.find((line) => line.dataset.color === "#0f766e").dataset.opacity,
+  ).toBe("1");
+  expect(
+    lines.find((line) => line.dataset.color === "#1d4ed8").dataset.opacity,
+  ).toBe("1");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Fit next road leg", exact: true }),
+  );
+  expect(map.fitBounds).toHaveBeenLastCalledWith(
+    firstRoad.map(([lng, lat]) => [lat, lng]),
+    expect.any(Object),
+  );
+  expect(screen.queryByText(/Road directions are unavailable/)).toBeNull();
+});
+it("routes the selected collected delivery from the rider and keeps full planning optional", async () => {
+  vi.stubEnv("DEV", true);
+  vi.stubEnv("VITE_RIDER_PREVIEW_USER_ID", "4");
+  vi.stubEnv("VITE_RIDER_PREVIEW_LATITUDE", "14.186648");
+  vi.stubEnv("VITE_RIDER_PREVIEW_LONGITUDE", "121.231433");
+  vi.stubEnv(
+    "VITE_RIDER_PREVIEW_EXPIRES_AT",
+    new Date(Date.now() + 60000).toISOString(),
+  );
+  setTemporaryRiderIdentity(4);
+  const customer = {
+    kind: "dropoff",
+    delivery_id: 2,
+    latitude: 14.22,
+    longitude: 121.25,
+    address: "Selected customer",
+    order_numbers: ["DF-2"],
+  };
+  const leg = {
+    stop_index: 0,
+    distance_km: 2,
+    duration_minutes: 4,
+    geometry: [
+      [121.231433, 14.186648],
+      [121.25, 14.22],
+    ],
+  };
+  api.mockResolvedValue({
+    data: {
+      ...response.data,
+      stops: [
+        {
+          kind: "pickup",
+          latitude: 14.18,
+          longitude: 121.23,
+          order_numbers: ["DF-1"],
+        },
+        customer,
+      ],
+      legs: [
+        {
+          ...leg,
+          stop_index: 1,
+          geometry: [
+            [121.23, 14.18],
+            [121.25, 14.22],
+          ],
+        },
+      ],
+      navigation: {
+        requested_delivery_id: 2,
+        delivery_id: 2,
+        target: customer,
+        leg,
+        requires_location: false,
+        route_unavailable: false,
+      },
+    },
+  });
+  const { rerender } = render(
+    <RiderRoutePlanner deliveries={deliveries} selectedDeliveryId={2} />,
+  );
+  await screen.findByText("Ride to: Customer delivery");
+  expect(JSON.parse(api.mock.calls.at(-1)[1].body).navigation_delivery_id).toBe(
+    2,
+  );
+  expect(screen.getAllByTestId("route-line")).toHaveLength(2);
+  expect(
+    JSON.parse(screen.getAllByTestId("route-line")[1].dataset.points),
+  ).toEqual([
+    [14.186648, 121.231433],
+    [14.22, 121.25],
+  ]);
+  expect(screen.getByText("2 km · about 4 min")).toBeTruthy();
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Show full route plan" }),
+  );
+  expect(screen.queryByText("Ride to: Customer delivery")).toBeNull();
+  expect(screen.getByText("Next stop: Restaurant pickup")).toBeTruthy();
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Show full route plan" }),
+  );
+  api.mockResolvedValue({
+    data: {
+      ...response.data,
+      stops: [customer],
+      navigation: {
+        requested_delivery_id: 2,
+        delivery_id: 2,
+        target: customer,
+        leg: null,
+        requires_location: true,
+      },
+    },
+  });
+  rerender(
+    <RiderRoutePlanner
+      deliveries={deliveries.map((d) => ({ ...d, status: "picked_up" }))}
+      selectedDeliveryId={2}
+    />,
+  );
+  await screen.findByText("Enable live location to start riding");
+  expect(screen.queryAllByTestId("route-line")).toHaveLength(0);
 });

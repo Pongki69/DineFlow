@@ -1,3 +1,4 @@
+import { restaurantMapIcon as pickupPin } from "./components/restaurantMapIcon";
 import { Feedback, Skeleton, Button } from "./components/ui";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -15,6 +16,7 @@ import "leaflet/dist/leaflet.css";
 import { privateEcho } from "./realtime";
 
 import { api } from "./api";
+import { MapControls } from "./components/MapControls";
 import { CustomerOrderProgress } from "./components/CustomerOrderProgress";
 import { RiderReviewForm } from "./components/RiderReviewForm";
 import { TrackingDisclosureSummary } from "./components/TrackingDisclosureSummary";
@@ -35,12 +37,6 @@ const riderPin = L.divIcon({
 });
 const terminal = ["delivered", "failed", "cancelled"];
 const title = (s) => String(s || "").replaceAll("_", " ");
-const pickupPin = L.divIcon({
-  className: "customer-location-pin",
-  html: '<span role="img" aria-label="Restaurant pickup">R</span>',
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
 const destinationPin = L.divIcon({
   className: "customer-location-pin destination",
   html: '<span role="img" aria-label="Your delivery destination">D</span>',
@@ -250,8 +246,17 @@ export function CustomerDeliveryTracking({ user }) {
                       <MapContainer
                         center={points[0]}
                         zoom={14}
-                        scrollWheelZoom={false}
+                        scrollWheelZoom
                       >
+                        <MapControls
+                          bounds={[
+                            ...points,
+                            ...(suggestion?.geometry || []).map(
+                              ([lng, lat]) => [lat, lng],
+                            ),
+                          ]}
+                          recenterLabel="Fit delivery journey"
+                        />
                         <TrackingViewport
                           points={[
                             ...points,
@@ -365,11 +370,11 @@ export function CustomerDeliveryTracking({ user }) {
                 role="region"
                 aria-label="Restaurant, delivery destination and rider map"
               >
-                <MapContainer
-                  center={points[0]}
-                  zoom={14}
-                  scrollWheelZoom={false}
-                >
+                <MapContainer center={points[0]} zoom={14} scrollWheelZoom>
+                  <MapControls
+                    bounds={points}
+                    recenterLabel="Fit delivery locations"
+                  />
                   <TrackingViewport points={points} />
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

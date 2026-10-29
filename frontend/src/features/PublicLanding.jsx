@@ -20,6 +20,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { api } from "../api";
+import { useRestaurantLocation } from "../components/useRestaurantLocation";
 import { useWorkspaceTheme } from "../components/useWorkspaceTheme";
 import "./publicLanding.css";
 
@@ -114,9 +115,8 @@ function OpeningHours({ location }) {
 export function PublicLanding({ onSignIn }) {
   const { theme, toggleTheme } = useWorkspaceTheme();
   const [name, setName] = useState("DineFlow");
-  const [location, setLocation] = useState(
-    /** @type {RestaurantLocation|null} */ (null),
-  );
+  const outlet = useRestaurantLocation();
+  const location = /** @type {RestaurantLocation|null} */ (outlet.location);
   const [categories, setCategories] = useState(/** @type {Category[]} */ ([]));
   const [items, setItems] = useState(/** @type {PublicDish[]} */ ([]));
   const [hero, setHero] = useState(/** @type {PublicDish|null} */ (null));
@@ -134,14 +134,12 @@ export function PublicLanding({ onSignIn }) {
     const controller = new AbortController();
     Promise.allSettled([
       api("/restaurant/branding", { signal: controller.signal }),
-      api("/restaurant/location", { signal: controller.signal }),
       api("/menu/categories", { signal: controller.signal }),
     ]).then((results) => {
       if (controller.signal.aborted) return;
-      const [branding, outlet, groups] = results;
+      const [branding, groups] = results;
       if (branding.status === "fulfilled")
         setName(branding.value.data?.name || "DineFlow");
-      if (outlet.status === "fulfilled") setLocation(outlet.value.data || null);
       if (groups.status === "fulfilled") setCategories(groups.value.data || []);
       setDetailsError(
         results.some((result) => result.status === "rejected")
@@ -585,12 +583,16 @@ export function PublicLanding({ onSignIn }) {
               </a>
             )}
             <OpeningHours location={location} />
-            {detailsError && (
+            {(detailsError || outlet.error) && (
               <p className="public-details-error" role="status">
-                {detailsError}
+                {detailsError ||
+                  "Some restaurant details couldn’t refresh. You can still browse the menu."}
                 <button
                   type="button"
-                  onClick={() => setRetry((value) => value + 1)}
+                  onClick={() => {
+                    setRetry((value) => value + 1);
+                    outlet.refresh();
+                  }}
                 >
                   Refresh details
                 </button>

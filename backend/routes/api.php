@@ -52,6 +52,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::patch('/me', [AuthController::class, 'update'])->middleware('throttle:10,1');
+        Route::delete('/me', [\App\Http\Controllers\Api\V1\CustomerAccountController::class, 'destroy'])->middleware('throttle:3,1');
 
         Route::get('/maps/search', [DeliveryController::class, 'search'])->middleware('throttle:20,1');
         Route::get('/maps/reverse', [DeliveryController::class, 'reverse'])->middleware('throttle:30,1');

@@ -1,3 +1,4 @@
+import { restaurantMapIcon as storePin } from "./restaurantMapIcon";
 import { useEffect, useState } from "react";
 import {
   MapContainer,
@@ -11,6 +12,7 @@ import { MapPin, Store } from "lucide-react";
 import L from "leaflet";
 import { EmptyState } from "./ui";
 import { api } from "../api";
+import { MapControls } from "./MapControls";
 import "leaflet/dist/leaflet.css";
 import "./deliveryEndpointsMap.css";
 
@@ -32,12 +34,6 @@ function point(location) {
     : null;
 }
 
-const storePin = L.divIcon({
-  className: "delivery-endpoint-pin store",
-  html: '<span role="img" aria-label="Store location">S</span>',
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
-});
 const dropoffPin = L.divIcon({
   className: "delivery-endpoint-pin dropoff",
   html: '<span role="img" aria-label="Drop-off location">D</span>',
@@ -178,12 +174,12 @@ export function DeliveryEndpointsMap({ deliveryId, pickup, destination }) {
             role="region"
             aria-label="Map of store and drop-off"
           >
-            <MapContainer
-              center={coordinates[0]}
-              zoom={14}
-              scrollWheelZoom={false}
-            >
+            <MapContainer center={coordinates[0]} zoom={14} scrollWheelZoom>
               <FitEndpoints coordinates={[...coordinates, ...(route || [])]} />
+              <MapControls
+                bounds={[...coordinates, ...(route || [])]}
+                recenterLabel="Fit store and drop-off"
+              />
               {route && (
                 <Polyline
                   positions={route}

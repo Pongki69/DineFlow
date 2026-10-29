@@ -24,7 +24,7 @@ describe("role-driven navigation", () => {
       ),
     ).toEqual([
       "Dashboard",
-      "My deliveries",
+      "My Deliveries",
       "Delivery offers",
       "Delivery history",
       "Ratings & reviews",
