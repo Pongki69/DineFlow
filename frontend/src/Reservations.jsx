@@ -10,6 +10,13 @@ import { chairPositions, defaultChairLayout } from "./floorPlanGeometry";
 import {
   CalendarDays,
   CalendarPlus,
+  Copy,
+  Hand,
+  Maximize2,
+  Minimize2,
+  RotateCw,
+  Trash2,
+  Undo2,
   Check,
   Clock3,
   LoaderCircle,
@@ -2412,8 +2419,14 @@ export function FloorPlanEditor() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [boardSize, setBoardSize] = useState({ width: 0, height: 0 });
+  // Full screen keeps the plan editable, with its own Add to layout card.
+  const [boardFull, setBoardFull] = useState(false);
+  // Hand tool: every drag moves the view, even over objects.
+  const [handMode, setHandMode] = useState(false);
   const boardRef = useRef(null);
   const gesture = useRef(null);
+  // Fingers on the board, for two-finger pinch zoom.
+  const pointers = useRef(new Map());
   const suppressClick = useRef(false);
   const clipboard = useRef([]);
   const undoStack = useRef([]);
@@ -3011,7 +3024,7 @@ export function FloorPlanEditor() {
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     suppressClick.current = false;
-    if (event.button === 1 || spaceHeld.current) {
+    if (event.button === 1 || spaceHeld.current || handMode) {
       gesture.current = {
         kind: "pan",
         pointerId: event.pointerId,
@@ -3069,6 +3082,82 @@ export function FloorPlanEditor() {
       y: event.clientY,
       positions,
     };
+  }
+  // Two fingers: zoom around the point between them and move with them.
+  function trackPointer(event) {
+    pointers.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+    if (pointers.current.size !== 2 || !boardRef.current) return;
+    const [a, b] = [...pointers.current.values()];
+    const rect = boardRef.current.getBoundingClientRect();
+    gesture.current = {
+      kind: "pinch",
+      rect,
+      distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+      mid: { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top },
+      zoom,
+      pan: { ...pan },
+    };
+    suppressClick.current = true;
+    setSelectionBox(null);
+    // The second finger starts no drag of its own.
+    event.stopPropagation();
+  }
+  function pinchMove(event) {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+    const active = gesture.current;
+    if (active?.kind !== "pinch" || pointers.current.size < 2) return;
+    event.stopPropagation();
+    const [a, b] = [...pointers.current.values()];
+    const { rect } = active;
+    const nextZoom = Math.min(
+      2.2,
+      Math.max(
+        0.55,
+        (active.zoom * Math.hypot(a.x - b.x, a.y - b.y)) / active.distance,
+      ),
+    );
+    const ratio = nextZoom / active.zoom;
+    const mid = { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top };
+    const centre = { x: rect.width / 2, y: rect.height / 2 };
+    const startPan = {
+      x: (active.pan.x / 100) * rect.width,
+      y: (active.pan.y / 100) * rect.height,
+    };
+    // Keep the spot that started between the fingers under them.
+    const panX = mid.x - centre.x - (active.mid.x - centre.x - startPan.x) * ratio;
+    const panY = mid.y - centre.y - (active.mid.y - centre.y - startPan.y) * ratio;
+    setZoom(Number(nextZoom.toFixed(3)));
+    setPan({ x: (panX * 100) / rect.width, y: (panY * 100) / rect.height });
+  }
+  function releasePointer(event) {
+    pointers.current.delete(event.pointerId);
+    if (gesture.current?.kind === "pinch" && pointers.current.size < 2)
+      gesture.current = null;
+  }
+  function rotateSelected() {
+    if (!objects.some((object) => object._selected)) return;
+    rememberUndo();
+    setObjects((rows) =>
+      rows.map((object) =>
+        object._selected
+          ? {
+              ...object,
+              rotation: {
+                ...object.rotation,
+                y: ((object.rotation?.y || 0) + Math.PI / 4) % (2 * Math.PI),
+              },
+            }
+          : object,
+      ),
+    );
+    dirty.current = true;
   }
   function startCanvasPan(event) {
     if (event.target !== event.currentTarget) return;
@@ -3331,6 +3420,17 @@ export function FloorPlanEditor() {
     }
     gesture.current = null;
   }
+  useEffect(() => {
+    if (!boardFull) return undefined;
+    const leave = (event) => event.key === "Escape" && setBoardFull(false);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", leave);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", leave);
+    };
+  }, [boardFull]);
   async function duplicateObject(object, offset = { x: 1, z: 1 }) {
     const position = {
       x: (object.position?.x || 0) + offset.x,
@@ -4013,7 +4113,11 @@ export function FloorPlanEditor() {
       {floor && !preview && (
         <div
           ref={boardRef}
-          className="editor-board"
+          className={`editor-board${boardFull ? " is-fullscreen" : ""}${handMode ? " is-hand" : ""}`}
+          onPointerDownCapture={trackPointer}
+          onPointerMoveCapture={pinchMove}
+          onPointerUpCapture={releasePointer}
+          onPointerCancelCapture={releasePointer}
           onPointerDown={startCanvasPan}
           onPointerMove={moveGesture}
           onPointerUp={finishGesture}
@@ -4159,7 +4263,129 @@ export function FloorPlanEditor() {
             >
               Reset
             </button>
+            <button
+              type="button"
+              className="editor-tool-toggle"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => setHandMode((value) => !value)}
+              aria-pressed={handMode}
+              aria-label="Hand tool: drag to move the view"
+              title="Hand tool: drag to move the view"
+            >
+              <Hand size={16} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="editor-tool-toggle"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => setBoardFull((value) => !value)}
+              aria-pressed={boardFull}
+              aria-label={boardFull ? "Exit full screen" : "Full screen"}
+              title={boardFull ? "Exit full screen" : "Full screen"}
+            >
+              {boardFull ? (
+                <Minimize2 size={16} aria-hidden="true" />
+              ) : (
+                <Maximize2 size={16} aria-hidden="true" />
+              )}
+            </button>
           </div>
+          {boardFull && (
+            <aside
+              className="editor-full-card"
+              aria-label="Add to layout"
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerDownCapture={(e) => e.stopPropagation()}
+            >
+              <div className="editor-full-card-head">
+                <strong>Add to layout</strong>
+                <button
+                  type="button"
+                  className="editor-full-done"
+                  onClick={() => setBoardFull(false)}
+                >
+                  Done
+                </button>
+              </div>
+              <div className="editor-full-add">
+                {[
+                  ["Round table", () => addTable("short")],
+                  ["Long table", () => addTable("long")],
+                  ["Long wall", () => addObject("wall", { width: 8 })],
+                  ["Short wall", () => addObject("wall", { width: 4 })],
+                  ["Door", () => addObject("door")],
+                  ["Entry", () => addObject("entrance")],
+                  ["Floor panel", () => addObject("flooring")],
+                  ["Counter", () => addObject("counter")],
+                  ["Furniture", () => addObject("furniture")],
+                ].map(([label, add]) => (
+                  <button
+                    type="button"
+                    key={label}
+                    onClick={add}
+                    disabled={Boolean(busyAction)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="editor-full-actions">
+                {objects.some((object) => object._selected) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={rotateSelected}
+                      aria-label="Rotate selected"
+                      title="Rotate selected"
+                    >
+                      <RotateCw size={16} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const item = objects.find((row) => row._selected);
+                        if (item) duplicateObject(item);
+                      }}
+                      aria-label="Duplicate selected"
+                      title="Duplicate selected"
+                    >
+                      <Copy size={16} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      data-tone="danger"
+                      onClick={deleteSelected}
+                      aria-label="Delete selected"
+                      title="Delete selected"
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={undo}
+                  disabled={
+                    !undoStack.current.length ||
+                    pendingAdds > 0 ||
+                    Boolean(busyAction)
+                  }
+                  aria-label="Undo"
+                  title="Undo"
+                >
+                  <Undo2 size={16} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="editor-full-save"
+                  onClick={save}
+                  disabled={pendingAdds > 0 || Boolean(busyAction)}
+                >
+                  Save draft
+                </button>
+              </div>
+            </aside>
+          )}
           <div
             className="editor-status-legend"
             aria-label="Table status legend"
@@ -4179,7 +4405,8 @@ export function FloorPlanEditor() {
           </div>
           <span className="editor-board-hint">
             Drag to move · objects snap one block at a time · Ctrl/Shift-click
-            to select · Space+drag to pan · scroll to zoom
+            to select · drag empty space or use the hand to pan · pinch or
+            scroll to zoom
           </span>
           <span className="editor-room-label">Room area · 20 × 16 units</span>
           {selectionBox && (
@@ -4218,6 +4445,16 @@ export function FloorPlanEditor() {
             selectedId={previewSelectedId}
             selectLayoutObjects
             onSelect={(id) => {
+              // Tapping the selected object again lets it go.
+              if (String(previewSelectedId) === String(id)) {
+                setPreviewSelectedId(null);
+                setObjects((rows) =>
+                  rows.map((row) =>
+                    row._selected ? { ...row, _selected: false } : row,
+                  ),
+                );
+                return;
+              }
               setPreviewSelectedId(id);
               selectObject(id);
               setInspectorCollapsed(false);

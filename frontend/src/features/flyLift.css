@@ -1,0 +1,44 @@
+/* ---- 3D creative fly: Up and Down buttons ------------------------------------
+   A stacked pair on the right, above the look pad on touch screens. */
+.floor-scene .fly-lift {
+  position: absolute;
+  z-index: 7;
+  right: 16px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 8px;
+}
+.floor-scene .fly-lift > button {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  align-content: center;
+  gap: 0;
+  padding: 0;
+  border: 2px solid rgb(255 255 255 / 75%);
+  border-radius: 50%;
+  background: rgb(20 40 30 / 42%);
+  color: #fff;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.floor-scene .fly-lift > button:active {
+  background: rgb(20 40 30 / 62%);
+}
+@media (max-width: 850px), (pointer: coarse) {
+  /* Above the look pad (124px), clear of the thumbs. */
+  .floor-scene .fly-lift {
+    right: 49px;
+    bottom: calc(20px + 124px + 14px + env(safe-area-inset-bottom, 0px));
+  }
+}

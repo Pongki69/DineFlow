@@ -103,3 +103,317 @@
     margin-top: 16px;
   }
 }
+
+/* ---- 2D editor: full screen, hand tool, pinch -------------------------------
+   Full screen keeps every editing gesture and adds an "Add to layout" card;
+   touch-action lets two fingers pinch the plan instead of the page. */
+.editor-board {
+  touch-action: none;
+}
+.editor-board.is-hand,
+.editor-board.is-hand .editor-object {
+  cursor: grab;
+}
+.editor-board.is-hand:active {
+  cursor: grabbing;
+}
+.editor-map-controls .editor-tool-toggle {
+  display: grid;
+  place-items: center;
+}
+.editor-map-controls .editor-tool-toggle[aria-pressed="true"] {
+  border-color: var(--primary, #1f4d3a);
+  background: var(--primary, #1f4d3a);
+  color: var(--df-color-on-brand, #fff);
+}
+.editor-board.is-fullscreen {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+.editor-board.is-fullscreen .editor-map-controls {
+  top: calc(14px + env(safe-area-inset-top, 0px));
+}
+.editor-board.is-fullscreen .editor-board-hint,
+.editor-board.is-fullscreen .editor-room-label {
+  display: none;
+}
+
+/* The Add to layout card: a panel on the left, a bottom sheet on phones. */
+.editor-full-card {
+  position: absolute;
+  z-index: 5;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  left: 14px;
+  display: grid;
+  gap: 12px;
+  width: min(280px, calc(100% - 90px));
+  padding: 14px;
+  border: 1px solid var(--border, #d3d8ce);
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  box-shadow: 0 14px 34px rgb(16 34 24 / 18%);
+  cursor: default;
+}
+.editor-full-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.editor-full-card-head > strong {
+  font-size: 15px;
+}
+.editor-full-card button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border, #d3d8ce);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--ink, #1d2b23);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.editor-full-card button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.editor-full-card .editor-full-done {
+  border-color: var(--primary, #1f4d3a);
+  background: var(--primary, #1f4d3a);
+  color: var(--df-color-on-brand, #fff);
+}
+.editor-full-add {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.editor-full-add > button {
+  padding: 0 6px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.15;
+}
+.editor-full-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #d3d8ce);
+}
+.editor-full-actions > button:not(.editor-full-save) {
+  display: grid;
+  width: 38px;
+  padding: 0;
+  place-items: center;
+}
+.editor-full-actions > button[data-tone="danger"] {
+  border-color: #e3b4aa;
+  color: #a33a2c;
+}
+.editor-full-card .editor-full-save {
+  border-color: var(--primary, #1f4d3a);
+  color: var(--primary, #1f4d3a);
+}
+@media (max-width: 850px) {
+  .editor-full-card {
+    top: auto;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    left: 10px;
+    width: auto;
+    max-height: 46dvh;
+    overflow-y: auto;
+    border-radius: 18px;
+  }
+}
+
+/* Desktop: the older board height rule must not cap full screen. */
+.dineflow-app .floor-editor .editor-board.is-fullscreen,
+.dineflow-app #main-content .editor-board.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+}
+
+/* ---- Toolbar: one button style, grouped in a clear order -------------------
+   Floor  ·  Preview / Save / Publish
+   Add to layout (library, templates)  ·  Arrange (snap, align, undo, keys) */
+.dineflow-app .floor-editor-toolbar {
+  gap: 12px 20px;
+  padding: 14px 16px;
+  border-radius: 16px;
+}
+.dineflow-app .floor-editor-toolbar .floor-toolbar-group {
+  gap: 8px;
+}
+.dineflow-app .floor-editor-toolbar .floor-toolbar-label {
+  color: var(--muted, #647268);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.dineflow-app .floor-editor-toolbar :is(button, select, .builder-menu > summary) {
+  min-height: 40px;
+  height: 40px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 650;
+}
+.dineflow-app .floor-editor-toolbar select {
+  padding: 0 34px 0 14px;
+  border: 1px solid var(--border, #d3d8ce);
+  background-color: var(--surface, #fff);
+}
+/* Every ordinary button and dropdown: white with a thin border. */
+.dineflow-app .floor-editor-toolbar
+  :is(.floor-action-secondary, .builder-menu > summary, .floor-action-publish) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid var(--border, #d3d8ce);
+  background: var(--surface, #fff);
+  box-shadow: none;
+  color: var(--ink, #20392c);
+}
+.dineflow-app .floor-editor-toolbar .builder-menu[open] > summary {
+  border-color: var(--primary, #1f4d3a);
+  color: var(--primary, #1f4d3a);
+}
+/* Save draft is the everyday action; Publish is the outlined final step. */
+.dineflow-app .floor-editor-toolbar .floor-action-primary {
+  padding: 0 18px;
+  border: 1px solid var(--primary, #1f4d3a);
+  background: var(--primary, #1f4d3a);
+  color: var(--df-color-on-brand, #fff);
+}
+.dineflow-app .floor-editor-toolbar .floor-action-publish {
+  border-color: var(--primary, #1f4d3a);
+  color: var(--primary, #1f4d3a);
+}
+.dineflow-app .floor-editor-toolbar .floor-action-delete {
+  padding: 0 14px;
+  border: 1px solid #e3b4aa;
+  background: var(--surface, #fff);
+  color: #a33a2c;
+}
+.dineflow-app .floor-editor-toolbar :is(button, .builder-menu > summary):disabled,
+.dineflow-app .floor-editor-toolbar button:disabled {
+  opacity: 0.45;
+}
+.dineflow-app .floor-editor-toolbar .snap-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border, #d3d8ce);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+@media (max-width: 850px) {
+  /* Phones: one group per row, buttons sharing the width evenly. */
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "floors" "actions" "library" "canvas";
+    gap: 12px;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-label {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-floors > select {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  /* A disabled Delete draft floor only takes room when it can be used. */
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-action-delete:disabled {
+    display: none;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-floors > .floor-action-secondary:last-of-type:only-of-type {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-group > :is(button, .builder-menu, .snap-toggle),
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu > summary {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 8px;
+    white-space: nowrap;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu {
+    position: relative;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-canvas {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-canvas > .snap-toggle {
+    justify-content: center;
+  }
+  /* Keyboard shortcuts mean nothing on a touch screen. */
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-shortcuts {
+    display: none;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu-popover {
+    width: min(300px, calc(100vw - 48px));
+  }
+}
+@media (pointer: coarse) {
+  .dineflow-app .floor-editor-toolbar .floor-shortcuts {
+    display: none;
+  }
+}
+@media (max-width: 850px) {
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-group > :is(button, .snap-toggle),
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu > summary {
+    flex: initial;
+    height: 40px;
+    min-height: 40px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu > summary {
+    justify-content: center;
+  }
+}
+@media (max-width: 850px) {
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-floors:not(:has(.floor-action-delete:enabled)) > .floor-action-secondary {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar > .floor-toolbar-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dineflow-app #main-content .floor-editor .floor-editor-toolbar > .floor-toolbar-actions > button {
+    grid-column: auto;
+    padding-inline: 6px;
+    font-size: 12.5px;
+  }
+}

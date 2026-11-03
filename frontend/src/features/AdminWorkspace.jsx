@@ -869,15 +869,7 @@ function RiderTeamPanel({ user, resource }) {
             <p>Online status is controlled by each rider’s GPS session.</p>
           </div>
           {canManage && (
-            <Link
-              className={
-                phone
-                  ? "admin-text-link"
-                  : "admin-button admin-button--secondary"
-              }
-              to="/admin/users"
-            >
-              {!phone && <UsersRound size={17} aria-hidden="true" />}
+            <Link className="admin-text-link" to="/admin/users">
               Manage team <ArrowUpRight size={15} aria-hidden="true" />
             </Link>
           )}

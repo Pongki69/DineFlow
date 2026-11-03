@@ -11,6 +11,7 @@ import "./responsive-ui.css";
 import "./features/orderFoundation.css";
 // Last: the shared phone patterns (search, view switch, tiles, buttons).
 import "./phoneKit.css";
+import "./desktopPolish.css";
 
 // No page zoom on phones: iOS Safari ignores user-scalable=no for pinch, so
 // cancel its gesture events. Maps and the floor plan zoom on their own.

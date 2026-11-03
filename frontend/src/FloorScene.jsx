@@ -8,6 +8,8 @@ import {
   useRef,
   useState,
 } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import "./features/flyLift.css";
 import {
   CanvasTexture,
   Euler,
@@ -653,6 +655,42 @@ function TouchControls({ input }) {
   );
 }
 
+// Creative fly: hold Up or Down to rise or sink, on any screen.
+function FlyLift({ input }) {
+  const hold = (amount) => (event) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    input.current.vertical = amount;
+  };
+  const release = () => {
+    input.current.vertical = 0;
+  };
+  useEffect(() => release, []);
+  return (
+    <div className="fly-lift" role="group" aria-label="Fly up or down">
+      {[
+        ["Ascend", 1, ChevronUp, "Up"],
+        ["Descend", -1, ChevronDown, "Down"],
+      ].map(([label, amount, Icon, text]) => (
+        <button
+          key={label}
+          type="button"
+          aria-label={label}
+          title={`${label}: hold to fly ${text.toLowerCase()}`}
+          onPointerDown={hold(amount)}
+          onPointerUp={release}
+          onPointerCancel={release}
+          onLostPointerCapture={release}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <Icon size={22} aria-hidden="true" />
+          <span>{text}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function WalkNavigation({ mode, locked, touch }) {
   const { camera } = useThree();
   const euler = useMemo(() => new Euler(0, 0, 0, "YXZ"), []);
@@ -732,7 +770,8 @@ function WalkNavigation({ mode, locked, touch }) {
     const sideAmount = keyed.side || pad?.side || 0;
     const verticalAmount =
       Number(keysDown.has("Space")) -
-      Number(keysDown.has("ShiftLeft") || keysDown.has("ShiftRight"));
+      Number(keysDown.has("ShiftLeft") || keysDown.has("ShiftRight")) +
+      (mode === "creative" ? pad?.vertical || 0 : 0);
     if (
       !forwardAmount &&
       !sideAmount &&
@@ -903,7 +942,13 @@ function FloorCanvas({
   // Phones and tablets (portrait or landscape): on-screen stick and look
   // pad instead of keyboard and mouse.
   const touchControls = useMediaQuery("(max-width: 850px), (pointer: coarse)");
-  const touchInput = useRef({ forward: 0, side: 0, lookX: 0, lookY: 0 });
+  const touchInput = useRef({
+    forward: 0,
+    side: 0,
+    lookX: 0,
+    lookY: 0,
+    vertical: 0,
+  });
   const byId = new Map(availability.map((item) => [item.id, item]));
   const targetTable = availability.find(
     (table) => String(table.id) === String(targetId),
@@ -979,8 +1024,10 @@ function FloorCanvas({
           <span>
             {navigationMode === "creative"
               ? mouseLocked
-                ? "WASD move · mouse look · Space up · Shift down · Ctrl sprint · Esc exit"
-                : "Click the scene · WASD move · Space up · Shift down · Ctrl sprint · Esc exit"
+                ? "WASD move · mouse look · Space or Up rises · Shift or Down sinks · Ctrl sprint · Esc exit"
+                : touchControls
+                  ? "Left stick to fly · drag the right pad to look · hold Up or Down to rise or sink"
+                  : "Click the scene to look · WASD move · Space or Up rises · Shift or Down sinks · Esc exit"
               : navigationMode === "pov" && touchControls
                 ? `Left stick to walk · drag the right pad to look${reservationMode ? " · tap Book at a free table" : ""}`
                 : navigationMode === "pov"
@@ -1136,8 +1183,13 @@ function FloorCanvas({
             )}
             <WalkNavigation
               mode={navigationMode}
-              locked={!bookingOpen && (mouseLocked || navigationMode === "pov")}
-              touch={touchControls ? touchInput : null}
+              locked={
+                !bookingOpen &&
+                (mouseLocked ||
+                  navigationMode === "pov" ||
+                  navigationMode === "creative")
+              }
+              touch={touchInput}
             />
           </>
         ) : (
@@ -1153,8 +1205,11 @@ function FloorCanvas({
           />
         )}
       </Canvas>
-      {navigationMode === "pov" && touchControls && !bookingOpen && (
+      {navigationMode !== "orbit" && touchControls && !bookingOpen && (
         <TouchControls input={touchInput} />
+      )}
+      {navigationMode === "creative" && !bookingOpen && (
+        <FlyLift input={touchInput} />
       )}
       {navigationMode === "pov" &&
         touchControls &&
