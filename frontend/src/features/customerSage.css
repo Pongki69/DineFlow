@@ -673,6 +673,56 @@
   }
 }
 @media (max-width: 767px) {
+  .customer-menu > .page-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .customer-menu .customer-service-strip {
+    display: none;
+  }
+  .customer-menu .page-heading p {
+    display: none;
+  }
+  .customer-menu .page-heading {
+    margin-bottom: 12px;
+  }
+  .customer-menu .dish-grid {
+    gap: 12px;
+  }
+  .customer-menu .dish-card {
+    border-radius: 14px;
+  }
+  .customer-menu .dish-image {
+    height: 112px;
+    min-height: 112px;
+    aspect-ratio: auto;
+  }
+  .customer-menu .dish-body {
+    padding: 14px;
+  }
+  .customer-menu .dish-body h2 {
+    margin: 8px 0;
+    font-size: 18px;
+  }
+  .customer-menu .dish-body > p {
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .customer-menu .customer-dish-form {
+    gap: 12px;
+  }
+  .customer-menu .category-tabs {
+    flex-wrap: nowrap;
+    overscroll-behavior-x: contain;
+    margin-bottom: 8px;
+  }
+  .customer-menu .category-tabs button {
+    min-height: 44px;
+  }
   .customer-menu {
     padding-bottom: 24px;
   }
@@ -707,8 +757,17 @@
     font-size: 12px;
   }
   .customer-menu .dish-image--illustrated {
-    height: 112px;
-    min-height: 112px;
+    height: auto;
+    min-height: 0;
+    padding: 8px 14px 0;
+    justify-content: flex-start;
+    background: transparent;
+  }
+  .customer-menu .dish-image--illustrated > svg {
+    display: none;
+  }
+  .customer-menu .dish-image--illustrated .dish-offer {
+    position: static;
   }
   .customer-menu .menu-toolbar {
     flex-wrap: wrap;
@@ -780,4 +839,140 @@
   .customer-menu .dish-card {
     transition: none;
   }
+}
+
+/* Mobile item options: compact card actions and the options bottom sheet. */
+.customer-dish-compact-actions {
+  display: grid;
+  gap: 4px;
+}
+.customer-dish-compact-actions > .ui-button {
+  width: 100%;
+  min-height: 48px;
+}
+.customer-item-sheet {
+  inline-size: 100%;
+  max-inline-size: 100%;
+  margin: auto 0 0;
+  padding: 0;
+  border: 0;
+  color: var(--df-color-ink, #1a2421);
+}
+.customer-item-sheet[open] {
+  animation: customer-sheet-up 220ms ease-out;
+}
+.customer-item-sheet::backdrop {
+  background: var(--df-color-overlay, #112c2266);
+}
+@keyframes customer-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+.customer-item-sheet-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 16px 12px;
+}
+.customer-item-sheet-heading h2 {
+  margin: 4px 0 0;
+  font-size: 22px;
+}
+.customer-item-sheet-body {
+  display: grid;
+  gap: 20px;
+  padding: 0 16px 16px;
+}
+.customer-item-sheet fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.customer-item-sheet legend {
+  display: flex;
+  justify-content: space-between;
+  inline-size: 100%;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.customer-item-sheet legend span {
+  color: var(--df-color-secondary, #3b4f43);
+  font-size: 13px;
+  font-weight: 500;
+}
+.customer-item-sheet .field-error {
+  display: block;
+  margin-top: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .customer-item-sheet[open] {
+    animation: none;
+  }
+}
+
+/* Popular dishes: a badge on the photo, opposite any offer. */
+.customer-menu .dish-popular {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--primary, #1f4d3a) 30%, transparent);
+  border-radius: 999px;
+  background: var(--primary-soft, #e6efe9);
+  box-shadow: 0 2px 8px rgb(16 34 24 / 14%);
+  color: var(--primary, #1f4d3a);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.customer-menu .dish-popular[data-best] {
+  border-color: transparent;
+  background: var(--primary, #1f4d3a);
+  color: var(--df-color-on-brand, #fff);
+}
+.customer-menu .dish-popular svg {
+  flex: none;
+}
+@media (max-width: 767px) {
+  .dineflow-app .customer-menu .dish-image .dish-popular {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: auto;
+    height: auto;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .dineflow-app .app-shell .customer-menu .dish-image.dish-image--illustrated .dish-popular > svg,
+  .dineflow-app .customer-menu .dish-image .dish-popular > svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+    opacity: 1;
+  }
+}
+
+/* Bookings: Book a table sits at the top of the list, on the right. */
+.my-reservation-book {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 10px;
+}
+.dineflow-app .my-reservation-book > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
 }

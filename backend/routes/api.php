@@ -19,6 +19,15 @@ Route::post('/v1/webhooks/paymongo', [PaymentController::class, 'webhook'])->mid
 
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', HealthController::class)->middleware('throttle:30,1');
+    Route::get('/realtime/config', function () {
+        $connection = config('broadcasting.connections.reverb');
+        return response()->json(['data' => [
+            'key' => config('broadcasting.default') === 'reverb' ? ($connection['key'] ?? null) : null,
+            'host' => in_array($connection['options']['host'] ?? '', ['', '0.0.0.0'], true) ? request()->getHost() : $connection['options']['host'],
+            'port' => $connection['options']['port'] ?? 8080,
+            'scheme' => $connection['options']['scheme'] ?? 'http',
+        ]]);
+    });
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
@@ -32,7 +41,7 @@ Route::prefix('v1')->group(function (): void {
     Route::get('/restaurant/location', [DeliveryController::class, 'restaurant']);
     Route::get('/restaurant/branding', [DeliveryController::class, 'branding']);
 
-    Route::middleware(['auth:sanctum', 'account.active'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'account.active', 'single.session'])->group(function (): void {
         Route::put('/me/preferences', [AuthController::class, 'preferences']);
         Route::get('/rider/summary', [DeliveryOperationsController::class, 'riderSummary'])->middleware('permission:deliveries.assigned');
         Route::middleware('permission:menu.manage')->prefix('menu')->group(function (): void {
@@ -48,7 +57,7 @@ Route::prefix('v1')->group(function (): void {
         });
     });
 
-    Route::middleware(['auth:sanctum', 'account.active'])->group(function (): void {
+    Route::middleware(['auth:sanctum', 'account.active', 'single.session'])->group(function (): void {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::patch('/me', [AuthController::class, 'update'])->middleware('throttle:10,1');
@@ -105,6 +114,15 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/payments', [PaymentController::class, 'index']);
         Route::get('/dining-sessions/open-bills', [PaymentController::class, 'openBills'])->middleware('permission:payments.manage');
         Route::get('/cashier/payment-queue', [PaymentController::class, 'cashierQueue'])->middleware('permission:payments.manage');
+        Route::middleware('permission:payments.manage')->prefix('cashier')->group(function (): void {
+            Route::get('/bill', [\App\Http\Controllers\Api\V1\CashierController::class, 'bill']);
+            Route::post('/discount', [\App\Http\Controllers\Api\V1\CashierController::class, 'applyDiscount']);
+            Route::delete('/discount', [\App\Http\Controllers\Api\V1\CashierController::class, 'removeDiscount']);
+            Route::get('/shift', [\App\Http\Controllers\Api\V1\CashierController::class, 'shift']);
+            Route::post('/shift/open', [\App\Http\Controllers\Api\V1\CashierController::class, 'openShift']);
+            Route::post('/shift/close', [\App\Http\Controllers\Api\V1\CashierController::class, 'closeShift']);
+        });
+        Route::post('/dining-sessions/{session}/request-bill', [\App\Http\Controllers\Api\V1\CashierController::class, 'requestBill']);
         Route::get('/payments/{payment}', [PaymentController::class, 'show']);
         Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt']);
         Route::post('/payments/{payment}/cancel', [PaymentController::class, 'cancel']);
@@ -117,11 +135,19 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/roles', [StaffAccountController::class, 'roles']);
             Route::post('/users', [StaffAccountController::class, 'store']);
             Route::patch('/users/{user}/active', [StaffAccountController::class, 'setActive']);
+            Route::get('/customers', [\App\Http\Controllers\Api\V1\AdminCustomerController::class, 'index']);
+            Route::get('/customers/{user}', [\App\Http\Controllers\Api\V1\AdminCustomerController::class, 'show']);
+            Route::delete('/customers/{user}', [\App\Http\Controllers\Api\V1\AdminCustomerController::class, 'destroy']);
         });
         Route::middleware(['permission:users.manage', 'permission:roles.assign'])->prefix('admin')->group(function (): void {
             Route::put('/users/{user}/role', [StaffAccountController::class, 'assignRole']);
         });
         Route::get('/admin/audit-logs', [StaffAccountController::class, 'auditLogs'])->middleware('permission:audit.view');
+        Route::get('/activity', [\App\Http\Controllers\Api\V1\ActivityLogController::class, 'mine']);
+        Route::middleware('permission:audit.view')->prefix('admin/activity')->group(function (): void {
+            Route::get('/', [\App\Http\Controllers\Api\V1\ActivityLogController::class, 'everyone']);
+            Route::get('/people', [\App\Http\Controllers\Api\V1\ActivityLogController::class, 'people']);
+        });
 
         Route::get('/orders', [OrderController::class, 'index']);
         Route::get('/orders/dine-in-reservations', [OrderController::class, 'dineInReservations']);
@@ -154,9 +180,14 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/service/tables', [DiningController::class, 'tables'])->middleware('permission:service.tables.view');
         Route::post('/service/tables', [DiningController::class, 'createTable'])->middleware('permission:floorplan.manage');
         Route::post('/service/tables/{table}/sessions', [DiningController::class, 'openSession'])->middleware('permission:service.sessions.manage');
+        Route::get('/service/dining-sessions/{session}/orders', [DiningController::class, 'sessionOrders'])->middleware('permission:service.tables.view');
         Route::patch('/service/dining-sessions/{session}/close', [DiningController::class, 'closeSession'])->middleware('permission:service.sessions.manage');
 
-        Route::get('/kitchen/orders', [OrderController::class, 'kitchenIndex'])->middleware('permission:kitchen.orders.view');
+        Route::get('/kitchen/orders', [\App\Http\Controllers\Api\V1\KitchenController::class, 'index'])->middleware('permission:kitchen.orders.view');
+        Route::post('/kitchen/orders/{order}/recall', [\App\Http\Controllers\Api\V1\KitchenController::class, 'recall'])->middleware('permission:kitchen.orders.update');
+        Route::patch('/kitchen/order-items/{item}/prepared', [\App\Http\Controllers\Api\V1\KitchenController::class, 'prepared'])->middleware('permission:kitchen.orders.update');
+        Route::get('/kitchen/menu', [MenuController::class, 'kitchenMenu'])->middleware('permission:kitchen.orders.view');
+        Route::patch('/kitchen/menu/{item}/sold-out', [MenuController::class, 'kitchenSoldOut'])->middleware('permission:kitchen.orders.update');
         Route::get('/dashboard', [OperationsController::class, 'dashboard'])->middleware('permission:dashboard.view');
         Route::get('/reports', [OperationsController::class, 'report']);
         Route::get('/reports/financial', [OperationsController::class, 'report'])->middleware('permission:reports.financial');

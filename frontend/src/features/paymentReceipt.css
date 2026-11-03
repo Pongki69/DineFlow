@@ -1,0 +1,222 @@
+/* ---- Payment receipt -------------------------------------------------------
+   A paper receipt: logo and restaurant, the amount, what was paid for, the
+   details, and a thank-you; actions on the right; print shows only the paper. */
+.receipt-page {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding-bottom: 24px;
+}
+.receipt-paper {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  width: min(100%, 420px);
+  padding: 24px 20px 28px;
+  border: 1px solid var(--border);
+  border-radius: 18px 18px 6px 6px;
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgb(16 34 24 / 10%);
+}
+/* Torn-paper edge at the bottom. */
+.receipt-paper::after {
+  position: absolute;
+  right: 0;
+  bottom: -8px;
+  left: 0;
+  height: 9px;
+  background: radial-gradient(circle at 6px -2px, transparent 6px, var(--surface) 6.5px) 0 0 / 12px 9px repeat-x;
+  content: "";
+}
+.receipt-brand {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.receipt-logo {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin-bottom: 4px;
+  border-radius: 14px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.receipt-brand strong {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.receipt-dot {
+  color: #7aa25b;
+}
+.receipt-brand small {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.receipt-amount {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 14px 0;
+  border-top: 1px dashed var(--border);
+  border-bottom: 1px dashed var(--border);
+  text-align: center;
+}
+.receipt-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.receipt-amount:not([data-status="paid"]) .receipt-status {
+  background: #fbe9e7;
+  color: #a33a2c;
+}
+.receipt-amount strong {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.receipt-amount small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.receipt-lines {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 14px;
+  border-bottom: 1px dashed var(--border);
+  list-style: none;
+}
+.receipt-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+.receipt-lines span {
+  display: grid;
+  min-width: 0;
+}
+.receipt-lines small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.receipt-lines b {
+  flex: none;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.receipt-rows {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.receipt-rows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+}
+.receipt-rows dt {
+  flex: none;
+  color: var(--muted);
+}
+.receipt-rows dd {
+  min-width: 0;
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.receipt-thanks {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+  text-align: center;
+}
+.receipt-thanks p {
+  margin: 0;
+  font-weight: 700;
+}
+.receipt-thanks small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.receipt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: min(100%, 420px);
+  margin-top: 6px;
+}
+.dineflow-app .receipt-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dineflow-app .receipt-actions .receipt-back {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+.dineflow-app .receipt-actions .receipt-print {
+  border: 0;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+
+/* Payments list: Receipt and Full refund on the right. */
+.sage-transaction-actions {
+  justify-content: flex-end;
+}
+@media (max-width: 850px) {
+  .dineflow-app .sage-transaction-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    grid-column: 1 / -1;
+  }
+}
+
+
+.receipt-lines .receipt-charge {
+  color: var(--muted);
+  font-size: 13px;
+}
+.receipt-lines .receipt-charge:first-of-type,
+.receipt-lines li:not(.receipt-charge) + .receipt-charge {
+  padding-top: 8px;
+  border-top: 1px dotted var(--border);
+}
+/* The older receipt styles drew a box around the details list. */
+.dineflow-app .receipt-page dl.receipt-rows {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}

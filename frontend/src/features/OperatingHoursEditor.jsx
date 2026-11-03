@@ -92,7 +92,13 @@ export function OperatingHoursEditor({ value, onChange, onApplyAll }) {
                   </small>
                 )}
               </div>
-            ) : null}
+            ) : (
+              <span className="admin-hours-day-summary">
+                {mode === "closed"
+                  ? "No pickups scheduled"
+                  : "Available all day"}
+              </span>
+            )}
           </fieldset>
         );
       })}

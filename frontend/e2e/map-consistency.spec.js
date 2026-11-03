@@ -133,13 +133,11 @@ test("maps share storefront pins, wheel zoom, fullscreen and recenter controls",
     await map.scrollIntoViewIfNeeded();
     if (path === "/admin/dashboard" || path === "/admin/tracking") {
       await waitForMapTiles(map);
-      await page
-        .locator(".admin-fleet-panel")
-        .screenshot({
-          path: info.outputPath(
-            `${path.endsWith("dashboard") ? "dashboard" : "tracking"}-fleet-panel.png`,
-          ),
-        });
+      await page.locator(".admin-fleet-panel").screenshot({
+        path: info.outputPath(
+          `${path.endsWith("dashboard") ? "dashboard" : "tracking"}-fleet-panel.png`,
+        ),
+      });
     }
     if (info.project.name === "desktop") {
       await expect
@@ -327,6 +325,23 @@ test("customer tracking and rider route maps keep the same map controls and stor
       exact: true,
     });
     await enter.click();
+    if (role === "rider") {
+      // The rider map opens the whole route workspace in fullscreen so the
+      // Stops / Delivery panels stay reachable.
+      const planner = page.getByRole("dialog", { name: "Route & tracking" });
+      await expect(planner).toBeVisible();
+      await expect(
+        planner.getByRole("navigation", { name: "Delivery map panels" }),
+      ).toBeVisible();
+      await page.screenshot({
+        path: info.outputPath(`${role}-fullscreen.png`),
+      });
+      await planner
+        .getByRole("button", { name: "Exit fullscreen", exact: true })
+        .click();
+      await expect(planner).toBeHidden();
+      continue;
+    }
     await expect(map).toHaveAttribute("role", "dialog");
     await expect
       .poll(() =>

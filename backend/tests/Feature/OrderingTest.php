@@ -235,3 +235,30 @@ it('allows managers to delete dishes while preserving order history and blocking
     $this->postJson('/api/v1/orders', ['order_type' => 'pickup', 'items' => [['menu_item_id' => $item->id, 'quantity' => 1]]])->assertUnprocessable();
 });
 
+
+it('filters the menu by category slug or numeric id', function () {
+    $item = orderableItem();
+    $category = $item->category;
+    $this->getJson('/api/v1/menu/items?available_only=1&category='.$category->slug)
+        ->assertOk()->assertJsonPath('data.0.id', $item->id);
+    $this->getJson('/api/v1/menu/items?available_only=1&category='.$category->id)
+        ->assertOk()->assertJsonPath('data.0.id', $item->id);
+    $this->getJson('/api/v1/menu/items?available_only=1&category=no-such-category')
+        ->assertOk()->assertJsonCount(0, 'data');
+});
+
+it('lets kitchen staff mark dishes sold out without other menu access', function () {
+    $kitchen = orderingUser('kitchen_staff');
+    $item = orderableItem();
+    $this->actingAs($kitchen)->getJson('/api/v1/kitchen/menu')
+        ->assertOk()->assertJsonPath('data.0.id', $item->id)->assertJsonPath('data.0.is_sold_out', false);
+    $this->patchJson('/api/v1/kitchen/menu/'.$item->id.'/sold-out', ['is_sold_out' => true, 'base_price' => 1])
+        ->assertOk()->assertJsonPath('data.is_sold_out', true);
+    expect($item->fresh()->is_sold_out)->toBeTrue()->and((string) $item->fresh()->base_price)->toBe('100.00');
+    $this->assertDatabaseHas('audit_logs', ['event' => 'menu.item_sold_out_changed', 'subject_id' => $item->id]);
+    // Sold-out dishes leave the customer menu and come back when marked available.
+    $this->getJson('/api/v1/menu/items?available_only=1')->assertOk()->assertJsonCount(0, 'data');
+    $this->patchJson('/api/v1/kitchen/menu/'.$item->id.'/sold-out', ['is_sold_out' => false])->assertOk();
+    $this->putJson('/api/v1/menu/items/'.$item->id, ['name' => 'Renamed', 'base_price' => 1])->assertForbidden();
+    $this->actingAs(orderingUser('customer'))->patchJson('/api/v1/kitchen/menu/'.$item->id.'/sold-out', ['is_sold_out' => true])->assertForbidden();
+});

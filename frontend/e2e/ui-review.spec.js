@@ -36,7 +36,7 @@ const groups = [
     role: "manager",
     scenes: [["manager", "/admin/dashboard", ".admin-freshness"]],
   },
-  { role: "cashier", scenes: [["cashier", "/payments", ".sage-bill-card"]] },
+  { role: "cashier", scenes: [["cashier", "/payments", ".cashier-row"]] },
   {
     role: "kitchen_staff",
     scenes: [["kitchen", "/kitchen", ".sage-kds-ticket"]],
@@ -140,7 +140,7 @@ test("screenshots and layout review of populated production pages", async ({
         }
         await record(name);
         if (name === "cashier") {
-          await page.locator(".sage-bill-card .sage-button").first().click();
+          await page.locator(".cashier-row-button").first().click();
           await expect(page.getByRole("dialog")).toBeVisible();
           await record("cashier-payment-sheet");
           await page.keyboard.press("Escape");

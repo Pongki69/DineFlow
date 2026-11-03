@@ -2,6 +2,7 @@
 import React from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { DineInBooking } from "./components/DineInBooking";
 import { api } from "./api";
 
@@ -31,9 +32,11 @@ it("submits the selected reservation reference and identifies bookings awaiting 
     ],
   });
   render(
-    <form data-testid="checkout">
-      <DineInBooking />
-    </form>,
+    <MemoryRouter>
+      <form data-testid="checkout">
+        <DineInBooking />
+      </form>
+    </MemoryRouter>,
   );
   expect(
     (await screen.findByRole("radio", { name: /RSV-WAIT/ })).disabled,
@@ -64,7 +67,11 @@ it("refreshes booking readiness after staff seats the guest", async () => {
     data: [{ ...booking, status: "seated", ready: true }],
   });
   const onReadyChange = vi.fn();
-  render(<DineInBooking onReadyChange={onReadyChange} />);
+  render(
+    <MemoryRouter>
+      <DineInBooking onReadyChange={onReadyChange} />
+    </MemoryRouter>,
+  );
   expect((await screen.findByRole("radio", { name: /RSV-1/ })).disabled).toBe(
     false,
   );
@@ -82,9 +89,11 @@ it("offers manual codes and retry when the reservation lookup fails", async () =
     .mockRejectedValueOnce(new Error("Offline"))
     .mockResolvedValueOnce({ data: [] });
   render(
-    <form data-testid="checkout">
-      <DineInBooking />
-    </form>,
+    <MemoryRouter>
+      <form data-testid="checkout">
+        <DineInBooking />
+      </form>
+    </MemoryRouter>,
   );
   await screen.findByRole("alert");
   fireEvent.click(screen.getByRole("radio", { name: "Enter a code instead" }));
@@ -95,5 +104,9 @@ it("offers manual codes and retry when the reservation lookup fails", async () =
     new FormData(screen.getByTestId("checkout")).getAll("table_code"),
   ).toEqual(["RSV-ENTERED"]);
   fireEvent.click(screen.getByRole("button", { name: "Refresh reservations" }));
-  await screen.findByText(/No active bookings/);
+  await screen.findByText(/No booking yet/);
+  // With nothing booked, the cart offers a way to book a table.
+  expect(
+    screen.getByRole("link", { name: "Book a table" }).getAttribute("href"),
+  ).toBe("/reserve");
 });

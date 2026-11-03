@@ -1,3 +1,4 @@
+import { playSound } from "../uiSound";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useRestaurantLocation } from "../components/useRestaurantLocation";
@@ -11,6 +12,7 @@ import {
 import { usePrompt } from "../components/ConfirmProvider";
 import "../components/riderDeliveryCards.css";
 import "../components/deliveryWorkbench.css";
+import "../components/riderMobileMap.css";
 const terminal = ["delivered", "failed", "cancelled"];
 const DELIVERY_QUEUE_PAGE_SIZE = 8;
 const title = (value) => String(value || "").replaceAll("_", " ");
@@ -19,11 +21,14 @@ import {
   RefreshCw,
   Radio,
   TriangleAlert,
-  CheckCircle2,
+  CircleX,
+  ChevronRight,
   Phone,
   Mail,
   Store,
   Navigation,
+  Inbox,
+  Clock3,
 } from "lucide-react";
 import { hasOutletCoordinates } from "./outletConfiguration";
 import "./riderCurrentOutlet.css";
@@ -32,11 +37,24 @@ import {
   RiderDeliveryNavigation,
 } from "../components/RiderDeliveryDetails";
 import { RiderRoutePlanner } from "../components/RiderRoutePlanner";
-import { orderedRouteDeliveries } from "../components/riderRoutePlanning";
+import { useMediaQuery } from "../components/useMediaQuery";
+import {
+  nearestDeliveryOrder,
+  orderedRouteDeliveries,
+  respectsBatchOrder,
+} from "../components/riderRoutePlanning";
 import { DeliveryProofUpload } from "../components/DeliveryProof";
 import { subscribeRiderLocation } from "../components/riderLocationSession";
 import { useRiderPresence } from "../components/riderPresence";
 import { usePollingResource } from "../components/usePollingResource";
+import { SwipeToConfirm } from "../components/SwipeToConfirm";
+import { RiderStopsList } from "../components/RiderStopsList";
+import { RiderScreenSkeleton } from "../components/RiderScreenSkeleton";
+import {
+  DeliveryStatusPill,
+  deliveryStatusLabel,
+} from "../components/OrderStatusPill";
+import { locationDeniedMessage } from "../components/locationAccess";
 
 export function RiderDeliveries() {
   const [params] = useSearchParams();
@@ -44,6 +62,13 @@ export function RiderDeliveries() {
     Number(params.get("delivery")) || null,
   );
   const [mobileWorkspaceView, setMobileWorkspaceView] = useState("map");
+  // Phones open on the Delivery panel once there is work, so the next action
+  // is on the first screen; after the rider picks a panel, theirs sticks.
+  const viewChosen = useRef(false);
+  const chooseMobileView = (view) => {
+    viewChosen.current = true;
+    setMobileWorkspaceView(view);
+  };
   const [openDeliveryRequest, setOpenDeliveryRequest] = useState(0);
   const [deliveryQueuePage, setDeliveryQueuePage] = useState(0);
   const [pending, setPending] = useState({});
@@ -57,6 +82,7 @@ export function RiderDeliveries() {
   const [routeOrder, setRouteOrder] = useState([]);
   const ask = usePrompt();
   const presence = useRiderPresence();
+  const phone = useMediaQuery("(max-width: 850px)");
   const outletResource = useRestaurantLocation();
   const restaurantContact = outletResource.location;
   const [deliveries, setDeliveries] = useState([]),
@@ -75,7 +101,7 @@ export function RiderDeliveries() {
     refresh: load,
   } = usePollingResource(
     ({ signal }) => api("/rider/assignments?scope=active", { signal }),
-    { intervalMs: 12000, eventName: "rider-deliveries-updated" },
+    { eventName: "rider-deliveries-updated", topics: ["deliveries", "orders"] },
   );
   useEffect(() => {
     const r = assignmentResult;
@@ -96,6 +122,11 @@ export function RiderDeliveries() {
       (r.data || []).filter((delivery) => !terminal.includes(delivery.status)),
     );
   }, [assignmentResult]);
+  const hasDeliveries = deliveries.length > 0;
+  useEffect(() => {
+    if (hasDeliveries && !viewChosen.current)
+      setMobileWorkspaceView((view) => (view === "map" ? "delivery" : view));
+  }, [hasDeliveries]);
   const tracked = deliveries.find((d) => d.id === trackingId);
   const queueDeliveries = orderedRouteDeliveries(deliveries, routeOrder);
   const deliveryQueuePageCount = Math.ceil(
@@ -183,7 +214,9 @@ export function RiderDeliveries() {
       (e) =>
         setGeoError(
           e.code === 1
-            ? "Location permission denied. Enable location access to share your delivery progress."
+            ? locationDeniedMessage(
+                "Location permission denied. Enable location access to share your delivery progress.",
+              )
             : "GPS is unavailable. Check location services and try again.",
         ),
     );
@@ -203,6 +236,13 @@ export function RiderDeliveries() {
         method: path.includes("/status") ? "PATCH" : "POST",
         body: JSON.stringify(body),
       });
+      playSound(
+        body.status === "delivered"
+          ? "success"
+          : ["failed", "cancelled"].includes(body.status)
+            ? "remove"
+            : "tap",
+      );
       setActionFeedback((current) => ({
         ...current,
         [d.id]: {
@@ -224,6 +264,30 @@ export function RiderDeliveries() {
       actionLocks.current.delete(d.id);
       setPending((current) => ({ ...current, [d.id]: false }));
     }
+  }
+  function changeOrder(ids) {
+    if (routeSaveLock.current) return;
+    routeRevision.current += 1;
+    orderDirty.current = true;
+    setDirtyOrder(true);
+    setRouteOrder(ids);
+  }
+  function resetOrder() {
+    orderDirty.current = false;
+    setDirtyOrder(false);
+    setRouteOrder(assignmentResult?.delivery_order || []);
+  }
+  // Move one stop to a new position, keeping paired deliveries in sequence.
+  function moveStop(id, toIndex) {
+    const ids = queueDeliveries.map((delivery) => delivery.id);
+    const from = ids.indexOf(id);
+    const target = Math.max(0, Math.min(ids.length - 1, toIndex));
+    if (from < 0 || from === target) return;
+    ids.splice(target, 0, ...ids.splice(from, 1));
+    const next = ids.map((value) =>
+      queueDeliveries.find((delivery) => delivery.id === value),
+    );
+    if (respectsBatchOrder(next)) changeOrder(ids);
   }
   async function applyOrder() {
     if (routeSaveLock.current) return;
@@ -254,6 +318,57 @@ export function RiderDeliveries() {
       setSavingOrder(false);
     }
   }
+  const outletCard = hasOutletCoordinates(restaurantContact) && (
+    <aside
+      className="rider-current-outlet"
+      aria-label="Current restaurant outlet"
+    >
+      <Store size={22} aria-hidden="true" />
+      <div>
+        <span>Current restaurant outlet</span>
+        <strong>{restaurantContact.name || "Restaurant"}</strong>
+        <p>{restaurantContact.address}</p>
+      </div>
+      <a
+        href={`https://www.google.com/maps/dir/?api=1&destination=${Number(restaurantContact.latitude)},${Number(restaurantContact.longitude)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <Navigation size={16} aria-hidden="true" />
+        Directions
+      </a>
+    </aside>
+  );
+  // Live refreshes happen quietly; only a failed refresh is worth a line.
+  const freshness = updatedAt
+    ? `Showing assignments from ${updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Updates are unavailable.`
+    : "Showing previously loaded assignments. Updates are unavailable.";
+  // One stop list, shown on the page and in the fullscreen Stops panel.
+  const stopsListProps = {
+    selectedId,
+    saving: savingOrder,
+    dirty: dirtyOrder,
+    onMove: moveStop,
+    onApply: applyOrder,
+    onReset: resetOrder,
+    onSuggest: () =>
+      changeOrder(
+        nearestDeliveryOrder(
+          queueDeliveries,
+          queueDeliveries[0]?.order.pickup || null,
+        ).map((delivery) => delivery.id),
+      ),
+    onOpen: (delivery) => {
+      setSelectedId(delivery.id);
+      setOpenDeliveryRequest((request) => request + 1);
+      chooseMobileView("delivery");
+      const control = document.querySelector(
+        '.rider-map-dock button[data-view="delivery"]',
+      );
+      if (control?.getClientRects().length)
+        control.focus({ preventScroll: true });
+    },
+  };
   const selectedDeliveryPanel = (
     <div className="rider-delivery-list">
       {queueDeliveries.map((d, index) => {
@@ -272,28 +387,33 @@ export function RiderDeliveries() {
                   : null;
         const canPick = next !== "picked_up" || o.status === "ready_to_serve";
         const waitingForKitchen = next === "picked_up" && !canPick;
+        const advance = () =>
+          act(d, `/rider/deliveries/${d.id}/status`, { status: next });
+        // Pickup and drop-off hand over food, so on touch screens they need
+        // a deliberate swipe rather than a tap.
         const progressAction =
           next &&
           !waitingForKitchen &&
           (next !== "delivered" || d.proof_uploaded) ? (
-            <Button
-              busy={!!pending[d.id]}
-              disabled={!!pending[d.id] || !canPick}
-              onClick={() =>
-                act(d, `/rider/deliveries/${d.id}/status`, { status: next })
-              }
-            >
-              {next === "delivered" && (
-                <CheckCircle2 size={16} aria-hidden="true" />
-              )}
-              {next === "arrived_at_restaurant"
-                ? "Arrived at restaurant"
-                : next === "picked_up"
-                  ? "Pick up order"
-                  : next === "in_transit"
-                    ? "Start delivery"
-                    : "Mark delivered"}
-            </Button>
+            ["picked_up", "delivered"].includes(next) ? (
+              <SwipeToConfirm
+                busy={!!pending[d.id]}
+                disabled={!!pending[d.id] || !canPick}
+                onConfirm={advance}
+              >
+                {next === "picked_up" ? "Pick up order" : "Mark delivered"}
+              </SwipeToConfirm>
+            ) : (
+              <Button
+                busy={!!pending[d.id]}
+                disabled={!!pending[d.id] || !canPick}
+                onClick={advance}
+              >
+                {next === "arrived_at_restaurant"
+                  ? "Arrived at restaurant"
+                  : "Start delivery"}
+              </Button>
+            )
           ) : null;
         const primaryAction = waitingForKitchen ? (
           <p className="rider-action-status" role="status">
@@ -307,9 +427,16 @@ export function RiderDeliveries() {
           >
             Accept assignment
           </Button>
-        ) : d.status !== "in_transit" ? (
+        ) : d.status === "in_transit" && !d.proof_uploaded ? (
+          <p className="rider-action-status" role="status">
+            Upload a delivery photo to finish this drop-off
+          </p>
+        ) : (
           progressAction
-        ) : null;
+        );
+        const actionError = actionFeedback[d.id]?.error
+          ? actionFeedback[d.id].message
+          : null;
         return (
           <article
             className="rider-delivery-card"
@@ -317,41 +444,83 @@ export function RiderDeliveries() {
             aria-busy={pending[d.id] || undefined}
           >
             {pending[d.id] && <p role="status">Saving delivery update…</p>}
-            {actionFeedback[d.id] && (
-              <Feedback
-                tone={actionFeedback[d.id].error ? undefined : "success"}
-              >
-                {actionFeedback[d.id].message}
-              </Feedback>
+            {actionFeedback[d.id] && !actionError && (
+              <Feedback tone="success">{actionFeedback[d.id].message}</Feedback>
             )}
             <div className="rider-delivery-head">
-              <div>
-                <span
-                  className="rider-card-sequence"
-                  aria-label={`Delivery ${index + 1}`}
-                >
-                  {index + 1}
-                </span>
+              <span
+                className="rider-card-sequence"
+                aria-label={`Delivery ${index + 1}`}
+              >
+                {index + 1}
+              </span>
+              <div className="rider-delivery-head-copy">
                 <strong className="rider-card-order-title">
                   Order {o.order_number}
                 </strong>
-                <span className={`delivery-state state-${d.status}`}>
-                  {title(d.status)}
-                </span>
+                <div className="rider-delivery-head-meta">
+                  <DeliveryStatusPill
+                    key={d.status}
+                    status={d.status}
+                    className={`delivery-state state-${d.status}`}
+                  />
+                  <span
+                    className={`rider-card-priority-label ${["in_transit", "arrived_at_restaurant"].includes(d.status) ? "is-current" : "is-next"}`}
+                  >
+                    {d.status === "in_transit"
+                      ? "Current stop · customer"
+                      : d.status === "picked_up"
+                        ? "Next stop · customer"
+                        : d.status === "arrived_at_restaurant"
+                          ? "Current stop · restaurant"
+                          : d.status === "accepted"
+                            ? "Next stop · restaurant"
+                            : "Awaiting acceptance"}
+                  </span>
+                </div>
               </div>
-              <span
-                className={`rider-card-priority-label ${["in_transit", "arrived_at_restaurant"].includes(d.status) ? "is-current" : "is-next"}`}
-              >
-                {d.status === "in_transit"
-                  ? "Current stop · customer"
-                  : d.status === "picked_up"
-                    ? "Next stop · customer"
-                    : d.status === "arrived_at_restaurant"
-                      ? "Current stop · restaurant"
-                      : d.status === "accepted"
-                        ? "Next stop · restaurant"
-                        : "Assignment awaiting acceptance"}
-              </span>
+            </div>
+            <div
+              className="rider-primary-actions rider-quick-actions"
+              role="group"
+              aria-label="Next step"
+            >
+              <RiderDeliveryNavigation order={o} status={d.status} />
+              {(() => {
+                const onRoad = ["picked_up", "in_transit"].includes(d.status);
+                const phone = onRoad
+                  ? o.destination?.phone
+                  : o.pickup?.phone || restaurantContact?.phone;
+                return phone ? (
+                  <a className="rider-quick-action" href={`tel:${phone}`}>
+                    <Phone size={18} aria-hidden="true" />
+                    {onRoad ? "Call customer" : "Call restaurant"}
+                  </a>
+                ) : null;
+              })()}
+              {["picked_up", "in_transit"].includes(d.status) &&
+                (presence.state === "online" ? (
+                  <span
+                    className="rider-quick-action is-on"
+                    title="Customer tracking uses your online GPS"
+                  >
+                    <Radio size={18} aria-hidden="true" />
+                    Tracking on
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className={`rider-quick-action${trackingId === d.id ? " is-on" : ""}`}
+                    aria-pressed={trackingId === d.id}
+                    onClick={() => {
+                      setGeoError("");
+                      setTrackingId(trackingId === d.id ? null : d.id);
+                    }}
+                  >
+                    <Radio size={18} aria-hidden="true" />
+                    {trackingId === d.id ? "Tracking on" : "Share tracking"}
+                  </button>
+                ))}
             </div>
             <div className="rider-selected-route-progress">
               <div>
@@ -366,8 +535,22 @@ export function RiderDeliveries() {
                 aria-label={`Selected delivery ${index + 1} of ${deliveries.length} active deliveries`}
               />
             </div>
-            {primaryAction && (
-              <div className="rider-selected-primary-action">
+            {(primaryAction || actionError) && (
+              <div className="rider-selected-primary-action df-bottom-bar">
+                {/* Names the order the action belongs to, for when the bar
+                    covers the card header on a phone. */}
+                <p className="rider-bar-context" aria-hidden="true">
+                  Order {o.order_number}
+                  {deliveryStatusLabel(d.status)
+                    ? ` · ${deliveryStatusLabel(d.status)}`
+                    : ""}
+                </p>
+                {actionError && (
+                  <div className="df-alert df-alert--context" role="alert">
+                    <TriangleAlert size={16} aria-hidden="true" />
+                    {actionError}
+                  </div>
+                )}
                 {primaryAction}
               </div>
             )}
@@ -392,7 +575,6 @@ export function RiderDeliveries() {
                       )
                     }
                   />
-                  {progressAction}
                 </aside>
               )}
               <RiderDeliveryDetails
@@ -401,21 +583,82 @@ export function RiderDeliveries() {
                 batchSequence={d.batch_key ? d.batch_sequence : null}
               />
             </div>
-            <fieldset className="rider-actions" disabled={!!pending[d.id]}>
-              <div
-                className="rider-primary-actions"
-                role="group"
-                aria-label="Next step"
+            {!!d.history?.length && (
+              <section
+                className="rider-card-section rider-card-timeline"
+                aria-label="Delivery activity"
               >
-                <RiderDeliveryNavigation order={o} status={d.status} />
-              </div>
+                <h3 className="rider-card-section-title">Activity</h3>
+                <ol>
+                  {d.history.map((h, step) => (
+                    <li key={h.id || step}>
+                      <span>{title(h.to_status)}</span>
+                      <time dateTime={h.created_at}>
+                        {new Date(h.created_at).toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </time>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+            <fieldset className="rider-actions" disabled={!!pending[d.id]}>
               <details className="rider-secondary-actions">
                 <summary>More actions and details</summary>
                 <div className="rider-secondary-actions-content">
+                  <p className="rider-more-total">
+                    <span>Order total</span>
+                    <strong>
+                      {new Intl.NumberFormat("en-PH", {
+                        style: "currency",
+                        currency: "PHP",
+                      }).format(Number(o.total || 0))}
+                    </strong>
+                  </p>
+                  {(restaurantContact?.phone ||
+                    restaurantContact?.contact_email) && (
+                    <a
+                      className="rider-more-row"
+                      href={
+                        restaurantContact.phone
+                          ? `tel:${restaurantContact.phone}`
+                          : `mailto:${restaurantContact.contact_email}`
+                      }
+                      aria-labelledby={`rider-more-contact-title-${d.id}`}
+                      aria-describedby={`rider-more-contact-${d.id}`}
+                    >
+                      <span className="rider-more-icon" aria-hidden="true">
+                        {restaurantContact.phone ? (
+                          <Phone size={18} />
+                        ) : (
+                          <Mail size={18} />
+                        )}
+                      </span>
+                      <span className="rider-more-text">
+                        <b id={`rider-more-contact-title-${d.id}`}>
+                          Contact restaurant
+                        </b>
+                        <small id={`rider-more-contact-${d.id}`}>
+                          {restaurantContact.phone ||
+                            restaurantContact.contact_email}{" "}
+                          · delays or address
+                        </small>
+                      </span>
+                      <ChevronRight
+                        className="rider-more-chevron"
+                        size={18}
+                        aria-hidden="true"
+                      />
+                    </a>
+                  )}
                   {d.status === "assigned" && (
-                    <Button
-                      variant="secondary"
-                      className="danger-button"
+                    <button
+                      type="button"
+                      className="rider-more-row is-danger"
+                      aria-labelledby={`rider-more-reject-title-${d.id}`}
+                      aria-describedby={`rider-more-reject-${d.id}`}
                       onClick={async () => {
                         const reason = await ask(
                           "Why are you rejecting this assignment?",
@@ -426,56 +669,35 @@ export function RiderDeliveries() {
                           });
                       }}
                     >
-                      Reject assignment
-                    </Button>
-                  )}
-                  {["picked_up", "in_transit"].includes(d.status) &&
-                    presence.state !== "online" && (
-                      <Button
-                        variant="secondary"
-                        className={trackingId === d.id ? "tracking-on" : ""}
-                        onClick={async () => {
-                          setGeoError("");
-                          setTrackingId(trackingId === d.id ? null : d.id);
-                        }}
-                      >
-                        <Radio size={16} aria-hidden="true" />
-                        {trackingId === d.id
-                          ? "Stop location sharing"
-                          : "Share delivery location"}
-                      </Button>
-                    )}
-                  {["picked_up", "in_transit"].includes(d.status) &&
-                    presence.state === "online" && (
-                      <span className="rider-sharing-status">
-                        <Radio size={16} aria-hidden="true" /> Customer tracking
-                        uses your online GPS
+                      <span className="rider-more-icon" aria-hidden="true">
+                        <CircleX size={18} />
                       </span>
-                    )}
-                  {restaurantContact?.phone ? (
-                    <a
-                      className="rider-page-link"
-                      href={`tel:${restaurantContact.phone}`}
-                    >
-                      <Phone size={16} aria-hidden="true" /> Contact restaurant
-                    </a>
-                  ) : restaurantContact?.contact_email ? (
-                    <a
-                      className="rider-page-link"
-                      href={`mailto:${restaurantContact.contact_email}`}
-                    >
-                      <Mail size={16} aria-hidden="true" /> Contact restaurant
-                    </a>
-                  ) : null}
+                      <span className="rider-more-text">
+                        <b id={`rider-more-reject-title-${d.id}`}>
+                          Reject assignment
+                        </b>
+                        <small id={`rider-more-reject-${d.id}`}>
+                          Send it back so another rider can take it
+                        </small>
+                      </span>
+                      <ChevronRight
+                        className="rider-more-chevron"
+                        size={18}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  )}
                   {[
                     "accepted",
                     "arrived_at_restaurant",
                     "picked_up",
                     "in_transit",
                   ].includes(d.status) && (
-                    <Button
-                      variant="secondary"
-                      className="danger-button"
+                    <button
+                      type="button"
+                      className="rider-more-row is-danger"
+                      aria-labelledby={`rider-more-failed-title-${d.id}`}
+                      aria-describedby={`rider-more-failed-${d.id}`}
                       onClick={async () => {
                         const reason = await ask(
                           "Mark delivery unsuccessful?",
@@ -498,30 +720,24 @@ export function RiderDeliveries() {
                           });
                       }}
                     >
-                      <TriangleAlert size={16} aria-hidden="true" />
-                      Mark delivery unsuccessful
-                    </Button>
+                      <span className="rider-more-icon" aria-hidden="true">
+                        <TriangleAlert size={18} />
+                      </span>
+                      <span className="rider-more-text">
+                        <b id={`rider-more-failed-title-${d.id}`}>
+                          Mark delivery unsuccessful
+                        </b>
+                        <small id={`rider-more-failed-${d.id}`}>
+                          If the drop-off can&apos;t be completed
+                        </small>
+                      </span>
+                      <ChevronRight
+                        className="rider-more-chevron"
+                        size={18}
+                        aria-hidden="true"
+                      />
+                    </button>
                   )}
-                  {!!d.history?.length && (
-                    <details className="rider-card-activity">
-                      <summary>Delivery activity</summary>
-                      <small>
-                        {d.history
-                          ?.map(
-                            (h) =>
-                              `${title(h.to_status)} · ${new Date(h.created_at).toLocaleString()}`,
-                          )
-                          .join("  /  ")}
-                      </small>
-                    </details>
-                  )}
-                  <strong className="rider-secondary-total">
-                    Order total ·{" "}
-                    {new Intl.NumberFormat("en-PH", {
-                      style: "currency",
-                      currency: "PHP",
-                    }).format(Number(o.total || 0))}
-                  </strong>
                 </div>
               </details>
             </fieldset>
@@ -535,8 +751,8 @@ export function RiderDeliveries() {
         <div className="rider-selected-delivery-empty" role="status">
           <strong>Choose an active delivery</strong>
           <p>
-            Select a delivery above or from the queue to see its next action and
-            stop details.
+            Select a stop on the map or in Stops to see its next action and stop
+            details.
           </p>
         </div>
       )}
@@ -551,42 +767,34 @@ export function RiderDeliveries() {
         title="My Deliveries"
         description="Your current pickups and drop-offs. Keep GPS online during a delivery."
         actions={
-          <Button
-            variant="secondary"
-            onClick={() => load(true)}
-            disabled={loading || refreshing}
-            aria-busy={refreshing || undefined}
-          >
-            <RefreshCw
-              className={refreshing ? "spin" : undefined}
-              size={16}
-              aria-hidden="true"
-            />
-            {refreshing ? "Refreshing assignments…" : "Refresh assignments"}
-          </Button>
+          <>
+            <span className="rider-mobile-assignment-count">
+              {loading
+                ? "Checking deliveries…"
+                : `${deliveries.length} active ${deliveries.length === 1 ? "delivery" : "deliveries"}`}
+            </span>
+            <Button
+              variant="secondary"
+              onClick={() => load(true)}
+              aria-label={
+                refreshing ? "Refreshing assignments…" : "Refresh assignments"
+              }
+              disabled={loading || refreshing}
+              aria-busy={refreshing || undefined}
+            >
+              <RefreshCw
+                className={refreshing ? "spin" : undefined}
+                size={16}
+                aria-hidden="true"
+              />
+              <span className="rider-refresh-label">
+                {refreshing ? "Refreshing assignments…" : "Refresh assignments"}
+              </span>
+            </Button>
+          </>
         }
       />
-      {hasOutletCoordinates(restaurantContact) && (
-        <aside
-          className="rider-current-outlet"
-          aria-label="Current restaurant outlet"
-        >
-          <Store size={22} aria-hidden="true" />
-          <div>
-            <span>Current restaurant outlet</span>
-            <strong>{restaurantContact.name || "Restaurant"}</strong>
-            <p>{restaurantContact.address}</p>
-          </div>
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${Number(restaurantContact.latitude)},${Number(restaurantContact.longitude)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Navigation size={16} aria-hidden="true" />
-            Directions
-          </a>
-        </aside>
-      )}
+      {outletCard}
       {outletResource.error && (
         <Feedback onRetry={outletResource.refresh}>
           Restaurant details could not refresh.{" "}
@@ -596,54 +804,33 @@ export function RiderDeliveries() {
         </Feedback>
       )}
       {loading && deliveries.length === 0 && (
-        <div
-          className="rider-assignments-loading"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <div className="rider-assignments-loading-status">
-            <RefreshCw className="spin" size={18} aria-hidden="true" />
-            <div>
-              <strong>
-                {refreshing ? "Refreshing assignments" : "Loading assignments"}
-              </strong>
-              <p>Checking for your latest pickups and drop-offs…</p>
-            </div>
-          </div>
-          <div className="rider-assignments-loading-preview" aria-hidden="true">
-            <div className="rider-assignments-map-skeleton">
-              <span className="route-skeleton-road route-skeleton-road-one" />
-              <span className="route-skeleton-road route-skeleton-road-two" />
-              <span className="route-skeleton-road route-skeleton-road-three" />
-              <span className="route-skeleton-path" />
-              <i className="route-skeleton-pin route-skeleton-pin-one" />
-              <i className="route-skeleton-pin route-skeleton-pin-two" />
-            </div>
-            <div className="rider-assignments-route-skeleton">
-              <div className="route-skeleton-tabs">
-                <i />
-                <i />
-              </div>
-              <div className="route-skeleton-heading" />
-              {[0, 1, 2].map((item) => (
-                <div className="route-skeleton-stop" key={item}>
-                  <i />
-                  <span>
-                    <b />
-                    <em />
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <RiderScreenSkeleton
+          variant="deliveries"
+          label={refreshing ? "Refreshing assignments" : "Loading assignments"}
+        />
       )}
+      {/* Background refreshes keep the card; it goes only when work arrives. */}
       {!loading &&
-        !refreshing &&
         !error &&
         !refreshError &&
-        deliveries.length === 0 && (
+        deliveries.length === 0 &&
+        (phone ? (
+          // Phones: one slim row, so the map below has the screen.
+          <div className="rider-deliveries-empty-row" role="status">
+            <span aria-hidden="true">
+              <Inbox size={18} />
+            </span>
+            <p>
+              <strong>No deliveries yet</strong>
+              <small>
+                {presence.state === "online"
+                  ? "New assignments will appear here."
+                  : "Go online to get offers."}
+              </small>
+            </p>
+            <Link to="/rider/offers">Browse offers</Link>
+          </div>
+        ) : (
           <div className="rider-deliveries-empty">
             <EmptyState
               title="Ready for your next delivery"
@@ -652,19 +839,13 @@ export function RiderDeliveries() {
               to="/rider/offers"
             />
           </div>
-        )}
+        ))}
       {(error || refreshError) && (
         <Feedback onRetry={load}>{error || refreshError}</Feedback>
       )}
-      {!loading && (updatedAt || refreshing || error || refreshError) && (
+      {!loading && (error || refreshError) && (
         <p className="rider-data-freshness" role="status">
-          {refreshing
-            ? "Refreshing assignments; your current deliveries remain available."
-            : error || refreshError
-              ? "Showing previously loaded assignments. Updates are unavailable."
-              : updatedAt
-                ? `Assignments updated at ${updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                : ""}
+          {freshness}
         </p>
       )}
       {geoError && (
@@ -678,41 +859,19 @@ export function RiderDeliveries() {
         hasOutletCoordinates(restaurantContact) && (
           <RiderRoutePlanner
             deliveries={[]}
+            online={presence.state === "online"}
             restaurantLocation={restaurantContact}
+            mobileView={mobileWorkspaceView}
+            onMobileViewChange={chooseMobileView}
           />
         )}
       {deliveries.length > 0 && (
         <>
-          <nav
-            className="rider-mobile-workspace-tabs"
-            aria-label="Delivery workspace view"
-          >
-            <Button
-              variant="secondary"
-              aria-pressed={mobileWorkspaceView === "map"}
-              onClick={() => setMobileWorkspaceView("map")}
-            >
-              Route & map
-            </Button>
-            <Button
-              variant="secondary"
-              aria-pressed={mobileWorkspaceView === "queue"}
-              onClick={() => setMobileWorkspaceView("queue")}
-            >
-              Queue <span>{deliveries.length}</span>
-            </Button>
-          </nav>
           <RiderRoutePlanner
             deliveries={deliveries}
             restaurantLocation={restaurantContact}
             deliveryOrder={routeOrder}
-            onOrderChange={(ids) => {
-              if (routeSaveLock.current) return;
-              routeRevision.current += 1;
-              orderDirty.current = true;
-              setDirtyOrder(true);
-              setRouteOrder(ids);
-            }}
+            onOrderChange={changeOrder}
             onApplyOrder={applyOrder}
             orderDirty={dirtyOrder}
             savingOrder={savingOrder}
@@ -720,137 +879,107 @@ export function RiderDeliveries() {
             selectedDeliveryId={selectedId}
             openSelectedRequest={openDeliveryRequest}
             selectedDeliveryPanel={selectedDeliveryPanel}
+            fullscreenStops={
+              <RiderStopsList
+                deliveries={queueDeliveries}
+                headingId="rider-fullscreen-queue-heading"
+                {...stopsListProps}
+              />
+            }
+            mobileView={mobileWorkspaceView}
+            onMobileViewChange={chooseMobileView}
           />
           <div className="rider-delivery-lower-grid">
-            <section
-              className="rider-delivery-queue"
-              aria-labelledby="rider-queue-heading"
-            >
-              <header>
-                <div>
-                  <h2 id="rider-queue-heading">Your delivery queue</h2>
-                  <span>{deliveries.length} active</span>
-                </div>
-                <a href="#rider-route-heading">Route tools</a>
-              </header>
-              <div className="rider-delivery-queue-list">
-                {visibleQueueDeliveries.map((delivery, index) => {
-                  const statusLabel = title(delivery.status);
-                  const nextStop = ["picked_up", "in_transit"].includes(
-                    delivery.status,
-                  )
-                    ? delivery.order.destination?.address
-                    : delivery.order.pickup?.address;
-                  return (
-                    <button
-                      className="rider-delivery-queue-row"
-                      type="button"
-                      key={delivery.id}
-                      aria-pressed={
-                        selectedId != null &&
-                        String(selectedId) === String(delivery.id)
-                      }
-                      onClick={() => {
-                        setSelectedId(delivery.id);
-                        setOpenDeliveryRequest((request) => request + 1);
-                        setMobileWorkspaceView("map");
-                      }}
-                    >
-                      <span className="rider-queue-number">
-                        {currentDeliveryQueuePage * DELIVERY_QUEUE_PAGE_SIZE +
-                          index +
-                          1}
-                      </span>
-                      <span className="rider-queue-order">
-                        <strong>{delivery.order.order_number}</strong>
-                        <small>{nextStop || "Stop address not recorded"}</small>
-                      </span>
-                      <span
-                        className={`rider-route-stop-state state-${delivery.status}`}
-                      >
-                        {statusLabel}
-                      </span>
-                      <span className="rider-queue-action">
-                        {selectedId != null &&
-                        String(selectedId) === String(delivery.id)
-                          ? "Viewing"
-                          : "View"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              {deliveryQueuePageCount > 1 && (
-                <nav
-                  className="rider-delivery-queue-pagination"
-                  aria-label="Delivery queue pages"
+            <RiderStopsList
+              deliveries={visibleQueueDeliveries}
+              offset={currentDeliveryQueuePage * DELIVERY_QUEUE_PAGE_SIZE}
+              headingId="rider-queue-heading"
+              headerExtras={
+                <a
+                  className="rider-desktop-route-link"
+                  href="#rider-route-heading"
                 >
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      setDeliveryQueuePage((page) => Math.max(0, page - 1))
-                    }
-                    disabled={currentDeliveryQueuePage === 0}
+                  Route tools
+                </a>
+              }
+              pagination={
+                deliveryQueuePageCount > 1 && (
+                  <nav
+                    className="rider-delivery-queue-pagination"
+                    aria-label="Delivery queue pages"
                   >
-                    Previous
-                  </Button>
-                  <span aria-live="polite">
-                    Page {currentDeliveryQueuePage + 1} of{" "}
-                    {deliveryQueuePageCount}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      setDeliveryQueuePage((page) =>
-                        Math.min(deliveryQueuePageCount - 1, page + 1),
-                      )
-                    }
-                    disabled={
-                      currentDeliveryQueuePage >= deliveryQueuePageCount - 1
-                    }
-                  >
-                    Next
-                  </Button>
-                </nav>
-              )}
-              <p className="rider-queue-hint">
-                Select a delivery to focus it on the map. Change stop order from
-                Route order in the route panel.
-              </p>
-            </section>
-            <aside
-              className="rider-before-pickup"
-              aria-labelledby="rider-before-pickup-heading"
-            >
-              <header>
-                <h2 id="rider-before-pickup-heading">Before pickup</h2>
-                <span>
-                  {presence.state === "online" ? "Online" : "Offline"}
-                </span>
-              </header>
-              <div className="rider-before-pickup-message">
-                <Radio size={17} aria-hidden="true" />
-                <p>
-                  {presence.state === "online"
-                    ? "You’re ready to receive nearby offers."
-                    : "Offers are paused. Go online to refresh your assignments before your next pickup."}
-                </p>
-              </div>
-              <Link className="ui-button ui-button--primary" to="/rider/offers">
-                {presence.state === "online"
-                  ? "View delivery offers"
-                  : "Go online"}
-              </Link>
-              <h3>Pickup checklist</h3>
-              <ol>
-                <li>Check the restaurant and order number.</li>
-                <li>Wait for the kitchen to mark the order ready.</li>
-                <li>Confirm pickup before starting the drop-off.</li>
-              </ol>
-            </aside>
+                    <Button
+                      variant="secondary"
+                      onClick={() =>
+                        setDeliveryQueuePage((page) => Math.max(0, page - 1))
+                      }
+                      disabled={currentDeliveryQueuePage === 0}
+                    >
+                      Previous
+                    </Button>
+                    <span aria-live="polite">
+                      Page {currentDeliveryQueuePage + 1} of{" "}
+                      {deliveryQueuePageCount}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      onClick={() =>
+                        setDeliveryQueuePage((page) =>
+                          Math.min(deliveryQueuePageCount - 1, page + 1),
+                        )
+                      }
+                      disabled={
+                        currentDeliveryQueuePage >= deliveryQueuePageCount - 1
+                      }
+                    >
+                      Next
+                    </Button>
+                  </nav>
+                )
+              }
+              {...stopsListProps}
+            />
+            <BeforePickup online={presence.state === "online"} />
           </div>
         </>
       )}
+      {phone && (
+        <Link className="rider-past-link" to="/rider/history">
+          <span aria-hidden="true">
+            <Clock3 size={17} />
+          </span>
+          <strong>Past deliveries</strong>
+          <ChevronRight size={17} aria-hidden="true" />
+        </Link>
+      )}
     </section>
+  );
+}
+
+function BeforePickup({ online, headingId = "rider-before-pickup-heading" }) {
+  return (
+    <aside className="rider-before-pickup" aria-labelledby={headingId}>
+      <header>
+        <h2 id={headingId}>Before pickup</h2>
+        <span>{online ? "Online" : "Offline"}</span>
+      </header>
+      <div className="rider-before-pickup-message">
+        <Radio size={17} aria-hidden="true" />
+        <p>
+          {online
+            ? "You’re ready to receive nearby offers."
+            : "Offers are paused. Go online to refresh your assignments before your next pickup."}
+        </p>
+      </div>
+      <Link className="ui-button ui-button--primary" to="/rider/offers">
+        {online ? "View delivery offers" : "Go online"}
+      </Link>
+      <h3>Pickup checklist</h3>
+      <ol>
+        <li>Check the restaurant and order number.</li>
+        <li>Wait for the kitchen to mark the order ready.</li>
+        <li>Confirm pickup before starting the drop-off.</li>
+      </ol>
+    </aside>
   );
 }

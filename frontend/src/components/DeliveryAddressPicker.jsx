@@ -15,6 +15,7 @@ import { AutoTextarea } from "./AutoTextarea";
 import { MapControls } from "./MapControls";
 import { restaurantMapIcon } from "./restaurantMapIcon";
 import "./deliveryAddressPicker.css";
+import { locationDeniedMessage } from "./locationAccess";
 
 const dropoffPin = L.divIcon({
   className: "delivery-pin",
@@ -326,7 +327,9 @@ export function DeliveryAddressPicker({
         setLocating(false);
         setError(
           failure.code === 1
-            ? "Location permission was denied. Allow location in your browser settings or search for your address."
+            ? locationDeniedMessage(
+                "Location permission was denied. Allow location in your browser settings or search for your address.",
+              )
             : "We could not get your location. Search for your address or tap the map instead.",
         );
       },

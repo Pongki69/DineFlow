@@ -22,8 +22,7 @@
   accent-color: var(--primary);
 }
 
-.auth-login-preferences small,
-.auth-password-manager-hint {
+.auth-login-preferences small {
   color: var(--muted);
   font-size: var(--text-xs);
   line-height: 1.6;
@@ -31,8 +30,4 @@
 
 .auth-login-preferences small {
   flex-basis: 100%;
-}
-
-.auth-password-manager-hint {
-  margin: 0;
 }

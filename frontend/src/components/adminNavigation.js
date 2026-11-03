@@ -7,7 +7,7 @@ const modules = [
   {
     key: "tracking",
     label: "Live delivery tracking",
-    paths: ["/admin/tracking", "/admin/deliveries"],
+    paths: ["/admin/tracking", "/admin/deliveries", "/admin/riders"],
   },
   { key: "outlets", label: "Restaurant outlets", paths: ["/admin/outlets"] },
   {
@@ -15,7 +15,6 @@ const modules = [
     label: "Order management",
     paths: ["/admin/orders", "/orders"],
   },
-  { key: "riders", label: "Rider fleet", paths: ["/admin/riders"] },
   {
     key: "settings",
     label: "System settings",

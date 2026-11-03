@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 
 class DiningSession extends Model
 {
-    protected $fillable = ['table_id', 'reservation_id', 'opened_by', 'closed_by', 'guest_count', 'status', 'opened_at', 'closed_at'];
+    protected $fillable = ['table_id', 'reservation_id', 'opened_by', 'closed_by', 'guest_count', 'status', 'opened_at', 'closed_at', 'bill_requested_at'];
 
     public function ensureBillSettled(): void
     {
@@ -25,7 +25,7 @@ class DiningSession extends Model
 
     protected function casts(): array
     {
-        return ['guest_count' => 'integer', 'opened_at' => 'datetime', 'closed_at' => 'datetime'];
+        return ['guest_count' => 'integer', 'opened_at' => 'datetime', 'closed_at' => 'datetime', 'bill_requested_at' => 'datetime'];
     }
 
     public function table()

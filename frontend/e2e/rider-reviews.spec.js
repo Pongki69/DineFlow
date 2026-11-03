@@ -482,3 +482,67 @@ test("customers review verified riders with tags comments and editable name visi
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("delivery history has readable responsive rows, working filters and row navigation", async ({
+  page,
+}, testInfo) => {
+  if (testInfo.project.name === "desktop")
+    await page.setViewportSize({ width: 1920, height: 1080 });
+  await login(page, "rider");
+  await page.goto("/rider/history");
+  const historyRow = page.locator(".rider-history-row").filter({
+    has: page.getByRole("link", { name: "DF-REVIEW-DEMO", exact: true }),
+  });
+  await expect(historyRow).toBeVisible();
+  await expect(historyRow.locator("time")).toContainText(
+    /January|February|March|April|May|June|July|August|September|October|November|December/,
+  );
+  expect(
+    await historyRow
+      .locator(".rider-history-order")
+      .evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
+  ).toBeGreaterThanOrEqual(16);
+  // Phones filter with outcome chips; wider screens keep the dropdown.
+  const filterOutcome = async (value, label) =>
+    page.viewportSize().width <= 850
+      ? page
+          .getByRole("group", { name: "Filter by outcome" })
+          .getByRole("button", { name: label, exact: true })
+          .click()
+      : page
+          .getByRole("combobox", { name: "Delivery outcome" })
+          .selectOption(value);
+  await filterOutcome("failed", "Unsuccessful");
+  await expect(
+    page.getByRole("heading", { name: "No matching deliveries" }),
+  ).toBeVisible();
+  await filterOutcome("delivered", "Delivered");
+  await expect(historyRow).toBeVisible();
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include(".rider-history-page")
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath("delivery-history.png"),
+    fullPage: true,
+  });
+  const destinationBox = await historyRow
+    .locator(".rider-history-destination")
+    .boundingBox();
+  await page.mouse.click(
+    destinationBox.x + destinationBox.width / 2,
+    destinationBox.y + destinationBox.height / 2,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Order DF-REVIEW-DEMO", exact: true }),
+  ).toBeVisible();
+});

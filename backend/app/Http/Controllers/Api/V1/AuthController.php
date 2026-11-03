@@ -8,6 +8,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\SingleDeviceSession;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +37,7 @@ class AuthController extends Controller
         if ($request->hasSession()) {
             Auth::guard('web')->login($user);
             $request->session()->regenerate();
+            app(SingleDeviceSession::class)->claim($user, $request);
         }
 
         return response()->json(['user' => $this->userPayload($user)], 201);
@@ -54,8 +56,13 @@ class AuthController extends Controller
         if (! $request->boolean('remember')) {
             Cookie::queue(Cookie::forget($guard->getRecallerName()));
         }
+        // One device per account: this sign-in signs the others out.
+        $devices = app(SingleDeviceSession::class);
+        $devices->forgetOtherDevices($user);
         $guard->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+        $devices->claim($user, $request);
+        app(\App\Services\AuditLogService::class)->record($user, 'auth.login', $user, [], $request);
 
         return response()->json(['user' => $this->userPayload($user)]);
     }

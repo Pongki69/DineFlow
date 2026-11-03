@@ -753,17 +753,17 @@ body {
   padding: 8px 0 !important;
   border: 0 !important;
   background: transparent !important;
-  color: #243c2d !important;
+  color: var(--ink, #243c2d) !important;
   text-align: left;
 }
 .editor-inspector-toggle span {
-  color: #728075;
+  color: var(--muted, #4b5e54);
   font-size: var(--text-caption);
   font-weight: 400;
 }
 .editor-inspector-toggle b {
   margin-left: auto;
-  color: #315b44;
+  color: var(--ink, #315b44);
   font-size: var(--text-caption);
 }
 .editor-selection.is-collapsed > div {
@@ -802,12 +802,12 @@ body {
 }
 .editor-selection strong {
   grid-column: 1 / -1;
-  color: #243c2d;
+  color: var(--ink, #243c2d);
   font-size: var(--text-body);
 }
 .floor-editor-helper {
   grid-column: 1 / -1;
-  color: #6d786f;
+  color: var(--muted, #4b5e54);
   font-size: var(--text-caption);
 }
 .editor-selection label {
@@ -2606,7 +2606,7 @@ body {
   position: sticky;
   top: -14px;
   z-index: 2;
-  background: #fbfcf9 !important;
+  background: var(--surface, #fbfcf9) !important;
 }
 .floor-scene {
   min-height: 420px;
@@ -3085,4 +3085,163 @@ body {
     min-height: 390px;
     height: 55vh;
   }
+}
+
+/* 2D booking plan: tables ride one GPU-composited layer that gestures move,
+   and the board owns touches so a pan or pinch never scrolls the page. */
+.reservation-floor-board {
+  touch-action: none;
+  contain: layout paint;
+}
+.reservation-floor-layer {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+/* Booking calendar on phones: a bottom sheet with a backdrop, so it never
+   runs off the screen edge; days get thumb-sized targets. */
+.reservation-date-scrim,
+.reservation-date-sheet-head {
+  display: none;
+}
+@media (max-width: 850px) {
+  .reservation-date-scrim {
+    position: fixed;
+    z-index: 1190;
+    inset: 0;
+    display: block;
+    background: var(--df-color-overlay, rgb(17 44 34 / 40%));
+    animation: rider-fade var(--df-motion-duration, 200ms)
+      var(--df-motion-easing, ease) backwards;
+  }
+  .dineflow-app .reservation-date-popover {
+    position: fixed;
+    z-index: 1200;
+    top: auto;
+    right: 8px;
+    bottom: calc(var(--mobile-nav-height, 70px) + 8px);
+    left: 8px;
+    width: auto;
+    max-height: min(80dvh, 560px);
+    overflow-y: auto;
+    padding: 0 16px 16px;
+    border-radius: 20px;
+    background: var(--surface, #fff);
+    box-shadow: 0 -8px 32px rgb(16 34 24 / 22%);
+    animation: rider-rise var(--df-motion-duration-slow, 320ms)
+      var(--rider-ease-spring, ease-out) backwards;
+  }
+  .dineflow-app .reservation-date-sheet-head {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 -16px 8px;
+    padding: 14px 12px 12px 20px;
+    border-bottom: 1px solid var(--border, #dfe4de);
+    background: var(--surface, #fff);
+  }
+  .dineflow-app .reservation-date-sheet-head strong {
+    font-size: 17px;
+  }
+  .dineflow-app .reservation-date-sheet-head button {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--neutral-soft, #eef1ec);
+    color: var(--ink, #263f30);
+  }
+  .dineflow-app .reservation-calendar-heading {
+    margin: 4px 0 12px;
+  }
+  .dineflow-app .reservation-calendar-heading strong {
+    font-size: 16px;
+  }
+  .dineflow-app .reservation-calendar-heading button {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .dineflow-app .reservation-calendar-grid {
+    gap: 6px;
+  }
+  .dineflow-app .reservation-calendar-grid button {
+    min-height: 44px;
+    border-radius: 12px;
+    font-size: 16px;
+  }
+  .dineflow-app .reservation-calendar-grid button.is-selected {
+    background: var(--primary, #315b44);
+  }
+}
+
+/* No double-tap zoom; taps also fire without the zoom delay. */
+html {
+  touch-action: manipulation;
+}
+/* Phones: no pinch zoom either (maps and the floor plan handle their own
+   gestures), and 16px fields so iOS does not zoom in on focus. */
+@media (max-width: 850px) and (pointer: coarse) {
+  html,
+  body {
+    touch-action: pan-x pan-y;
+  }
+  input:not([type="checkbox"], [type="radio"], [type="range"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* Alerts that open a page show a chevron on the right. */
+.notification-item.has-target {
+  position: relative;
+  padding-right: 40px;
+}
+.notification-item .notification-item-go {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--muted);
+  transform: translateY(-50%);
+}
+
+/* An order opened from an alert flashes so it is easy to spot. */
+.order-card.is-focused {
+  animation: order-card-focus 2.6s ease-out;
+}
+@keyframes order-card-focus {
+  0%,
+  40% {
+    box-shadow:
+      0 0 0 3px var(--primary),
+      0 10px 28px rgb(30 50 36 / 18%);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .order-card.is-focused {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--primary);
+  }
+}
+
+/* Booking actions group only on phones; elsewhere they flow as before. */
+.my-reservation-buttons {
+  display: contents;
+}
+
+/* The tracking hero only groups content on phones. */
+.tracking-hero {
+  display: contents;
 }

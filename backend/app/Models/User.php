@@ -12,7 +12,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = ['name', 'email', 'password', 'is_active'];
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password', 'remember_token', 'session_token'];
 
     protected function casts(): array
     {
@@ -32,6 +32,17 @@ class User extends Authenticatable
     public function riderProfile()
     {
         return $this->hasOne(RiderProfile::class);
+    }
+
+    /** Orders this person placed as a customer. */
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'customer_id');
+    }
+
+    public function reservations()
+    {
+        return $this->hasMany(Reservation::class, 'customer_id');
     }
 
     public function hasRole(string $slug): bool

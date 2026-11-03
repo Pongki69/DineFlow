@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useLiveSettings } from "../components/useLiveSettings";
+import { subscribeToLiveChanges } from "../liveUpdates";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Bike,
@@ -24,13 +26,13 @@ import { RiderScreenSkeleton } from "../components/RiderScreenSkeleton";
 import { usePollingResource } from "../components/usePollingResource";
 import { useRiderPresence } from "../components/riderPresence";
 import { RiderNextDelivery } from "../components/RiderNextDelivery";
+import { DeliveryStatusPill } from "../components/OrderStatusPill";
 import {
   EmptyState,
   Feedback,
   PageHeader,
   Skeleton,
   Button,
-  StatusBadge,
 } from "../components/ui";
 import "./workspaceSettings.css";
 import "./riderHistory.css";
@@ -96,7 +98,7 @@ function DeliveryHistoryRow({ delivery }) {
         )}
       </div>
       <div className="rider-history-outcome">
-        <StatusBadge status={delivery.status} />
+        <DeliveryStatusPill status={delivery.status} />
       </div>
       <div className="rider-history-total">
         <span className="rider-history-field-label">Order total</span>
@@ -118,6 +120,15 @@ function DeliveryHistoryRow({ delivery }) {
   );
 }
 
+function greeting(now = new Date()) {
+  const hour = now.getHours();
+  return hour < 12
+    ? "Good morning"
+    : hour < 18
+      ? "Good afternoon"
+      : "Good evening";
+}
+
 function RiderDashboardSkeleton() {
   return (
     <RiderScreenSkeleton variant="dashboard" label="Loading rider dashboard" />
@@ -135,7 +146,7 @@ export function RiderOverview({ user }) {
       );
       return result.data?.[0] || null;
     },
-    { intervalMs: 60000, eventName: "rider-deliveries-updated" },
+    { eventName: "rider-deliveries-updated", topics: ["deliveries", "orders"] },
   );
 
   const {
@@ -145,7 +156,7 @@ export function RiderOverview({ user }) {
     refresh: load,
   } = usePollingResource(
     async ({ signal }) => (await api("/rider/summary", { signal })).data,
-    { intervalMs: 15000, eventName: "rider-deliveries-updated" },
+    { eventName: "rider-deliveries-updated", topics: ["deliveries", "orders"] },
   );
   const presenceCopy = {
     online: [
@@ -194,6 +205,7 @@ export function RiderOverview({ user }) {
       }
     : null;
   const supportPhone = restaurantContact?.phone?.replace(/[^\d+]/g, "");
+  const firstName = user.name.split(" ")[0];
   const completedEvent = recentResult?.history?.find(
     (event) => event.to_status === "delivered",
   );
@@ -202,24 +214,34 @@ export function RiderOverview({ user }) {
     : null;
   return (
     <section className="rider-home rider-sage-home">
-      <PageHeader
-        title="Your next stop, made clear"
-        description={
-          "Welcome, " +
-          user.name.split(" ")[0] +
-          ". Review your assignment before heading out."
-        }
-        actions={
-          <span className="rider-dashboard-date">
-            <CalendarDays size={17} aria-hidden="true" />
-            {new Intl.DateTimeFormat("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            }).format(new Date())}
-          </span>
-        }
-      />
+      <header className="rider-greeting" data-presence={presence.state}>
+        <span className="rider-greeting-avatar" aria-hidden="true">
+          {firstName.charAt(0).toUpperCase()}
+          <i />
+        </span>
+        <div className="rider-greeting-copy">
+          <h1 tabIndex={-1}>
+            <span>{greeting()},</span> {firstName}
+          </h1>
+          <p>
+            <span>
+              <CalendarDays size={14} aria-hidden="true" />
+              {new Intl.DateTimeFormat("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              }).format(new Date())}
+            </span>
+            <span className="rider-greeting-status">{statusLabel}</span>
+            {data && (
+              <span>
+                {data.active_count} active{" "}
+                {data.active_count === 1 ? "delivery" : "deliveries"}
+              </span>
+            )}
+          </p>
+        </div>
+      </header>
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {data && error && (
         <p className="rider-data-freshness" role="status">
@@ -419,7 +441,7 @@ export function RiderOverview({ user }) {
                       "Delivery address not recorded"}
                   </small>
                 </span>
-                <StatusBadge status={recentResult.status} />
+                <DeliveryStatusPill status={recentResult.status} />
                 <ChevronRight size={18} aria-hidden="true" />
               </Link>
             ) : (
@@ -508,6 +530,21 @@ export function RiderHistory() {
       controller.abort();
     };
   }, [page, status, retry, query, pageSize]);
+  useEffect(
+    () =>
+      subscribeToLiveChanges(async () => {
+        const params = new URLSearchParams({
+          scope: "history",
+          page: String(page),
+          per_page: String(pageSize),
+          ...(status ? { status } : {}),
+          ...(query.trim() ? { q: query.trim() } : {}),
+        });
+        const next = await api(`/rider/assignments?${params}`);
+        setResult(next);
+      }, ["deliveries"]),
+    [page, pageSize, status, query],
+  );
   const total = result?.meta?.total ?? 0;
   const lastPage = Math.max(1, result?.meta?.last_page || 1);
   return (
@@ -552,6 +589,30 @@ export function RiderHistory() {
               <option value="cancelled">Cancelled</option>
             </select>
           </label>
+          <div
+            className="rider-history-outcome-chips"
+            role="group"
+            aria-label="Filter by outcome"
+          >
+            {[
+              ["", "All"],
+              ["delivered", "Delivered"],
+              ["failed", "Unsuccessful"],
+              ["cancelled", "Cancelled"],
+            ].map(([value, label]) => (
+              <button
+                key={value || "all"}
+                type="button"
+                aria-pressed={status === value}
+                onClick={() => {
+                  setStatus(value);
+                  setPage(1);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <label className="rider-history-page-size">
             <span>Per page</span>
             <select
@@ -674,12 +735,18 @@ export function RiderProfileSettings() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [retry, setRetry] = useState(0);
+  const [receiveProfile] = useLiveSettings(
+    () => api("/rider/profile").then((r) => r.data),
+    profile,
+    setProfile,
+    ["accounts"],
+  );
   useEffect(() => {
     const controller = new AbortController();
     api("/rider/profile", { signal: controller.signal })
       .then((result) => {
         if (!controller.signal.aborted) {
-          setProfile(result.data);
+          receiveProfile(result.data);
           setError("");
         }
       })
@@ -688,6 +755,15 @@ export function RiderProfileSettings() {
       });
     return () => controller.abort();
   }, [retry]);
+  // "/account#rider-details" (from a missing-vehicle message) opens here
+  // with the vehicle field ready.
+  const vehicleField = useRef(null);
+  const loaded = !!profile;
+  useEffect(() => {
+    if (!loaded || window.location.hash !== "#rider-details") return;
+    vehicleField.current?.scrollIntoView({ block: "center" });
+    vehicleField.current?.focus({ preventScroll: true });
+  }, [loaded]);
   async function save(event) {
     event.preventDefault();
     setBusy(true);
@@ -702,7 +778,7 @@ export function RiderProfileSettings() {
           vehicle_plate: profile.vehicle_plate || "",
         }),
       });
-      setProfile(result.data);
+      receiveProfile(result.data);
       setNotice("Rider details saved.");
     } catch (e) {
       setError(e.message);
@@ -712,6 +788,7 @@ export function RiderProfileSettings() {
   }
   return (
     <section
+      id="rider-details"
       className="workspace-card"
       aria-labelledby="rider-settings-heading"
     >
@@ -745,6 +822,7 @@ export function RiderProfileSettings() {
           <label>
             Vehicle
             <select
+              ref={vehicleField}
               required
               value={profile.vehicle_type || ""}
               onChange={(e) =>

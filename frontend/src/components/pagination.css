@@ -1,0 +1,53 @@
+.workspace-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+.workspace-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.workspace-pagination strong {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.dineflow-app .workspace-pagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+}
+.workspace-pagination button:hover:not(:disabled) {
+  background: var(--primary-soft);
+}
+.dineflow-app .workspace-pagination button:disabled {
+  opacity: 1;
+  color: var(--df-color-disabled-text, var(--muted));
+  background: var(--df-color-disabled-bg, var(--neutral-soft));
+  cursor: default;
+}
+@media (max-width: 540px) {
+  .workspace-pagination {
+    padding: 14px;
+  }
+  .workspace-pagination > div {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+}

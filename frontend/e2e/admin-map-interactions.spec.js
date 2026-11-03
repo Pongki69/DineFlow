@@ -146,6 +146,10 @@ test("searchable fleet list focuses latest GPS, follows updates and navigates ba
   ).toBeChecked();
   const map = page.locator(".leaflet-container");
   await expect(map.locator(".admin-rider-focus-ring")).toHaveCount(1);
+  await expect(
+    map.getByRole("button", { name: "Jamie Demo", exact: true }),
+  ).toBeVisible();
+  await map.screenshot({ path: info.outputPath("rider-direction-bubble.png") });
   await roster
     .getByRole("searchbox", { name: "Search map riders" })
     .fill("Jamie");
@@ -164,9 +168,26 @@ test("searchable fleet list focuses latest GPS, follows updates and navigates ba
   const before = reads;
   const marker = map.locator('[title="Alfonso Demo"]');
   const oldPosition = await marker.getAttribute("style");
+  await roster
+    .getByRole("checkbox", { name: "Follow Alfonso Demo", exact: true })
+    .uncheck();
+  const viewport = await map.locator(".leaflet-map-pane").getAttribute("style");
+  const scroll = await page.evaluate(() => window.scrollY);
   remote.latitude += 0.01;
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent("workspace:changed", {
+        detail: { topics: ["locations"] },
+      }),
+    ),
+  );
   await expect.poll(() => reads, { timeout: 10000 }).toBeGreaterThan(before);
   await expect(marker).not.toHaveAttribute("style", oldPosition);
+  await expect(map.locator(".leaflet-map-pane")).toHaveAttribute(
+    "style",
+    viewport,
+  );
+  expect(await page.evaluate(() => window.scrollY)).toBe(scroll);
   await map.scrollIntoViewIfNeeded();
   const bounds = await map.boundingBox();
   await page.mouse.move(bounds.x + 90, bounds.y + 190);

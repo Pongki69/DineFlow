@@ -1,0 +1,276 @@
+.audit-workspace > p,
+.my-reservations-workspace > p {
+  color: var(--muted);
+  margin: 8px 0 22px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.dineflow-app .reservation-calendar > p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.audit-panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  margin-top: 22px;
+}
+.audit-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.audit-workspace .audit-panel-heading h2 {
+  margin: 0 0 5px;
+  font-size: 15px;
+}
+.audit-workspace .audit-panel-heading p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.audit-list article {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.audit-list article:last-child {
+  border-bottom: 0;
+}
+.audit-list article:hover {
+  background: var(--neutral-soft);
+}
+.audit-event-icon {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  width: 36px;
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--primary-soft);
+}
+.audit-list strong {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.audit-list small {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.audit-subject {
+  max-width: 200px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.my-reservation-list {
+  display: grid;
+  gap: 14px;
+}
+.my-reservation-list article {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.my-reservation-date {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 8px;
+  border-radius: 9px;
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+.my-reservation-date strong {
+  font-size: 15px;
+}
+.my-reservation-date span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.my-reservation-list article > div:nth-child(2) > strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.my-reservation-list small {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.my-reservation-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  max-width: 310px;
+}
+.reservation-list-status {
+  display: inline-block;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  text-transform: capitalize;
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+.reservation-list-status.status-cancelled {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.my-reservations-workspace .my-reservation-actions button {
+  padding: 9px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--control-border);
+  border-radius: 7px;
+  font-size: 12px;
+}
+.my-reservation-actions button:hover {
+  background: var(--primary-soft);
+}
+.dineflow-app .reservation-calendar .calendar-controls {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  margin: 24px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.dineflow-app .reservation-calendar .calendar-controls button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+}
+.reservation-calendar .calendar-controls > strong {
+  font-size: 13px;
+  color: var(--ink);
+}
+.reservation-calendar .calendar-controls > select {
+  max-width: 160px;
+  min-height: 44px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.reservation-calendar .calendar-controls .date-picker {
+  min-width: 160px;
+}
+.reservation-calendar-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.reservation-calendar-summary > span:last-child {
+  margin-left: auto;
+}
+.dineflow-app .reservation-calendar .calendar-day {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  margin-bottom: 18px;
+}
+.reservation-calendar .calendar-day h2 {
+  padding: 16px 20px;
+  margin: 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+.reservation-calendar .calendar-day h2 small {
+  margin-left: 12px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.reservation-calendar .calendar-booking {
+  padding: 18px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+}
+.reservation-calendar .calendar-booking:last-child {
+  border-bottom: 0;
+}
+.dineflow-app .reservation-calendar .calendar-booking-actions button {
+  color: var(--df-color-on-brand);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.dineflow-app .reservation-calendar .calendar-booking-actions button.secondary {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--control-border);
+}
+@media (max-width: 650px) {
+  .audit-list article {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 10px;
+    padding: 15px;
+  }
+  .audit-subject {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .my-reservation-list article {
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 15px;
+    padding: 16px;
+  }
+  .my-reservation-actions {
+    grid-column: 1/-1;
+    justify-content: flex-start;
+    max-width: none;
+  }
+  .reservation-calendar .calendar-controls > strong {
+    order: -1;
+    width: 100%;
+  }
+  .reservation-calendar-summary > span:last-child {
+    margin-left: 0;
+    width: 100%;
+  }
+}

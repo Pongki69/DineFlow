@@ -774,8 +774,7 @@ a {
   padding: 12px 18px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 25;
 }
 .topbar-location,
@@ -1615,13 +1614,20 @@ a {
   outline-offset: 2px;
 }
 .app-content
-  button:not(.editor-object):not(.table-choice):not(.icon-button):not(
-    .text-button
-  ):not(.notification-item):not(.quantity-control button):not(
-    :where(.rider-order-item-trigger, .rider-note-open)
+  button:where(
+    :not(
+      .editor-object,
+      .table-choice,
+      .icon-button,
+      .text-button,
+      .notification-item,
+      .quantity-control button,
+      .rider-order-item-trigger,
+      .rider-note-open
+    )
   ) {
   min-height: 44px;
-  font-size: var(--rider-meta-size, 12px);
+  font-size: var(--ui-button-text, var(--text-sm));
   font-weight: 600;
   border-radius: 9px;
 }
@@ -2937,4 +2943,24 @@ textarea::placeholder {
   color: var(--warning);
   background: var(--warning-soft);
   border-color: #e5d4ad;
+}
+
+/* Cart, dine in with no booking: a way to book, on the right. */
+.dine-in-book-prompt {
+  display: grid;
+  gap: 8px;
+}
+.dineflow-app .dine-in-book-link {
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
 }

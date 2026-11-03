@@ -1,0 +1,270 @@
+/* ---- Menu management on a phone ------------------------------------------
+   Categories as a sideways chip row that filters, slim dish rows, and the
+   less common actions behind a "more" button, all on the right. */
+.catalog-phone-chips {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dineflow-app .catalog-phone-chips button {
+  flex: none;
+  width: auto;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.dineflow-app .catalog-phone-chips button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.dineflow-app .catalog-phone-chips button[data-inactive] {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.catalog-result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dineflow-app .catalog-phone-edit-category {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 850px) {
+  .dineflow-app .catalog-admin .catalog-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dineflow-app .catalog-admin .catalog-filter-bar .search-field {
+    flex: 1 1 100%;
+  }
+  .dineflow-app .catalog-admin .catalog-filter-bar .catalog-filter-field:not([hidden]) {
+    flex: 1 1 100%;
+  }
+
+  /* One card, slim rows. */
+  .dineflow-app .catalog-admin .catalog-list[data-phone] {
+    display: grid;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .dineflow-app .catalog-admin .catalog-list[data-phone] > .catalog-phone-dish {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+  .catalog-phone-dish + .catalog-phone-dish {
+    border-top: 1px solid var(--border) !important;
+  }
+  .catalog-phone-dish[data-open] {
+    background: color-mix(in srgb, var(--primary-soft) 45%, transparent) !important;
+  }
+  .catalog-phone-dish-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+  .dineflow-app .catalog-admin .catalog-phone-dish .catalog-dish-icon {
+    display: grid;
+    flex: none;
+    width: 52px;
+    height: 52px;
+    min-height: 0;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .catalog-phone-dish .catalog-dish-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .catalog-phone-dish-info {
+    display: grid;
+    flex: 1;
+    justify-items: start;
+    gap: 2px;
+    min-width: 0;
+  }
+  .dineflow-app #main-content .catalog-phone-dish-info h2 {
+    overflow: hidden;
+    max-width: 100%;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .catalog-phone-dish-info small {
+    overflow: hidden;
+    max-width: 100%;
+    color: var(--muted);
+    font-size: 12.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .catalog-phone-dish-info .status-badge {
+    margin-top: 2px;
+    padding: 1px 8px;
+    font-size: 11px;
+  }
+  .catalog-phone-dish-buttons {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .dineflow-app .catalog-phone-dish-buttons button,
+  .dineflow-app .catalog-phone-dish-more button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: auto;
+    min-width: 0;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .dineflow-app .catalog-phone-dish-buttons .catalog-phone-more {
+    width: 36px;
+    padding: 0;
+    color: var(--muted);
+  }
+  .dineflow-app .catalog-phone-dish-buttons .catalog-phone-more[aria-expanded="true"] {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .catalog-phone-dish-more {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 0 12px 12px;
+  }
+  .dineflow-app .catalog-phone-dish-more .catalog-phone-delete {
+    border-color: #e3b4aa;
+    color: #a33a2c;
+  }
+}
+
+@media (max-width: 850px) {
+  .catalog-phone-dish-info small b {
+    color: var(--ink);
+    font-weight: 750;
+  }
+  /* Sort as a compact pill; Clear filters beside it on the right. */
+  .dineflow-app .catalog-admin .catalog-filter-bar .catalog-filter-field:not([hidden]) {
+    flex: 1 1 auto;
+    font-size: 0;
+  }
+  .dineflow-app .catalog-admin .catalog-filter-bar .catalog-filter-field select {
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+    padding-block: 0;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background-color: var(--surface);
+    font-size: 14px;
+  }
+  .dineflow-app .catalog-admin .catalog-filter-bar > .ui-button {
+    flex: none;
+    width: auto;
+    min-height: 40px;
+    margin-left: auto;
+    border-radius: 999px;
+  }
+}
+@media (max-width: 850px) {
+  /* Sort on the left, + Category and + Dish on the right, one row. */
+  .dineflow-app .catalog-admin .catalog-filter-bar {
+    align-items: center;
+  }
+  .catalog-phone-add {
+    display: flex;
+    flex: none;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .dineflow-app .catalog-phone-add button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: auto;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+  .dineflow-app .catalog-phone-add .catalog-phone-add-dish {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app .catalog-phone-add button:disabled {
+    opacity: 0.5;
+  }
+  .dineflow-app .catalog-admin .catalog-filter-bar .catalog-filter-field:not([hidden]) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .catalog-phone-result-actions {
+    display: flex;
+    flex: none;
+    gap: 6px;
+  }
+  .dineflow-app .catalog-admin .workspace-pagination {
+    margin-top: 12px;
+  }
+}

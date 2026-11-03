@@ -23,38 +23,57 @@ class CustomerAccountDeletion
             if (! Hash::check($password, $user->password)) {
                 throw ValidationException::withMessages(['current_password' => 'Your current password is incorrect.']);
             }
-            $orders = Order::where('customer_id', $user->id);
-            $reservations = Reservation::where('customer_id', $user->id);
-            if ((clone $orders)->whereNotIn('status', ['completed', 'cancelled'])->exists()
-                || (clone $reservations)->whereNotIn('status', ['completed', 'cancelled', 'no_show'])->exists()
-                || Delivery::whereIn('order_id', (clone $orders)->select('id'))->whereNotIn('status', Delivery::TERMINAL)->exists()) {
-                throw ValidationException::withMessages(['account' => 'Finish or cancel your active orders and reservations before deleting your account.']);
-            }
-            $payments = Payment::where(function ($query) use ($orders, $reservations): void {
-                $query->whereIn('order_id', (clone $orders)->select('id'))
-                    ->orWhereIn('reservation_id', (clone $reservations)->select('id'))
-                    ->orWhereIn('dining_session_id', (clone $orders)->whereNotNull('dining_session_id')->select('dining_session_id'))
-                    ->orWhereHas('allocations', fn ($query) => $query->whereIn('order_id', (clone $orders)->select('id')));
-            });
-            if ((clone $payments)->where('status', 'pending')->exists()
-                || (clone $payments)->whereHas('transactions', fn ($query) => $query->where('transaction_type', 'refund')->where('status', 'pending'))->exists()) {
-                throw ValidationException::withMessages(['account' => 'Wait for pending payments or refunds to finish before deleting your account.']);
-            }
-
-            // Preserve transaction amounts and operational history, removing contact snapshots.
-            $orders->update([
-                'customer_name_snapshot' => 'Deleted customer', 'customer_email_snapshot' => null,
-                'delivery_recipient_name' => null, 'delivery_phone' => null, 'delivery_address' => null,
-                'delivery_latitude' => null, 'delivery_longitude' => null, 'delivery_instructions' => null,
-                'customer_notes' => null,
-            ]);
-            $reservations->update(['guest_name' => 'Deleted customer', 'guest_email' => null, 'guest_phone' => null, 'notes' => null]);
-            $user->tokens()->delete();
-            $user->notifications()->delete();
-            DB::table('sessions')->where('user_id', $user->id)->delete();
-            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
-            app(AuditLogService::class)->record($user, 'account.deleted', $user, [], $request);
-            $user->delete();
+            $this->erase($user, $user, 'account.deleted', $request, 'your');
         });
+    }
+
+    /** An administrator deletes a customer's account, active or deactivated. */
+    public function deleteByAdministrator(User $administrator, User $customer, Request $request): void
+    {
+        DB::transaction(function () use ($administrator, $customer, $request): void {
+            $user = User::whereKey($customer->id)->lockForUpdate()->firstOrFail();
+            abort_unless($user->roles()->pluck('slug')->all() === ['customer'], 422, 'Only customer accounts can be deleted here.');
+            $this->erase($user, $administrator, 'customer.deleted', $request, 'this customer’s');
+        });
+    }
+
+    /**
+     * Removes the account while keeping amounts and history. Refuses while
+     * anything is still in progress. `$whose` words the refusal for the reader.
+     */
+    private function erase(User $user, User $actor, string $action, Request $request, string $whose): void
+    {
+        $orders = Order::where('customer_id', $user->id);
+        $reservations = Reservation::where('customer_id', $user->id);
+        if ((clone $orders)->whereNotIn('status', ['completed', 'cancelled'])->exists()
+            || (clone $reservations)->whereNotIn('status', ['completed', 'cancelled', 'no_show'])->exists()
+            || Delivery::whereIn('order_id', (clone $orders)->select('id'))->whereNotIn('status', Delivery::TERMINAL)->exists()) {
+            throw ValidationException::withMessages(['account' => 'Finish or cancel '.$whose.' active orders and reservations before deleting the account.']);
+        }
+        $payments = Payment::where(function ($query) use ($orders, $reservations): void {
+            $query->whereIn('order_id', (clone $orders)->select('id'))
+                ->orWhereIn('reservation_id', (clone $reservations)->select('id'))
+                ->orWhereIn('dining_session_id', (clone $orders)->whereNotNull('dining_session_id')->select('dining_session_id'))
+                ->orWhereHas('allocations', fn ($query) => $query->whereIn('order_id', (clone $orders)->select('id')));
+        });
+        if ((clone $payments)->where('status', 'pending')->exists()
+            || (clone $payments)->whereHas('transactions', fn ($query) => $query->where('transaction_type', 'refund')->where('status', 'pending'))->exists()) {
+            throw ValidationException::withMessages(['account' => 'Wait for '.$whose.' pending payments or refunds to finish before deleting the account.']);
+        }
+
+        // Preserve transaction amounts and operational history, removing contact snapshots.
+        $orders->update([
+            'customer_name_snapshot' => 'Deleted customer', 'customer_email_snapshot' => null,
+            'delivery_recipient_name' => null, 'delivery_phone' => null, 'delivery_address' => null,
+            'delivery_latitude' => null, 'delivery_longitude' => null, 'delivery_instructions' => null,
+            'customer_notes' => null,
+        ]);
+        $reservations->update(['guest_name' => 'Deleted customer', 'guest_email' => null, 'guest_phone' => null, 'notes' => null]);
+        $user->tokens()->delete();
+        $user->notifications()->delete();
+        DB::table('sessions')->where('user_id', $user->id)->delete();
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+        app(AuditLogService::class)->record($actor, $action, $user, [], $request);
+        $user->delete();
     }
 }

@@ -3,19 +3,27 @@ import { DishPortion } from "../components/DishPortion";
 import { loadMenuItems } from "../menuCatalog";
 import { readSavedCart, saveCart } from "../savedCart";
 import { DineInBooking } from "../components/DineInBooking";
+import { ItemOptionsSheet } from "../components/ItemOptionsSheet";
+import { CustomerScreenSkeleton } from "../components/CustomerScreenSkeleton";
+import { useMediaQuery } from "../components/useMediaQuery";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
+  ChevronLeft,
   Check,
   ChefHat,
+  Flame,
   Minus,
   Plus,
   Search,
   ShoppingBag,
   Trash2,
   UtensilsCrossed,
+  X,
 } from "lucide-react";
 import { api } from "../api";
+import { playSound } from "../uiSound";
+import { subscribeToLiveChanges } from "../liveUpdates";
 import { Link } from "react-router-dom";
 import {
   Button,
@@ -51,9 +59,33 @@ function linePrice(line) {
   );
 }
 
+function readOptions(form) {
+  const fields = new FormData(form);
+  return {
+    variant_id: fields.get("variant_id") || null,
+    addon_ids: fields.getAll("addon_ids").map(Number),
+    special_instructions: fields.get("special_instructions") || "",
+  };
+}
+
+/** Best sellers of the last 30 days: the top one, then the next four. */
+function PopularBadge({ rank }) {
+  if (!rank) return null;
+  const best = Number(rank) === 1;
+  return (
+    <span className="dish-popular" data-best={best || undefined}>
+      <Flame size={13} aria-hidden="true" />
+      {best ? "Best seller" : "Popular"}
+    </span>
+  );
+}
+
 function MenuCard({ item, onAdd, disabled = false }) {
   const [added, setAdded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const compact = useMediaQuery("(max-width: 767px)");
+  const hasOptions = item.variants?.length > 0 || item.addons?.length > 0;
   useEffect(() => {
     if (!added) return;
     const timer = setTimeout(() => setAdded(false), 1800);
@@ -81,6 +113,7 @@ function MenuCard({ item, onAdd, disabled = false }) {
         {Number(item.discount_percent) > 0 && (
           <span className="dish-offer">{item.discount_percent}% off</span>
         )}
+        <PopularBadge rank={item.popular_rank} />
       </div>
       <div className="dish-body">
         <div className="customer-dish-heading">
@@ -92,53 +125,26 @@ function MenuCard({ item, onAdd, disabled = false }) {
         <h2>{item.name}</h2>
         <DishPortion item={item} />
         {item.description && <p>{item.description}</p>}
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            onAdd(item, event);
-            setAdded(true);
-          }}
-        >
-          <fieldset className="customer-dish-form" disabled={disabled}>
-            <legend className="customer-sr-only">
-              Options for {item.name}
-            </legend>
-            {item.variants?.length > 0 && (
-              <Field label={`Size for ${item.name}`} name="variant_id" required>
-                <select>
-                  <option value="">Choose a size</option>
-                  {item.variants.map((variant) => (
-                    <option key={variant.id} value={variant.id}>
-                      {variant.name}
-                      {Number(variant.price_adjustment)
-                        ? ` (+${money(variant.price_adjustment)})`
-                        : ""}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            )}
-            <details className="customer-dish-options">
-              <summary>
-                Make it yours<span>Optional</span>
-              </summary>
-              <div>
-                {item.addons?.map((addon) => (
-                  <label className="checkline" key={addon.id}>
-                    <input type="checkbox" name="addon_ids" value={addon.id} />
-                    {addon.name}
-                    <span>+{money(addon.price)}</span>
-                  </label>
-                ))}
-                <Field
-                  label={`Special instructions for ${item.name}`}
-                  name="special_instructions"
-                  maxLength={500}
-                  placeholder="Any preferences?"
-                />
-              </div>
-            </details>
-            <Button type="submit" variant="primary">
+        {compact ? (
+          <div className="customer-dish-compact-actions">
+            <Button
+              disabled={disabled}
+              aria-haspopup={hasOptions ? "dialog" : undefined}
+              onClick={() => {
+                if (hasOptions) {
+                  setSheetOpen(true);
+                  return;
+                }
+                // No sizes or add-ons: add straight away, as the desktop
+                // form would with nothing selected.
+                onAdd(item, {
+                  variant_id: null,
+                  addon_ids: [],
+                  special_instructions: "",
+                });
+                setAdded(true);
+              }}
+            >
               {added ? (
                 <Check size={17} aria-hidden="true" />
               ) : (
@@ -146,10 +152,193 @@ function MenuCard({ item, onAdd, disabled = false }) {
               )}
               {added ? "Added to order" : "Add to order"}
             </Button>
-          </fieldset>
-        </form>
+            {/* Every dish can take a note; the sheet also holds any sizes
+                and add-ons, so all cards line up. */}
+            <button
+              type="button"
+              className="df-ghost"
+              disabled={disabled}
+              aria-haspopup="dialog"
+              onClick={() => setSheetOpen(true)}
+            >
+              Add a note
+            </button>
+            <ItemOptionsSheet
+              item={item}
+              open={sheetOpen}
+              onClose={() => setSheetOpen(false)}
+              onAdd={(dish, event) => {
+                onAdd(dish, readOptions(event.currentTarget));
+                setAdded(true);
+              }}
+            />
+          </div>
+        ) : (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              onAdd(item, readOptions(event.currentTarget));
+              event.currentTarget.reset();
+              setAdded(true);
+            }}
+          >
+            <fieldset className="customer-dish-form" disabled={disabled}>
+              <legend className="customer-sr-only">
+                Options for {item.name}
+              </legend>
+              {item.variants?.length > 0 && (
+                <Field
+                  label={`Size for ${item.name}`}
+                  name="variant_id"
+                  required
+                >
+                  <select>
+                    <option value="">Choose a size</option>
+                    {item.variants.map((variant) => (
+                      <option key={variant.id} value={variant.id}>
+                        {variant.name}
+                        {Number(variant.price_adjustment)
+                          ? ` (+${money(variant.price_adjustment)})`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+              <details className="customer-dish-options">
+                <summary>
+                  Make it yours<span>Optional</span>
+                </summary>
+                <div>
+                  {item.addons?.map((addon) => (
+                    <label className="checkline" key={addon.id}>
+                      <input
+                        type="checkbox"
+                        name="addon_ids"
+                        value={addon.id}
+                      />
+                      {addon.name}
+                      <span>+{money(addon.price)}</span>
+                    </label>
+                  ))}
+                  <Field
+                    label={`Special instructions for ${item.name}`}
+                    name="special_instructions"
+                    maxLength={500}
+                    placeholder="Any preferences?"
+                  />
+                </div>
+              </details>
+              <Button type="submit" variant="primary">
+                {added ? (
+                  <Check size={17} aria-hidden="true" />
+                ) : (
+                  <Plus size={17} aria-hidden="true" />
+                )}
+                {added ? "Added to order" : "Add to order"}
+              </Button>
+            </fieldset>
+          </form>
+        )}
       </div>
     </article>
+  );
+}
+
+// Phones: the cart is a round button you can drag anywhere; it snaps to the
+// nearest side. A tap (no drag) opens the order as a sheet.
+function CartBubble({ count, subtotal, onOpen }) {
+  const [place, setPlace] = useState({ side: "right", top: null });
+  const [drag, setDrag] = useState(null);
+  const press = useRef(null);
+  const dragged = useRef(false);
+  const SIZE = 64;
+  function bounds() {
+    const nav = document.querySelector(".workspace-mobile-nav");
+    const bottom = nav ? nav.getBoundingClientRect().top : window.innerHeight;
+    return { min: 72, max: bottom - SIZE - 12 };
+  }
+  return (
+    <button
+      type="button"
+      className="cart-bubble"
+      data-dragging={drag ? true : undefined}
+      aria-label={`Open your order: ${count} ${count === 1 ? "item" : "items"}, ${subtotal}`}
+      style={
+        drag
+          ? { left: drag.x, top: drag.y, right: "auto", bottom: "auto" }
+          : place.top == null
+            ? undefined
+            : {
+                top: place.top,
+                bottom: "auto",
+                ...(place.side === "left"
+                  ? { left: 16, right: "auto" }
+                  : { right: 16, left: "auto" }),
+              }
+      }
+      onPointerDown={(event) => {
+        const box = event.currentTarget.getBoundingClientRect();
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        press.current = {
+          x: event.clientX,
+          y: event.clientY,
+          dx: event.clientX - box.left,
+          dy: event.clientY - box.top,
+          moved: false,
+        };
+      }}
+      onPointerMove={(event) => {
+        const current = press.current;
+        if (!current) return;
+        if (
+          !current.moved &&
+          Math.hypot(event.clientX - current.x, event.clientY - current.y) < 6
+        )
+          return;
+        current.moved = true;
+        const { min, max } = bounds();
+        setDrag({
+          x: Math.min(
+            window.innerWidth - SIZE - 8,
+            Math.max(8, event.clientX - current.dx),
+          ),
+          y: Math.min(max, Math.max(min, event.clientY - current.dy)),
+        });
+      }}
+      onPointerUp={() => {
+        const current = press.current;
+        press.current = null;
+        dragged.current = Boolean(current?.moved);
+        if (!current?.moved) {
+          setDrag(null);
+          return;
+        }
+        if (drag)
+          setPlace({
+            side: drag.x + SIZE / 2 < window.innerWidth / 2 ? "left" : "right",
+            top: drag.y,
+          });
+        setDrag(null);
+      }}
+      onPointerCancel={() => {
+        press.current = null;
+        setDrag(null);
+      }}
+      onClick={() => {
+        // A drag ends with a click; only a tap opens the order.
+        if (dragged.current) {
+          dragged.current = false;
+          return;
+        }
+        onOpen();
+      }}
+    >
+      <ShoppingBag size={26} aria-hidden="true" />
+      <span className="cart-bubble-count" aria-hidden="true">
+        {count}
+      </span>
+    </button>
   );
 }
 
@@ -172,6 +361,81 @@ export function MenuBrowser({ user }) {
   const [placedDelivery, setPlacedDelivery] = useState(null);
   const [summaryVisible, setSummaryVisible] = useState(false);
   const summary = useRef(null);
+  // Phones show the order as a sheet opened from the cart bubble.
+  const phone = useMediaQuery("(max-width: 850px)");
+  const [cartOpen, setCartOpen] = useState(false);
+  // Phones: tapping a cart line shows that dish's picture and details.
+  const [detailKey, setDetailKey] = useState(null);
+  // Swipe the sheet down (from its handle and heading) to close it.
+  const [closing, setClosing] = useState(false);
+  const sheetDrag = useRef(null);
+  function closeSheet() {
+    if (closing) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setCartOpen(false);
+      return;
+    }
+    setClosing(true);
+    window.setTimeout(() => {
+      setCartOpen(false);
+      setClosing(false);
+      if (summary.current) summary.current.style.transform = "";
+    }, 220);
+  }
+  function startSheetDrag(event) {
+    if (!phone || !cartOpen || event.target.closest("button")) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    sheetDrag.current = {
+      y: event.clientY,
+      dy: 0,
+      lastDy: 0,
+      lastTime: performance.now(),
+      speed: 0,
+    };
+    if (summary.current) summary.current.style.transition = "none";
+  }
+  function moveSheetDrag(event) {
+    const drag = sheetDrag.current;
+    if (!drag) return;
+    drag.dy = Math.max(0, event.clientY - drag.y);
+    // Speed of the latest movement, so a quick flick closes the sheet.
+    const now = performance.now();
+    drag.speed = (drag.dy - drag.lastDy) / Math.max(1, now - drag.lastTime);
+    drag.lastDy = drag.dy;
+    drag.lastTime = now;
+    // One style write per frame, however many touch events arrive.
+    if (drag.frame) return;
+    drag.frame = window.requestAnimationFrame(() => {
+      drag.frame = 0;
+      if (summary.current)
+        summary.current.style.transform = `translate3d(0, ${drag.dy}px, 0)`;
+    });
+  }
+  function endSheetDrag() {
+    const drag = sheetDrag.current;
+    sheetDrag.current = null;
+    if (drag?.frame) window.cancelAnimationFrame(drag.frame);
+    if (!drag || !summary.current) return;
+    summary.current.style.transition = "";
+    if (drag.dy > 110 || (drag.dy > 30 && drag.speed > 0.5)) closeSheet();
+    else summary.current.style.transform = "";
+  }
+  useEffect(
+    () =>
+      subscribeToLiveChanges(async () => {
+        const [groups, result] = await Promise.all([
+          api("/menu/categories"),
+          loadMenuItems({
+            available_only: "1",
+            ...(category ? { category } : {}),
+            ...(query ? { q: query } : {}),
+          }),
+        ]);
+        setCategories(groups.data || []);
+        setItems(result.data || []);
+      }, ["menu"]),
+    [category, query],
+  );
   useEffect(() => {
     if (!summary.current || typeof IntersectionObserver !== "function") return;
     const observer = new IntersectionObserver(
@@ -221,11 +485,8 @@ export function MenuBrowser({ user }) {
   useEffect(() => {
     setDelivery((current) => ({ ...current, quote: null }));
   }, [cart]);
-  function add(item, event) {
-    const fields = new FormData(event.currentTarget),
-      variant_id = fields.get("variant_id") || null,
-      addon_ids = fields.getAll("addon_ids").map(Number),
-      special_instructions = fields.get("special_instructions") || "";
+  function add(item, { variant_id, addon_ids, special_instructions }) {
+    playSound("add");
     const key = `${item.id}-${variant_id}-${addon_ids.join(",")}-${special_instructions}`;
     setCart((current) =>
       current.some((line) => line.key === key)
@@ -245,9 +506,9 @@ export function MenuBrowser({ user }) {
             },
           ],
     );
-    event.currentTarget.reset();
   }
   function quantity(key, amount) {
+    playSound(amount > 0 ? "tap" : "remove");
     setCart((current) =>
       current
         .map((line) =>
@@ -295,6 +556,7 @@ export function MenuBrowser({ user }) {
         `Order ${result.data.order_number} placed · ${money(result.data.total)}`,
       );
       setPlacedDelivery(result.data.delivery?.id || null);
+      playSound("success");
       setCart([]);
       setDelivery({});
       form.reset();
@@ -309,7 +571,35 @@ export function MenuBrowser({ user }) {
     0,
   );
   const count = cart.reduce((total, line) => total + line.quantity, 0);
+  useEffect(() => {
+    if (!cartOpen) return undefined;
+    const close = (event) => {
+      if (event.key === "Escape") closeSheet();
+    };
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", close);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", close);
+    };
+  }, [cartOpen]);
+  useEffect(() => {
+    if (!cart.length || !phone) setCartOpen(false);
+  }, [cart.length, phone]);
+  useEffect(() => {
+    if (!cartOpen) setDetailKey(null);
+  }, [cartOpen]);
+  const detailLine = cart.find((line) => line.key === detailKey) || null;
   function showOrder() {
+    playSound("open");
+    if (phone) {
+      setCartOpen(true);
+      window.requestAnimationFrame(() =>
+        summary.current?.focus({ preventScroll: true }),
+      );
+      return;
+    }
     summary.current?.scrollIntoView({
       behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
         ? "auto"
@@ -398,7 +688,7 @@ export function MenuBrowser({ user }) {
             </Feedback>
           )}
           {loading ? (
-            <Skeleton label="Loading menu" />
+            <CustomerScreenSkeleton variant="dishes" label="Loading menu" />
           ) : menuError && !items.length ? null : items.length ? (
             <>
               <div className="dish-grid">
@@ -450,19 +740,152 @@ export function MenuBrowser({ user }) {
           )}
         </div>
         <aside
-          className={`order-summary${cart.length ? " has-items" : ""}`}
+          className={`order-summary${cart.length ? " has-items" : ""}${phone ? " is-sheet" : ""}${cartOpen ? " is-open" : ""}${closing ? " is-closing" : ""}`}
           ref={summary}
           tabIndex={-1}
           aria-label="Your order"
         >
-          <div className="summary-heading">
+          <div
+            className="summary-heading"
+            onPointerDown={startSheetDrag}
+            onPointerMove={moveSheetDrag}
+            onPointerUp={endSheetDrag}
+            onPointerCancel={endSheetDrag}
+          >
             <ShoppingBag size={20} aria-hidden="true" />
             <div>
               <h2>Your order</h2>
               <p>A little something for you.</p>
             </div>
             <span className="count-pill">{count}</span>
+            {phone && (
+              <button
+                type="button"
+                className="summary-close"
+                aria-label="Close your order"
+                onClick={closeSheet}
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            )}
           </div>
+          {phone && detailLine && (
+            <section
+              className="cart-item-detail"
+              aria-label={`${detailLine.item.name} details`}
+            >
+              <header className="cart-item-detail-bar">
+                <button
+                  type="button"
+                  aria-label="Back to order"
+                  onClick={() => setDetailKey(null)}
+                >
+                  <ChevronLeft size={22} aria-hidden="true" />
+                </button>
+                <strong>Dish details</strong>
+                <span aria-hidden="true" />
+              </header>
+              <div className="cart-item-detail-scroll">
+                <div
+                  className={`cart-item-detail-image${detailLine.item.image_url ? "" : " is-illustrated"}`}
+                >
+                  {detailLine.item.image_url ? (
+                    <img
+                      src={detailLine.item.image_url}
+                      alt=""
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <UtensilsCrossed
+                      size={52}
+                      strokeWidth={1.2}
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+                <div className="cart-item-detail-body">
+                  <span className="eyebrow">
+                    {detailLine.item.category?.name || "From our kitchen"}
+                  </span>
+                  <h3>{detailLine.item.name}</h3>
+                  <p className="cart-item-detail-price">
+                    {money(linePrice(detailLine))} each
+                  </p>
+                  {detailLine.item.description && (
+                    <p className="cart-item-detail-description">
+                      {detailLine.item.description}
+                    </p>
+                  )}
+                  {(detailLine.variant_id ||
+                    detailLine.addon_ids.length > 0) && (
+                    <div className="cart-item-detail-choices">
+                      <span>Your choices</span>
+                      <ul>
+                        {detailLine.variant_id && (
+                          <li>
+                            {
+                              detailLine.item.variants?.find(
+                                (variant) =>
+                                  variant.id === Number(detailLine.variant_id),
+                              )?.name
+                            }
+                          </li>
+                        )}
+                        {detailLine.addon_ids
+                          .map(
+                            (id) =>
+                              detailLine.item.addons?.find(
+                                (addon) => addon.id === id,
+                              )?.name,
+                          )
+                          .filter(Boolean)
+                          .map((name) => (
+                            <li key={name}>+ {name}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+                  {detailLine.special_instructions && (
+                    <blockquote className="cart-item-detail-note">
+                      <span>Your note</span>
+                      {detailLine.special_instructions}
+                    </blockquote>
+                  )}
+                </div>
+              </div>
+              <div className="cart-item-detail-actions">
+                <div className="quantity-control">
+                  <button
+                    type="button"
+                    aria-label={`Decrease ${detailLine.item.name} quantity`}
+                    disabled={busy}
+                    onClick={() => quantity(detailLine.key, -1)}
+                  >
+                    <Minus size={14} aria-hidden="true" />
+                  </button>
+                  <span aria-label={`Quantity: ${detailLine.quantity}`}>
+                    {detailLine.quantity}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Increase ${detailLine.item.name} quantity`}
+                    disabled={busy || detailLine.quantity >= 99}
+                    onClick={() => quantity(detailLine.key, 1)}
+                  >
+                    <Plus size={14} aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="cart-item-detail-total">
+                  <small>Total</small>
+                  <strong>
+                    {money(linePrice(detailLine) * detailLine.quantity)}
+                  </strong>
+                </div>
+                <Button onClick={() => setDetailKey(null)}>Done</Button>
+              </div>
+            </section>
+          )}
           {!cart.length ? (
             <EmptyState
               compact
@@ -480,7 +903,30 @@ export function MenuBrowser({ user }) {
                 <div className="summary-lines">
                   {cart.map((line) => (
                     <div className="summary-line" key={line.key}>
-                      <div>
+                      <div
+                        className={phone ? "summary-line-info" : undefined}
+                        role={phone ? "button" : undefined}
+                        tabIndex={phone ? 0 : undefined}
+                        aria-label={
+                          phone ? `View ${line.item.name} details` : undefined
+                        }
+                        onClick={
+                          phone ? () => setDetailKey(line.key) : undefined
+                        }
+                        onKeyDown={
+                          phone
+                            ? (event) => {
+                                if (
+                                  event.key === "Enter" ||
+                                  event.key === " "
+                                ) {
+                                  event.preventDefault();
+                                  setDetailKey(line.key);
+                                }
+                              }
+                            : undefined
+                        }
+                      >
                         <strong>{line.item.name}</strong>
                         {line.variant_id && (
                           <small>
@@ -539,11 +985,12 @@ export function MenuBrowser({ user }) {
                           type="button"
                           aria-label={`Remove ${line.item.name}`}
                           disabled={busy}
-                          onClick={() =>
+                          onClick={() => {
+                            playSound("remove");
                             setCart((current) =>
                               current.filter((row) => row.key !== line.key),
-                            )
-                          }
+                            );
+                          }}
                         >
                           <Trash2 size={14} aria-hidden="true" />
                         </button>
@@ -552,6 +999,25 @@ export function MenuBrowser({ user }) {
                   ))}
                 </div>
                 <div className="summary-form">
+                  {/* Phones: one-tap order type. The select below stays the
+                      real, labelled control (visually hidden on phones). */}
+                  <div className="order-type-toggle" aria-hidden="true">
+                    {[
+                      ["pickup", "Pickup"],
+                      ["delivery", "Delivery"],
+                      ["dine_in", "Dine in"],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        tabIndex={-1}
+                        data-on={orderType === value || undefined}
+                        onClick={() => setOrderType(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                   <Field
                     label="Order type"
                     name="order_type"
@@ -588,7 +1054,7 @@ export function MenuBrowser({ user }) {
                     name="customer_notes"
                     maxLength={2000}
                   >
-                    <AutoTextarea rows={2} />
+                    <AutoTextarea rows={phone ? 1 : 2} />
                   </Field>
                 </div>
               </div>
@@ -598,8 +1064,9 @@ export function MenuBrowser({ user }) {
                   <strong>{money(subtotal)}</strong>
                 </div>
                 <p className="summary-hint">
-                  Discounts, taxes and any delivery fees are included in your
-                  final order total.
+                  {phone
+                    ? "Taxes and fees apply at checkout"
+                    : "Discounts, taxes and any delivery fees are included in your final order total."}
                 </p>
                 {error && <Feedback>{error}</Feedback>}
                 <Button
@@ -623,7 +1090,21 @@ export function MenuBrowser({ user }) {
           )}
         </aside>
       </div>
-      {count > 0 && !summaryVisible && (
+      {phone && cartOpen && (
+        <div
+          className={`cart-sheet-scrim${closing ? " is-closing" : ""}`}
+          aria-hidden="true"
+          onClick={closeSheet}
+        />
+      )}
+      {phone && count > 0 && !cartOpen && (
+        <CartBubble
+          count={count}
+          subtotal={money(subtotal)}
+          onOpen={showOrder}
+        />
+      )}
+      {!phone && count > 0 && !summaryVisible && (
         <div className="customer-cart-shortcut">
           <div>
             <ShoppingBag size={19} aria-hidden="true" />

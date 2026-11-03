@@ -32,7 +32,15 @@ import { api } from "../api";
 import { visibleNavigation, navigationContext } from "../navigation";
 import { adminModuleForPath, adminNavigation } from "./adminNavigation";
 import { Notifications } from "./Notifications";
+import { useMediaQuery } from "./useMediaQuery";
+import { RiderPullToRefresh } from "./RiderMobileChrome";
+import "./adminMobile.css";
 import { useWorkspaceTheme } from "./useWorkspaceTheme";
+import {
+  MobileWorkspaceChrome,
+  MobileWorkspaceTitle,
+} from "./MobileWorkspaceChrome";
+import { mobileWorkspaceTitle } from "./mobileWorkspaceNavigation";
 import "../features/adminWorkspace.css";
 import "./adminNavigation.css";
 
@@ -73,6 +81,9 @@ const searchable = (value) =>
 
 export function AdminShell({ user, onSignOut, children }) {
   const [collapsed, setCollapsed] = useState(false);
+  // Phones get the app layout the rider workspace uses: alerts in the bottom
+  // bar, pull to refresh, and a centred title in a slim top bar.
+  const compactScreen = useMediaQuery("(max-width: 850px)");
   const { theme, setTheme } = useWorkspaceTheme();
   const [branding, setBranding] = useState("DineFlow");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -118,6 +129,8 @@ export function AdminShell({ user, onSignOut, children }) {
   }, []);
   useEffect(() => {
     document.title = `${current} · ${branding}`;
+  }, [current, branding]);
+  useEffect(() => {
     main.current?.scrollTo(0, 0);
     window.scrollTo(0, 0);
     const focusTitle = () => {
@@ -135,7 +148,7 @@ export function AdminShell({ user, onSignOut, children }) {
     if (!focusTitle() && main.current)
       observer.observe(main.current, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [location.pathname, current, branding]);
+  }, [location.pathname]);
   function closeMobile() {
     mobile.current?.close();
     setMobileOpen(false);
@@ -291,6 +304,10 @@ export function AdminShell({ user, onSignOut, children }) {
       <div className="admin-body">
         <header className="admin-topbar">
           <div className="admin-topbar-left">
+            <MobileWorkspaceTitle
+              title={mobileWorkspaceTitle(location.pathname, current)}
+              parent={breadcrumbParent}
+            />
             <button
               className="admin-icon-button admin-desktop-toggle"
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -340,9 +357,12 @@ export function AdminShell({ user, onSignOut, children }) {
             >
               {theme === "light" ? <Moon size={19} /> : <Sun size={19} />}
             </button>
-            <Notifications
-              showBadge={user.preferences?.show_notification_badge !== false}
-            />
+            {!compactScreen && (
+              <Notifications
+                user={user}
+                showBadge={user.preferences?.show_notification_badge !== false}
+              />
+            )}
             <button
               className="admin-avatar admin-avatar-button"
               ref={profileButton}
@@ -500,6 +520,23 @@ export function AdminShell({ user, onSignOut, children }) {
           <LogOut size={17} /> Sign out
         </button>
       </dialog>
+      <MobileWorkspaceChrome
+        user={user}
+        pathname={location.pathname}
+        theme={theme}
+        toggleTheme={() => setTheme(theme === "light" ? "dark" : "light")}
+        onSignOut={onSignOut}
+        extraTab={
+          compactScreen ? (
+            <Notifications
+              user={user}
+              variant="tab"
+              showBadge={user.preferences?.show_notification_badge !== false}
+            />
+          ) : null
+        }
+      />
+      {compactScreen && <RiderPullToRefresh />}
     </div>
   );
 }

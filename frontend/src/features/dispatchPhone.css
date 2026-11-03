@@ -1,0 +1,295 @@
+/* ---- Deliveries (dispatch) on a phone --------------------------------------
+   Queue counts as a chip row, a plain search pill, and delivery cards with
+   the actions on the right. */
+@media (max-width: 850px) {
+  /* Queue chips: one sideways row; Needs attention turns red when not empty. */
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    min-width: 0;
+    min-height: 40px;
+    margin: 0;
+    padding: 0 8px 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: none;
+    color: var(--ink);
+    font-size: 13.5px;
+    font-weight: 650;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-queue-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-queue-label svg {
+    width: 16px;
+    height: 16px;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button > strong {
+    display: grid;
+    min-width: 24px;
+    height: 24px;
+    place-items: center;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--neutral-soft, #eef1ec);
+    font-size: 12.5px;
+    line-height: 1;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button[aria-pressed="true"] > strong {
+    background: rgb(255 255 255 / 22%);
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button[data-alert] > strong {
+    background: #c2412c;
+    color: #fff;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button[data-alert]:not([aria-pressed="true"]) {
+    border-color: #e3b4aa;
+    color: #a33a2c;
+  }
+
+  /* Search: a plain pill, the count and freshness as one small line. */
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-toolbar {
+    display: grid;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-search {
+    display: block;
+    font-size: 0;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-search-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--muted);
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-search-input:focus-within {
+    border-color: var(--primary);
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-search-input input {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ink);
+    font-size: 16px;
+    outline: none;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-toolbar .rider-data-freshness {
+    margin: 0 4px;
+    font-size: 12.5px;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-results-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 4px 2px 8px;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-results-heading h2 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-results-heading span {
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+
+  /* Delivery cards. */
+  .dineflow-app #main-content .dispatch-dashboard .rider-delivery-card {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 16px;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .rider-delivery-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .rider-delivery-head > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .rider-delivery-head strong {
+    font-size: 16px;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .rider-delivery-head > span {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .delivery-state {
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .delivery-state:is(.state-failed, .state-cancelled) {
+    background: #fbe3df;
+    color: #9b2c22;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .delivery-state.state-pending_assignment {
+    background: #fbefcf;
+    color: #6f4f0b;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-card-address {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-card-address svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--primary);
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-card-summary {
+    margin: 0;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* Notes read as notes; their button sits on the right. */
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-recovery {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: #fbefcf;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-recovery > p {
+    flex: 1 1 100%;
+    margin: 0;
+    color: #6f4f0b;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-recovery > button {
+    width: auto;
+    min-height: 38px;
+    border-radius: 999px;
+  }
+
+  /* Assign: rider picker, then the button on the right. */
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-assign {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-assign select {
+    flex: 1 1 100%;
+    height: 42px;
+    min-height: 42px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-assign > button {
+    width: auto;
+    min-height: 40px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+    font-weight: 700;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-assign > button:disabled {
+    opacity: 0.5;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-secondary-details > summary {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 650;
+  }
+}
+@media (max-width: 850px) {
+  /* Stronger than the older queue-card styles: one row, count beside label. */
+  .dineflow-app #main-content .dispatch-dashboard nav.dispatch-queues {
+    display: flex;
+    flex-flow: row nowrap;
+    grid-template-columns: none;
+  }
+  .dineflow-app #main-content .dispatch-dashboard nav.dispatch-queues > .ui-button {
+    display: inline-flex;
+    flex: none;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    height: 40px;
+    min-height: 40px;
+    white-space: nowrap;
+  }
+  .dineflow-app #main-content .dispatch-dashboard nav.dispatch-queues > .ui-button > strong {
+    margin: 0;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-search,
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-search-input {
+    width: 100%;
+    max-width: none;
+  }
+  .dineflow-app #main-content .dispatch-dashboard .dispatch-assign.dispatch-primary-panel {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+}

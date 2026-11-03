@@ -7,21 +7,25 @@ import {
   Polyline,
   Circle,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
   ArrowDown,
   ArrowUp,
-  LocateFixed,
   Route,
   Maximize2,
   Minimize2,
   Store,
   CornerDownLeft,
+  Package,
+  ListOrdered,
+  Scan,
 } from "lucide-react";
 import { api } from "../api";
 import { Button } from "./ui";
+import { deliveryStatusLabel } from "./OrderStatusPill";
 import { subscribeRiderLocation } from "./riderLocationSession";
 import {
   stopArrivalText,
@@ -41,8 +45,17 @@ import {
   orderedRouteDeliveries,
 } from "./riderRoutePlanning";
 import "./riderRoutePlanner.css";
+import {
+  INSECURE_LOCATION_MESSAGE,
+  locationDeniedMessage,
+  locationNeedsSecureContext,
+} from "./locationAccess";
 
 const STREET_MAX_ZOOM = 19;
+// With only the store to show, the neighbourhood around it is more useful
+// than the building itself.
+const SINGLE_POINT_ZOOM = 16;
+const ROUTE_LOCATION_ACCURACY_METERS = 1000;
 
 function RouteViewport({
   stops,
@@ -54,26 +67,63 @@ function RouteViewport({
   focusTarget,
   customerMarkers,
   expanded,
+  onUserMove,
 }) {
   const map = useMap();
   const lastSelectedFit = useRef(0);
   const stopKey = JSON.stringify(stops.map((s) => [s.latitude, s.longitude]));
+  // Which stops are on the map, not where: live route refreshes resend
+  // coordinates, and refitting on each one made the map jump.
+  const stopIdentity = stops
+    .map((s) => `${s.kind || ""}:${s.delivery_id ?? ""}`)
+    .join("|");
+  const userMoved = useRef(false);
+  const lastFit = useRef(null);
+  useMapEvents({
+    dragstart() {
+      userMoved.current = true;
+      onUserMove?.();
+    },
+  });
   useEffect(() => {
-    map.invalidateSize();
-    const points = JSON.parse(stopKey);
-    if (position && Number(position.accuracy || 0) <= 1000)
-      points.push([position.latitude, position.longitude]);
-    if (points.length)
+    const explicit =
+      !lastFit.current ||
+      lastFit.current.fitVersion !== fitVersion ||
+      lastFit.current.expanded !== expanded;
+    // Once the rider has moved the map, only an explicit fit moves it back.
+    if (!explicit && userMoved.current) return;
+    if (explicit) userMoved.current = false;
+    lastFit.current = { fitVersion, expanded };
+    // Fit after the fullscreen layout settles so the bounds use its real size.
+    const frame = window.requestAnimationFrame(() => {
+      map.invalidateSize();
+      const points = JSON.parse(stopKey);
+      if (
+        position &&
+        Number(position.accuracy || 0) <= ROUTE_LOCATION_ACCURACY_METERS
+      )
+        points.push([position.latitude, position.longitude]);
+      if (!points.length) return;
+      // Store and return stop share a spot when nothing is assigned: show
+      // the streets around it, not one building.
+      const bounds = L.latLngBounds(points);
+      const onOneSpot =
+        bounds.getNorthEast().distanceTo(bounds.getSouthWest()) < 150;
+      // Wide fullscreen floats the panel over the map's right side; phones
+      // stack map above panel, so only the dock covers the map's bottom.
+      const wide = map.getContainer().clientWidth >= 700;
       map.fitBounds(points, {
-        paddingTopLeft: [40, expanded ? 100 : 64],
+        paddingTopLeft: [40, expanded ? (wide ? 100 : 32) : 64],
         paddingBottomRight: [
-          expanded && map.getContainer().clientWidth >= 700 ? 390 : 40,
-          expanded ? 100 : 40,
+          expanded && wide ? 390 : 40,
+          expanded ? (wide ? 100 : 88) : 40,
         ],
-        maxZoom: STREET_MAX_ZOOM,
+        maxZoom: onOneSpot ? SINGLE_POINT_ZOOM : STREET_MAX_ZOOM,
       });
+    });
+    return () => window.cancelAnimationFrame(frame);
     // Live updates move only the marker unless Follow me is selected.
-  }, [map, stopKey, fitVersion, expanded]);
+  }, [map, stopIdentity, fitVersion, expanded]);
   useEffect(() => {
     if (fitRouteVersion <= lastSelectedFit.current) return;
     lastSelectedFit.current = fitRouteVersion;
@@ -86,15 +136,25 @@ function RouteViewport({
     }
   }, [map, fitRouteVersion, fitRoutePoints]);
   useEffect(() => {
-    if (follow && position && Number(position.accuracy || 0) <= 1000)
-      map.panTo([position.latitude, position.longitude]);
+    if (
+      follow &&
+      position &&
+      Number(position.accuracy || 0) <= ROUTE_LOCATION_ACCURACY_METERS
+    )
+      // Only move when the rider nears the edge, not on every GPS update.
+      map.panInside([position.latitude, position.longitude], {
+        padding: [64, 64],
+      });
   }, [map, position, follow]);
   useEffect(() => {
     if (!focusTarget) return;
+    const reduceMotion = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     map.setView(
       [focusTarget.latitude, focusTarget.longitude],
       Math.max(map.getZoom(), STREET_MAX_ZOOM),
-      { animate: false },
+      { animate: !reduceMotion, duration: 0.45 },
     );
     customerMarkers.current.get(focusTarget.id)?.openPopup();
     if (focusTarget.scroll) {
@@ -189,9 +249,19 @@ export function RiderRoutePlanner({
   selectedDeliveryId,
   openSelectedRequest = 0,
   selectedDeliveryPanel,
+  fullscreenStops,
+  mobileView = "map",
+  onMobileViewChange,
+  // Offline with nothing assigned, there is no next stop to point to.
+  online = true,
 }) {
   const [localOrder, setLocalOrder] = useState([]);
-  const [showSelected, setShowSelected] = useState(false);
+  // Open on the selected delivery: its next action matters more than the
+  // stop order, which stays one tap away under Route order.
+  const [showSelected, setShowSelected] = useState(true);
+  // Panel shown over the fullscreen map: "queue" (stops), "delivery", or
+  // null for the map alone.
+  const [fullscreenPanel, setFullscreenPanel] = useState("queue");
   const [showDraftToast, setShowDraftToast] = useState(false);
   useEffect(() => {
     if (openSelectedRequest > 0) setShowSelected(true);
@@ -354,13 +424,9 @@ export function RiderRoutePlanner({
             result.data.navigation?.delivery_id,
             result.data.navigation?.target,
           ]);
-          if (
-            result.data.navigation &&
-            targetKey !== lastNavigationTarget.current
-          ) {
-            lastNavigationTarget.current = targetKey;
-            setFitRouteVersion((value) => value + 1);
-          }
+          // A new route no longer zooms the map out on its own; the fit
+          // control next to "My location" shows the whole route on request.
+          if (result.data.navigation) lastNavigationTarget.current = targetKey;
           if (Array.isArray(result.data.stores))
             setKnownStores(result.data.stores);
           if (locationPreview) {
@@ -395,8 +461,6 @@ export function RiderRoutePlanner({
               setPosition((current) =>
                 current?.preview ? { ...current, ...snappedOrigin } : current,
               );
-            } else {
-              setFitRouteVersion((value) => value + 1);
             }
           }
         }
@@ -441,7 +505,7 @@ export function RiderRoutePlanner({
             )
           : Infinity;
         if (
-          next.accuracy <= 100 &&
+          next.accuracy <= ROUTE_LOCATION_ACCURACY_METERS &&
           Date.now() - lastRouteAt.current >= 15000 &&
           movement >= 25
         ) {
@@ -454,7 +518,9 @@ export function RiderRoutePlanner({
           e.temporaryLocationExpired
             ? e.message
             : e.code === 1
-              ? "Location access was denied. Allow location access for this site in your browser and enable Windows Location services, then try again."
+              ? locationDeniedMessage(
+                  "Location access was denied. Allow location access for this site in your browser and enable Windows Location services, then try again.",
+                )
               : "Your device could not determine its location, including network positioning. Enable Windows Location services and browser location access, then retry. A phone with GPS may provide a better fix.",
         );
         if (e.code === 1 || e.temporaryLocationExpired) {
@@ -528,12 +594,39 @@ export function RiderRoutePlanner({
       fullscreenButtonRef.current?.focus();
       return;
     }
+    setFullscreenPanel(
+      !ordered.length
+        ? null
+        : selectedDeliveryPanel &&
+            (mobileView === "delivery" ||
+              (showSelected && mobileView !== "route"))
+          ? "delivery"
+          : "queue",
+    );
     try {
       await sectionRef.current.requestFullscreen?.();
     } catch {
       /* Use the expanded layout when native fullscreen is unavailable. */
     }
     setExpanded(true);
+  }
+
+  // Map control: the first tap starts live location; later taps re-center on
+  // the rider and resume following.
+  function showMyLocation() {
+    if (!locating) {
+      setFollow(true);
+      toggleLocation();
+      return;
+    }
+    setFollow(true);
+    if (position)
+      setFocusTarget({
+        id: "me",
+        latitude: Number(position.latitude),
+        longitude: Number(position.longitude),
+        at: Date.now(),
+      });
   }
 
   function toggleLocation() {
@@ -546,6 +639,10 @@ export function RiderRoutePlanner({
     }
     if (!navigator.geolocation) {
       setGpsError("This browser does not support live location.");
+      return;
+    }
+    if (locationNeedsSecureContext()) {
+      setGpsError(INSECURE_LOCATION_MESSAGE);
       return;
     }
     lastRouteAt.current = 0;
@@ -618,6 +715,8 @@ export function RiderRoutePlanner({
   }
   function focusDelivery(delivery) {
     setShowSelected(true);
+    setFullscreenPanel("delivery");
+    onMobileViewChange?.("delivery");
     onSelectDelivery?.(delivery.id);
     if (!validRoutePoint(delivery.order.destination)) return;
     setFollow(false);
@@ -626,6 +725,25 @@ export function RiderRoutePlanner({
       latitude: Number(delivery.order.destination.latitude),
       longitude: Number(delivery.order.destination.longitude),
       scroll: true,
+    });
+  }
+  // Tapping a customer pin opens that delivery and centres the map on it.
+  function centerOnCustomer(id, latitude, longitude) {
+    setShowSelected(true);
+    setFullscreenPanel("delivery");
+    onMobileViewChange?.("delivery");
+    onSelectDelivery?.(id);
+    // The selection effect would otherwise refocus (or follow the rider).
+    lastFocusedDeliveryId.current =
+      plan?.navigation && !showFullRoute
+        ? `navigation-${String(id)}`
+        : String(id);
+    setFollow(false);
+    setFocusTarget({
+      id,
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      at: Date.now(),
     });
   }
   function registerCustomerMarker(id, marker) {
@@ -656,12 +774,20 @@ export function RiderRoutePlanner({
   const progressCopy = showingNavigation
     ? {
         heading: navigation.requires_location
-          ? "Enable live location to start riding"
+          ? locating
+            ? position && position.accuracy > ROUTE_LOCATION_ACCURACY_METERS
+              ? "Waiting for a more accurate location"
+              : "Preparing your live route"
+            : "Enable live location to start riding"
           : navigation.target.kind === "pickup"
             ? "Ride to: Restaurant pickup"
             : "Ride to: Customer delivery",
         detail: navigation.requires_location
-          ? "Use live location to get a road route from your current position."
+          ? locating
+            ? position && position.accuracy > ROUTE_LOCATION_ACCURACY_METERS
+              ? "Your location accuracy must be within 1,000 metres to calculate a route."
+              : "Waiting for your location and calculating the road route."
+            : "Use live location to get a road route from your current position."
           : `From your ${locationPreview ? "preview" : "GPS"} location to ${navigation.target.address || "the selected stop"}.`,
         selectionHint: navigation.batch_predecessor
           ? "This paired delivery has an earlier stop. Follow the assigned drop-off sequence."
@@ -745,6 +871,71 @@ export function RiderRoutePlanner({
           .map((point) => [Number(point.latitude), Number(point.longitude)]);
   const first = stops[0] || stores[0] || fallbackPoints[0];
 
+  const dockViews = ordered.length
+    ? [
+        ["delivery", "Delivery", Package],
+        ["queue", "Stops", ListOrdered],
+      ]
+    : [];
+  const dockPressed = (view) =>
+    expanded ? fullscreenPanel === view : mobileView === view;
+  // Live location lives on the map's own "My location" button.
+  const locationButtons = (
+    <>
+      <Button
+        variant="secondary"
+        onClick={toggleLocationPreview}
+        disabled={!ordered.length}
+        aria-label={
+          locationPreview
+            ? "Clear temporary location preview"
+            : configuredPreview
+              ? "Preview demo location"
+              : "Preview route from near the first stop"
+        }
+        title={
+          configuredPreview
+            ? "Show the configured temporary demo location"
+            : "Show the first route from a temporary point near stop 1"
+        }
+      >
+        {locationPreview
+          ? "Clear preview"
+          : configuredPreview
+            ? "Preview demo location"
+            : "Preview near stop 1"}
+      </Button>
+    </>
+  );
+  const locationDetails = (
+    <>
+      <p className="rider-route-location-note">
+        {position
+          ? locationPreview
+            ? "Temporary map preview near stop 1 · not your device location and not shared. Clear preview to return to the normal map."
+            : `Live location updated ${position.recordedAt} · accuracy about ${Math.round(position.accuracy || 0)} m.${position.accuracy > 100 ? " Approximate location; the route start may be offset." : ""} Road route refreshes at most every 15 seconds as you move.`
+          : locating
+            ? "Waiting for your location…"
+            : "Enable live location to include the journey from where you are."}{" "}
+        Your map location stays active only while this section is open.
+      </p>
+      <details className="rider-location-help">
+        <summary>
+          Location & sharing · availability GPS {presence.state}
+        </summary>
+        <p>
+          Map location is for route planning only. Availability GPS is{" "}
+          {presence.state.replaceAll("_", " ")}
+          {presence.locatedAt
+            ? ` · last update ${new Date(presence.locatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+            : ""}
+          . Going online shares GPS for offers and customer tracking after
+          pickup. The map control only shows your location here. If you are
+          offline, you can separately choose to share a delivery's location.
+        </p>
+      </details>
+    </>
+  );
   return (
     <section
       ref={sectionRef}
@@ -755,7 +946,10 @@ export function RiderRoutePlanner({
         "--route-return": routeColors.return,
       }}
       className={`rider-route-planner${expanded ? " is-expanded" : ""}`}
+      data-mobile-panel={mobileView}
+      data-fullscreen-panel={expanded ? fullscreenPanel || "none" : undefined}
       role={expanded ? "dialog" : undefined}
+      data-live-updates="allow"
       aria-modal={expanded || undefined}
       aria-labelledby="rider-route-heading"
     >
@@ -777,38 +971,7 @@ export function RiderRoutePlanner({
           <p>Keep your current route and next stop in view.</p>
         </div>
         <div className="rider-route-heading-actions">
-          <Button
-            variant="secondary"
-            onClick={toggleLocation}
-            aria-label={locating ? "Stop live location" : "Use live location"}
-            title={locating ? "Stop live location" : "Use live location"}
-          >
-            <LocateFixed size={16} aria-hidden="true" />
-            {locating ? "Stop live location" : "Use live location"}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={toggleLocationPreview}
-            disabled={!ordered.length}
-            aria-label={
-              locationPreview
-                ? "Clear temporary location preview"
-                : configuredPreview
-                  ? "Preview demo location"
-                  : "Preview route from near the first stop"
-            }
-            title={
-              configuredPreview
-                ? "Show the configured temporary demo location"
-                : "Show the first route from a temporary point near stop 1"
-            }
-          >
-            {locationPreview
-              ? "Clear preview"
-              : configuredPreview
-                ? "Preview demo location"
-                : "Preview near stop 1"}
-          </Button>
+          {!expanded && locationButtons}
           <Button
             ref={fullscreenButtonRef}
             variant="secondary"
@@ -828,41 +991,6 @@ export function RiderRoutePlanner({
           </Button>
         </div>
       </header>
-      {!!selectedDeliveryPanel && (
-        <nav
-          className="rider-active-switcher rider-route-switcher"
-          aria-label="Active deliveries"
-        >
-          <span className="rider-route-switcher-label">
-            Deliveries <span>{ordered.length}</span>
-          </span>
-          <label className="rider-route-switcher-control">
-            <span className="sr-only">Jump to an active delivery</span>
-            <select
-              className="rider-route-switcher-select"
-              value={
-                selectedDeliveryId == null ? "" : String(selectedDeliveryId)
-              }
-              onChange={(event) => {
-                const delivery = ordered.find(
-                  (item) => String(item.id) === event.target.value,
-                );
-                if (!delivery) return;
-                setShowSelected(true);
-                onSelectDelivery?.(delivery.id);
-              }}
-            >
-              <option value="">Choose an active delivery</option>
-              {ordered.map((delivery, index) => (
-                <option key={delivery.id} value={String(delivery.id)}>
-                  {index + 1}. {delivery.order.order_number} ·{" "}
-                  {readableStatus(delivery.status)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </nav>
-      )}
       <div
         className={`rider-route-layout${showSelected && selectedDeliveryPanel ? " is-selected-focus" : ""}`}
       >
@@ -878,9 +1006,17 @@ export function RiderRoutePlanner({
               <MapControls
                 onRecenter={() => setFitVersion((value) => value + 1)}
                 recenterLabel="Fit all delivery locations"
-                fullscreen={
-                  expanded ? { expanded, toggle: toggleFullscreen } : undefined
-                }
+                recenterIcon={Scan}
+                locate={{
+                  active: locating && !!position,
+                  label: !locating
+                    ? "Show my live location"
+                    : position
+                      ? "Center on my location"
+                      : "Finding your location…",
+                  onClick: showMyLocation,
+                }}
+                fullscreen={{ expanded, toggle: toggleFullscreen }}
               />
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -897,10 +1033,12 @@ export function RiderRoutePlanner({
                 }
                 position={position}
                 follow={locating && follow}
+                onUserMove={() => setFollow(false)}
                 fitVersion={fitVersion}
                 fitRouteVersion={fitRouteVersion}
                 fitRoutePoints={fitRoutePoints}
                 focusTarget={
+                  focusTarget?.id === "me" ||
                   ordered.some((delivery) => delivery.id === focusTarget?.id)
                     ? focusTarget
                     : null
@@ -950,10 +1088,12 @@ export function RiderRoutePlanner({
                         registerCustomerMarker(stop.delivery_id, marker)
                       }
                       eventHandlers={{
-                        click: () => {
-                          setShowSelected(true);
-                          onSelectDelivery?.(stop.delivery_id);
-                        },
+                        click: () =>
+                          centerOnCustomer(
+                            stop.delivery_id,
+                            stop.latitude,
+                            stop.longitude,
+                          ),
                       }}
                       position={[stop.latitude, stop.longitude]}
                       icon={stopIcon(
@@ -991,10 +1131,12 @@ export function RiderRoutePlanner({
                     validRoutePoint(delivery.order.destination) && (
                       <Marker
                         eventHandlers={{
-                          click: () => {
-                            setShowSelected(true);
-                            onSelectDelivery?.(delivery.id);
-                          },
+                          click: () =>
+                            centerOnCustomer(
+                              delivery.id,
+                              delivery.order.destination.latitude,
+                              delivery.order.destination.longitude,
+                            ),
                         }}
                         key={delivery.id}
                         ref={(marker) =>
@@ -1194,6 +1336,44 @@ export function RiderRoutePlanner({
               delivery coordinates.
             </div>
           )}
+          {(onMobileViewChange || expanded) && dockViews.length > 0 && (
+            <nav
+              className="rider-map-dock"
+              aria-label="Delivery map panels"
+              style={{
+                gridTemplateColumns: `repeat(${dockViews.length}, minmax(0, 1fr))`,
+                "--dock-count": dockViews.length,
+                "--dock-index": Math.max(
+                  0,
+                  dockViews.findIndex(([view]) => dockPressed(view)),
+                ),
+              }}
+            >
+              {dockViews.map(([view, label, Icon]) => (
+                <button
+                  key={view}
+                  data-view={view}
+                  type="button"
+                  aria-pressed={dockPressed(view)}
+                  onClick={() => {
+                    if (expanded) {
+                      setShowSelected(view === "delivery");
+                      setFullscreenPanel((current) =>
+                        current === view ? null : view,
+                      );
+                      return;
+                    }
+                    if (view === "delivery") setShowSelected(true);
+                    onMobileViewChange(mobileView === view ? "map" : view);
+                  }}
+                >
+                  <Icon size={20} aria-hidden="true" />
+                  <span>{label}</span>
+                  {view === "queue" && <small>{ordered.length}</small>}
+                </button>
+              ))}
+            </nav>
+          )}
           {routeUnavailable && !busy && (
             <div className="rider-route-fallback-notice" role="status">
               <span>
@@ -1262,7 +1442,7 @@ export function RiderRoutePlanner({
               </span>
             )}
           </div>
-          {progressCopy && (
+          {progressCopy && (online || deliveries.length > 0) && (
             <div
               className="rider-route-progress-copy"
               role="status"
@@ -1309,31 +1489,7 @@ export function RiderRoutePlanner({
               </label>
             )}
           </div>
-          <p className="rider-route-location-note">
-            {position
-              ? locationPreview
-                ? "Temporary map preview near stop 1 · not your device location and not shared. Clear preview to return to the normal map."
-                : `Live location updated ${position.recordedAt} · accuracy about ${Math.round(position.accuracy || 0)} m. Road route refreshes at most every 45 seconds.`
-              : locating
-                ? "Waiting for your location…"
-                : "Enable live location to include the journey from where you are."}{" "}
-            Your map location stays active only while this section is open.
-          </p>
-          <details className="rider-location-help">
-            <summary>
-              Location & sharing · availability GPS {presence.state}
-            </summary>
-            <p>
-              Map location is for route planning only. Availability GPS is{" "}
-              {presence.state.replaceAll("_", " ")}
-              {presence.locatedAt
-                ? ` · last update ${new Date(presence.locatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                : ""}
-              . Going online shares GPS for offers and customer tracking after
-              pickup. The map control only shows your location here. If you are
-              offline, you can separately choose to share a delivery's location.
-            </p>
-          </details>
+          {!expanded && locationDetails}
           {gpsError && (
             <div role="alert" className="rider-route-warning">
               {gpsError}
@@ -1359,7 +1515,16 @@ export function RiderRoutePlanner({
           aria-label="Route details and stop order"
           tabIndex={0}
         >
-          {selectedDeliveryPanel && (
+          {!expanded && onMobileViewChange && mobileView === "route" && (
+            <button
+              type="button"
+              className="rider-mobile-stop-list"
+              onClick={() => onMobileViewChange("queue")}
+            >
+              Back to all deliveries
+            </button>
+          )}
+          {selectedDeliveryPanel && !expanded && (
             <div
               className="rider-workbench-tabs"
               aria-label="Route workspace views"
@@ -1381,11 +1546,36 @@ export function RiderRoutePlanner({
             </div>
           )}
           {selectedDeliveryPanel && (
-            <div className="rider-selected-workbench" hidden={!showSelected}>
+            <div
+              className="rider-selected-workbench"
+              hidden={
+                expanded
+                  ? fullscreenPanel !== "delivery"
+                  : !showSelected || mobileView === "route"
+              }
+            >
               {selectedDeliveryPanel}
             </div>
           )}
-          <div hidden={!!selectedDeliveryPanel && showSelected}>
+          {expanded &&
+            fullscreenPanel === "delivery" &&
+            !selectedDeliveryPanel && (
+              <p className="rider-fullscreen-empty" role="status">
+                Choose a stop on the map or in Stops to see its delivery.
+              </p>
+            )}
+          {expanded && fullscreenPanel === "queue" && fullscreenStops && (
+            <div className="rider-fullscreen-stops">{fullscreenStops}</div>
+          )}
+          <div
+            hidden={
+              expanded
+                ? fullscreenPanel !== "queue" || !!fullscreenStops
+                : !!selectedDeliveryPanel &&
+                  showSelected &&
+                  mobileView !== "route"
+            }
+          >
             <div className="rider-route-itinerary-heading">
               <h3>
                 Drop-off order <small>({ordered.length})</small>
@@ -1512,7 +1702,8 @@ export function RiderRoutePlanner({
                       <span
                         className={`rider-route-stop-state state-${d.status}`}
                       >
-                        {readableStatus(d.status)}
+                        {deliveryStatusLabel(d.status) ||
+                          readableStatus(d.status)}
                       </span>
                       <span className="rider-route-stop-address">
                         {d.order.destination.address || "No delivery address"}

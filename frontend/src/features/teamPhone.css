@@ -1,0 +1,170 @@
+/* ---- Team & access on a phone ----------------------------------------------
+   Like Customers: search and Add on one row, one row per person with a
+   View button, and the role and account controls in a bottom sheet. */
+.team-phone-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+.team-phone-tools > .admin-customers-search {
+  flex: 1;
+  min-width: 0;
+}
+.dineflow-app #main-content .team-phone-add {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dineflow-app #main-content .team-phone-meta {
+  margin: 4px 2px 8px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.team-phone-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.team-phone-list > li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.team-phone-list > li[data-inactive] {
+  opacity: 0.72;
+}
+.team-phone-main {
+  display: grid;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+.team-phone-main > strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-phone-main > small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.team-phone-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.team-phone-badges > span {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+.team-phone-badges > span[data-tone="off"] {
+  background: #fbe3df;
+  color: #9b2c22;
+}
+.dineflow-app #main-content .team-phone-view {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  width: auto;
+  min-height: 36px;
+  padding: 0 10px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* The sheet's contents. */
+.team-sheet-body {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+.dineflow-app .team-sheet-line {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.team-sheet-field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.dineflow-app .team-sheet-field select {
+  height: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+.team-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.dineflow-app .team-sheet-toggle {
+  width: auto;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+}
+.dineflow-app .team-sheet-toggle[data-tone="danger"] {
+  border-color: #e3b4aa;
+  color: #a33a2c;
+}
+/* The new-account form inside its sheet: full-width fields, button right. */
+.team-sheet-body > .staff-form {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.team-sheet-body > .staff-form > h2 {
+  display: none;
+}
+.dineflow-app .team-sheet-body > .staff-form > button {
+  justify-self: end;
+  width: auto;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+}
+.team-sheet-body {
+  overflow-y: auto;
+}

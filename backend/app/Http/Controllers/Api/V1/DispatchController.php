@@ -28,7 +28,7 @@ class DispatchController extends Controller
         $this->rider($request);
         $offers = DispatchOffer::with('delivery.order')->where('rider_user_id', $request->user()->id)->where('status', 'offered')->where('expires_at', '>', now())->get();
 
-        return response()->json(['profile' => RiderProfile::firstOrCreate(['user_id' => $request->user()->id]), 'enabled' => config('dispatch.enabled'), 'server_time' => now()->toIso8601String(), 'offers' => $offers->map(fn ($offer) => [
+        return response()->json(['profile' => RiderProfile::firstOrCreate(['user_id' => $request->user()->id]), 'enabled' => config('dispatch.enabled'), 'search_radius_km' => (config('dispatch.radii_km') ?: [3])[0], 'server_time' => now()->toIso8601String(), 'offers' => $offers->map(fn ($offer) => [
             'id' => $offer->id, 'delivery_id' => $offer->delivery_id, 'expires_at' => $offer->expires_at->toIso8601String(),
             'order_number' => $offer->delivery->order->order_number, 'pickup' => $offer->delivery->pickup_address,
             'destination' => $offer->delivery->order->delivery_address, 'eta_minutes' => $offer->ranking['eta_minutes'],
@@ -43,6 +43,7 @@ class DispatchController extends Controller
         $profile = DB::transaction(function () use ($request, $data, $dispatch) {
             DispatchGuard::lock();
             $profile = RiderProfile::firstOrCreate(['user_id' => $request->user()->id]);
+            $wasOnline = (bool) $profile->is_online;
             if ($data['is_online'] && ! in_array(strtolower(trim($profile->vehicle_type ?? '')), ['bicycle', 'motorcycle', 'car'], true)) {
                 throw ValidationException::withMessages(['vehicle_type' => 'Save a bicycle, motorcycle or car in your rider profile before going online.']);
             }
@@ -59,6 +60,9 @@ class DispatchController extends Controller
                 $updates += ['presence_token' => null, 'latitude' => null, 'longitude' => null, 'accuracy_meters' => null, 'located_at' => null, 'geohash' => null];
             }
             $profile->update($updates);
+            if (($data['is_online'] && ($data['start'] ?? false)) || (! $data['is_online'] && $wasOnline)) {
+                app(\App\Services\AuditLogService::class)->record($request->user(), $data['is_online'] ? 'rider.went_online' : 'rider.went_offline', null, [], $request);
+            }
             // Delivery samples are persisted after the presence transaction below.
             // The global assignment guard never covers image or map-provider work.
             DB::afterCommit(function () use ($request, $data) {
@@ -85,8 +89,10 @@ class DispatchController extends Controller
     {
         $this->rider($request);
         $data = $request->validate(['response' => ['required', 'in:accept,reject']]);
+        $result = $dispatch->respond($offer, $request->user(), $data['response']);
+        app(\App\Services\AuditLogService::class)->record($request->user(), $data['response'] === 'accept' ? 'delivery.offer_accepted' : 'delivery.offer_declined', Delivery::find($offer->delivery_id), [], $request);
 
-        return response()->json(['data' => $dispatch->respond($offer, $request->user(), $data['response'])]);
+        return response()->json(['data' => $result]);
     }
 
     public function retry(Request $request, Delivery $delivery, DispatchService $dispatch)

@@ -123,10 +123,13 @@ class OrderService
             $tax = $this->percent($net + $serviceCharge, 1, $taxRate);
             $total = $net + $serviceCharge + $deliveryFee + $tax;
 
+            $takenByStaff = $data['order_type'] === 'dine_in' && $actor->hasPermission('orders.manage') && ! $actor->hasRole('customer');
+            $tableLabel = $table ? (preg_match('/^table\s/i', (string) $table->table_number) ? $table->table_number : 'Table '.$table->table_number) : null;
             $order = Order::create([
                 'order_number' => $this->orderNumber(), 'customer_id' => $actor->id,
-                'customer_name_snapshot' => $actor->name, 'customer_email_snapshot' => $actor->email,
-                'order_type' => $data['order_type'], 'status' => 'pending',
+                'customer_name_snapshot' => $takenByStaff ? $tableLabel : $actor->name, 'customer_email_snapshot' => $takenByStaff ? null : $actor->email,
+                'order_type' => $data['order_type'], 'status' => $takenByStaff ? 'confirmed' : 'pending',
+                'confirmed_at' => $takenByStaff ? now() : null,
                 'table_id' => $table?->id, 'table_number_snapshot' => $table?->table_number,
                 'dining_session_id' => $session?->id, 'delivery_address' => $data['delivery_address'] ?? null,
                 'delivery_address_id' => $data['delivery_address_id'] ?? null,
@@ -163,6 +166,9 @@ class OrderService
             }
 
             $order->statusHistory()->create(['actor_id' => $actor->id, 'from_status' => null, 'to_status' => 'pending']);
+            if ($takenByStaff) {
+                $order->statusHistory()->create(['actor_id' => $actor->id, 'from_status' => 'pending', 'to_status' => 'confirmed', 'note' => 'Taken at the table by '.$actor->name.'.']);
+            }
 
             if ($order->order_type === 'delivery') {
                 $pickup = $deliveryQuotes->location();
@@ -173,7 +179,12 @@ class OrderService
             return $order->load(['items.addons', 'table:id,table_number', 'diningSession:id,status', 'delivery:id,order_id,status']);
         }, 3);
 
-        app(RestaurantNotificationService::class)->send($actor, 'order.placed', 'Order received', 'Your order '.$order->order_number.' has been received.', ['order_id' => $order->id, 'order_number' => $order->order_number]);
+        app(AuditLogService::class)->record($actor, 'order.placed', $order, ['order_number' => $order->order_number, 'order_type' => $order->order_type], request());
+
+        // Guests hear about their own orders; staff taking an order for a table do not.
+        if ($actor->hasRole('customer')) {
+            app(RestaurantNotificationService::class)->send($actor, 'order.placed', 'Order received', 'Your order '.$order->order_number.' has been received.', ['order_id' => $order->id, 'order_number' => $order->order_number]);
+        }
         return $order;
     }
 
@@ -257,7 +268,15 @@ class OrderService
         }
 
 
-        app(RestaurantNotificationService::class)->send($order->customer, 'order.status_changed', 'Order update', 'Order '.$order->order_number.' is now '.str_replace('_', ' ', $order->status).'.', ['order_id' => $order->id, 'order_number' => $order->order_number, 'status' => $order->status]);
+        // Dine-in food is ready at the pass: tell the floor staff to run it.
+        if ($order->order_type === 'dine_in' && $order->status === 'ready_to_serve') {
+            $table = $order->table_number_snapshot;
+            $label = $table ? (preg_match('/^table\s/i', $table) ? $table : 'Table '.$table) : 'Dine-in';
+            User::where('is_active', true)->whereHas('roles', fn ($role) => $role->where('slug', 'waiter'))->get()
+                ->each(fn (User $waiter) => app(RestaurantNotificationService::class)->send($waiter, 'order.ready_for_service', 'Ready to serve', $label.' · '.$order->order_number.' is ready at the pass.', ['order_id' => $order->id, 'order_number' => $order->order_number, 'table' => $table]));
+        }
+
+        if ($order->customer?->hasRole('customer')) app(RestaurantNotificationService::class)->send($order->customer, 'order.status_changed', 'Order update', 'Order '.$order->order_number.' is now '.str_replace('_', ' ', $order->status).'.', ['order_id' => $order->id, 'order_number' => $order->order_number, 'status' => $order->status]);
 
         return $order->load(['items.addons', 'table:id,table_number']);
     }

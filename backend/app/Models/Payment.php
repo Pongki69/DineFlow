@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
-    protected $fillable = ['order_id', 'reservation_id', 'dining_session_id', 'purpose', 'method', 'status', 'amount', 'currency', 'provider', 'provider_reference', 'provider_payment_id', 'reference_number', 'checkout_session_id', 'idempotency_key', 'checkout_url', 'expires_at', 'failure_reason', 'refunded_at', 'received_by', 'paid_at'];
+    protected $fillable = ['order_id', 'reservation_id', 'dining_session_id', 'purpose', 'method', 'status', 'amount', 'currency', 'provider', 'provider_reference', 'provider_payment_id', 'reference_number', 'checkout_session_id', 'idempotency_key', 'checkout_url', 'expires_at', 'failure_reason', 'refunded_at', 'received_by', 'paid_at', 'cash_tendered'];
 
     protected function casts(): array
     {
-        return ['amount' => 'decimal:2', 'paid_at' => 'datetime', 'expires_at' => 'datetime', 'refunded_at' => 'datetime'];
+        return ['amount' => 'decimal:2', 'cash_tendered' => 'decimal:2', 'paid_at' => 'datetime', 'expires_at' => 'datetime', 'refunded_at' => 'datetime'];
     }
 
     public function order()

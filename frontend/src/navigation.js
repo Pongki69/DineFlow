@@ -27,11 +27,13 @@ export const navigationByPermission = [
   ["Daily transactions", "reports.daily_transactions", "/cashier/summary"],
   ["Reports", "reports.operations", "/reports"],
   ["Team & access", "users.manage", "/admin/users"],
+  ["Customers", "users.manage", "/admin/customers"],
   ["Reservation settings", "settings.manage", "/admin/settings"],
   ["Payment settings", "settings.manage", "/admin/payment-settings"],
   ["Delivery settings", "settings.manage", "/admin/delivery"],
   ["Business settings", "settings.manage", "/admin/business-settings"],
   ["Audit log", "audit.view", "/admin/audit"],
+  ["My activity", "*", "/activity"],
   ["Settings", "*", "/settings"],
 ];
 
@@ -39,16 +41,17 @@ export function visibleNavigation(permissions = [], roles = []) {
   const granted = new Set(permissions);
   const isCustomer = roles.includes("customer");
   return navigationByPermission.filter(
-    ([, permission]) =>
+    ([, permission, path]) =>
       (permission === "*" ||
         permission.split("|").some((value) => granted.has(value))) &&
       (permission !== "customer.account" || isCustomer) &&
-      (permission !== "deliveries.assigned" || roles.includes("rider")),
+      (permission !== "deliveries.assigned" || roles.includes("rider")) &&
+      (path !== "/activity" || roles.some((role) => role !== "customer")),
   );
 }
 
 export function navigationGroup(path, roles = []) {
-  if (path === "/settings") return "Your account";
+  if (path === "/settings" || path === "/activity") return "Your account";
   if (roles.includes("rider") && path.startsWith("/rider")) {
     return ["/rider/history", "/rider/reviews"].includes(path)
       ? "Records & feedback"
@@ -60,7 +63,8 @@ export function navigationGroup(path, roles = []) {
   if (path === "/dashboard") return "Overview";
   if (["/payments", "/cashier/summary", "/reports"].includes(path))
     return "Finance & insights";
-  if (["/admin/users", "/admin/audit"].includes(path)) return "Team & security";
+  if (["/admin/users", "/admin/customers", "/admin/audit"].includes(path))
+    return "Team & security";
   if (path.startsWith("/admin/") && path !== "/admin/deliveries")
     return "Restaurant setup";
   return "Live operations";
@@ -94,4 +98,31 @@ export function navigationContext(pathname, links = []) {
   if (/^\/riders\/[^/]+\/?$/.test(pathname)) return { title: "Rider profile" };
   if (pathname === "/payment-return") return { title: "Payment result" };
   return { title: "Your workspace" };
+}
+
+/** Where an account lands by default: the cashier at the counter desk,
+ * managers and admins on their dashboards, everyone else on their first page. */
+export function defaultStartPath(links, roles = []) {
+  const has = (path) => links.some(([, , to]) => to === path);
+  if (
+    roles.includes("cashier") &&
+    !roles.includes("administrator") &&
+    !roles.includes("manager") &&
+    has("/payments")
+  )
+    return "/payments";
+  if (
+    roles.includes("waiter") &&
+    !roles.some((role) =>
+      ["administrator", "manager", "cashier"].includes(role),
+    ) &&
+    has("/service")
+  )
+    return "/service";
+  return (
+    links.find(([, , to]) => to === "/admin/dashboard")?.[2] ||
+    links.find(([, , to]) => to === "/dashboard")?.[2] ||
+    links[0]?.[2] ||
+    "/account"
+  );
 }

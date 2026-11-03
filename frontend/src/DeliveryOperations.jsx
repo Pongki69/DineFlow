@@ -1,3 +1,10 @@
+import { CustomerScreenSkeleton } from "./components/CustomerScreenSkeleton";
+import {
+  subscribeToLiveChanges,
+  enqueueLiveRefresh,
+  notifyLiveChange,
+} from "./liveUpdates";
+import { useLiveMapSnapshot } from "./components/useLiveMapSnapshot";
 import { restaurantMapIcon as pickupPin } from "./components/restaurantMapIcon";
 import { Feedback, Skeleton, Button } from "./components/ui";
 import { useEffect, useRef, useState } from "react";
@@ -13,13 +20,18 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { privateEcho } from "./realtime";
+import { privateEcho, initializeRealtime } from "./realtime";
 
 import { api } from "./api";
 import { MapControls } from "./components/MapControls";
-import { CustomerOrderProgress } from "./components/CustomerOrderProgress";
+import {
+  CustomerOrderProgress,
+  deliveryLabels,
+  foodLabels,
+} from "./components/CustomerOrderProgress";
 import { RiderReviewForm } from "./components/RiderReviewForm";
 import { TrackingDisclosureSummary } from "./components/TrackingDisclosureSummary";
+import { useMediaQuery } from "./components/useMediaQuery";
 import {
   DeliveryArrivalTimes,
   DeliveryPathLegend,
@@ -62,11 +74,13 @@ function trackingPoint(point) {
 }
 function TrackingViewport({ points }) {
   const map = useMap();
-  const key = JSON.stringify(points);
+  const initialized = useRef(false);
   useEffect(() => {
-    if (points.length)
+    if (points.length && !initialized.current) {
       map.fitBounds(points, { padding: [80, 60], maxZoom: 15 });
-  }, [map, key]);
+      initialized.current = true;
+    }
+  }, [map, points]);
   return null;
 }
 
@@ -74,28 +88,38 @@ export { RiderDeliveries } from "./features/RiderDeliveries";
 export { DispatchDashboard } from "./features/DispatchDashboard";
 
 function CompletedDeliveryMap({ children, deliveryId, needsRoute }) {
-  const [expanded, setExpanded] = useState(false);
+  // Phones open the map and times straight away.
+  const phone = useMediaQuery("(max-width: 850px)");
+  const [expanded, setExpanded] = useState(phone);
   const [suggestion, setSuggestion] = useState(null);
   const [routeError, setRouteError] = useState("");
   useEffect(() => {
     if (!expanded || !needsRoute) return;
     const controller = new AbortController();
-    setRouteError("");
-    api(`/my/deliveries/${deliveryId}/route`, { signal: controller.signal })
-      .then((result) => {
-        if (!controller.signal.aborted) setSuggestion(result.data);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted)
-          setRouteError(
-            "A suggested route is unavailable. The arrival times and location pins are still available.",
-          );
-      });
-    return () => controller.abort();
+    // Start on the next tick: a mount that is immediately undone (the map
+    // opens on first render on phones) then sends no request at all.
+    const timer = window.setTimeout(() => {
+      setRouteError("");
+      api(`/my/deliveries/${deliveryId}/route`, { signal: controller.signal })
+        .then((result) => {
+          if (!controller.signal.aborted) setSuggestion(result.data);
+        })
+        .catch(() => {
+          if (!controller.signal.aborted)
+            setRouteError(
+              "A suggested route is unavailable. The arrival times and location pins are still available.",
+            );
+        });
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [expanded, needsRoute, deliveryId]);
   return (
     <details
       className="customer-completed-map"
+      open={expanded}
       onToggle={(event) => setExpanded(event.currentTarget.open)}
     >
       <TrackingDisclosureSummary meta="Map & times">
@@ -108,9 +132,15 @@ function CompletedDeliveryMap({ children, deliveryId, needsRoute }) {
 
 export function CustomerDeliveryTracking({ user }) {
   const { deliveryId } = useParams();
+  const phoneLayout = useMediaQuery("(max-width: 850px)");
   const [data, setData] = useState(null),
     [notifications, setNotifications] = useState([]),
     [error, setError] = useState("");
+  const liveMap = useLiveMapSnapshot(
+    `/my/deliveries/${deliveryId}`,
+    ["locations", `delivery-map-${deliveryId}`],
+    !!data && !terminal.includes(data.status),
+  );
   const trackingRequest = useRef(null);
   async function load() {
     trackingRequest.current?.abort();
@@ -145,14 +175,28 @@ export function CustomerDeliveryTracking({ user }) {
     setData(null);
     setNotifications([]);
     load();
-    const timer = setInterval(load, 5000);
+    const unsubscribe = subscribeToLiveChanges(load, [
+      "deliveries",
+      "locations",
+      "payments",
+    ]);
     let echo = null;
-    try {
-      echo = privateEcho();
-      echo?.private(`delivery.${deliveryId}`).listen(".delivery.updated", load);
-    } catch {}
+    let active = true;
+    initializeRealtime()
+      .then(() => {
+        if (!active) return;
+        echo = privateEcho();
+        echo
+          ?.private(`delivery.${deliveryId}`)
+          .listen(".delivery.updated", () => {
+            notifyLiveChange([`delivery-map-${deliveryId}`]);
+            enqueueLiveRefresh(load);
+          });
+      })
+      .catch(() => {});
     return () => {
-      clearInterval(timer);
+      active = false;
+      unsubscribe();
       trackingRequest.current?.abort();
       echo?.leave(`delivery.${deliveryId}`);
       echo?.disconnect();
@@ -168,14 +212,25 @@ export function CustomerDeliveryTracking({ user }) {
   if (!data)
     return (
       <section className="welcome">
-        <h1>Your delivery</h1>
-        <Skeleton label="Loading delivery status" />
+        <h1 className="sr-only">Your delivery</h1>
+        <CustomerScreenSkeleton
+          variant="tracking"
+          label="Loading delivery status"
+        />
       </section>
     );
-  const rider = trackingPoint(data.location),
+  const mapData =
+    liveMap &&
+    Date.parse(liveMap.last_location_at || 0) >=
+      Date.parse(data.last_location_at || 0)
+      ? liveMap
+      : data;
+  const rider = trackingPoint(mapData.location),
     dest = trackingPoint(data.destination),
     pickup = trackingPoint(data.pickup);
-  const segments = recordedSegments(data.recorded_path);
+  const segments = recordedSegments(
+    mapData.recorded_path || data.recorded_path,
+  );
   const points = [rider, pickup, dest, ...segments.flat()].filter(Boolean);
   const route = (data.route || [])
     .filter(
@@ -192,26 +247,50 @@ export function CustomerDeliveryTracking({ user }) {
   return (
     <section className="welcome customer-tracking">
       <span className="eyebrow">DELIVERY TRACKING</span>
-      <h1>Order {data.order_number}</h1>
-      {error && (
-        <Feedback onRetry={load}>
-          Updates could not refresh. Showing the last available status. {error}
-        </Feedback>
-      )}
-      <div className="track-status">
-        <span className="tracking-update-chip">
-          <span aria-hidden="true" />
-          {terminal.includes(data.status) ? "Order history" : "Live updates"}
-        </span>
-        {!terminal.includes(data.status) && (
-          <span className={data.tracking_stale ? "stale-note" : ""}>
-            {data.last_location_at
-              ? data.tracking_stale
-                ? "Location delayed"
-                : `GPS updated ${arrivalLabel(data.last_location_at)}`
-              : "Waiting for GPS"}
-          </span>
+      <div className="tracking-hero">
+        <h1>Order {data.order_number}</h1>
+        {phoneLayout && (
+          <p className="tracking-hero-status" aria-hidden="true">
+            <strong>
+              {data.status === "pending_assignment" &&
+              data.order_status !== "cancelled"
+                ? foodLabels[data.order_status] || "Order received"
+                : deliveryLabels[data.status] || "Delivery update"}
+            </strong>
+            <span>
+              {data.status === "delivered"
+                ? arrivalLabel(data.arrival_times?.delivered)
+                  ? `Arrived at ${arrivalLabel(data.arrival_times.delivered)}`
+                  : "Enjoy your meal"
+                : data.eta && !mapData.tracking_stale && arrivalLabel(data.eta)
+                  ? `Arriving around ${arrivalLabel(data.eta)}`
+                  : terminal.includes(data.status)
+                    ? "This delivery has ended"
+                    : "We’ll keep this page up to date"}
+            </span>
+          </p>
         )}
+        {error && (
+          <Feedback onRetry={load}>
+            Updates could not refresh. Showing the last available status.{" "}
+            {error}
+          </Feedback>
+        )}
+        <div className="track-status">
+          <span className="tracking-update-chip">
+            <span aria-hidden="true" />
+            {terminal.includes(data.status) ? "Order history" : "Live updates"}
+          </span>
+          {!terminal.includes(data.status) && (
+            <span className={mapData.tracking_stale ? "stale-note" : ""}>
+              {mapData.last_location_at
+                ? mapData.tracking_stale
+                  ? "Location delayed"
+                  : `GPS updated ${arrivalLabel(mapData.last_location_at)}`
+                : "Waiting for GPS"}
+            </span>
+          )}
+        </div>
       </div>
       <CustomerOrderProgress data={data}>
         {terminal.includes(data.status) ? (
@@ -362,7 +441,7 @@ export function CustomerDeliveryTracking({ user }) {
             <DeliveryArrivalTimes
               times={data.arrival_times}
               eta={data.eta}
-              stale={data.tracking_stale}
+              stale={mapData.tracking_stale}
             />
             {points.length ? (
               <div
@@ -407,7 +486,7 @@ export function CustomerDeliveryTracking({ user }) {
                         Your destination · {data.destination.address}
                       </Popup>
                       {data.eta &&
-                        !data.tracking_stale &&
+                        !mapData.tracking_stale &&
                         arrivalLabel(data.eta) && (
                           <Tooltip
                             permanent
@@ -424,18 +503,18 @@ export function CustomerDeliveryTracking({ user }) {
                       position={rider}
                       icon={riderPin}
                       title={
-                        data.tracking_stale
+                        mapData.tracking_stale
                           ? "Last known rider location"
                           : "Your rider"
                       }
                       alt={
-                        data.tracking_stale
+                        mapData.tracking_stale
                           ? "Last known rider location"
                           : "Your rider"
                       }
                     >
                       <Popup>
-                        {data.tracking_stale
+                        {mapData.tracking_stale
                           ? "Last known rider location (may be outdated)"
                           : "Your rider"}
                       </Popup>
@@ -465,7 +544,7 @@ export function CustomerDeliveryTracking({ user }) {
               <span>D · Your destination</span>
               <span>
                 Green pin · Rider
-                {data.tracking_stale && rider ? " (last known)" : ""}
+                {mapData.tracking_stale && rider ? " (last known)" : ""}
               </span>
             </div>
             <DeliveryPathLegend
@@ -502,7 +581,10 @@ export function CustomerDeliveryTracking({ user }) {
         <DeliveryProofPhoto key={deliveryId} deliveryId={deliveryId} />
       )}
       {notifications.length > 0 && (
-        <details className="customer-progress-card delivery-notifications">
+        <details
+          className="customer-progress-card delivery-notifications"
+          open={phoneLayout || undefined}
+        >
           <TrackingDisclosureSummary meta={`${notifications.length} messages`}>
             Notifications
           </TrackingDisclosureSummary>

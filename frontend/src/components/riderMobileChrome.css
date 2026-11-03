@@ -1,0 +1,420 @@
+.rider-mobile-bottom-nav,
+.rider-mobile-app-title,
+.rider-mobile-profile-actions,
+.rider-mobile-assignment-count {
+  display: none;
+}
+@media (max-width: 850px) {
+  .dineflow-app .app-shell[data-workspace="delivery"] {
+    --rider-mobile-nav-height: calc(70px + env(safe-area-inset-bottom, 0px));
+    min-height: 100dvh;
+    background: var(--canvas);
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .app-body {
+    padding-bottom: var(--rider-mobile-nav-height);
+    box-sizing: border-box;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .app-topbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    min-height: 56px;
+    height: 56px;
+    padding: 6px 12px;
+    border-bottom: 0;
+    background: var(--canvas);
+    gap: 8px;
+    position: relative;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .topbar-location {
+    flex: 1;
+    min-width: 0;
+    gap: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .topbar-location
+    > :not(.rider-mobile-app-title) {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-mobile-app-title {
+    display: block;
+    font-size: var(--text-emphasis);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink);
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .topbar-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    width: auto;
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .topbar-actions
+    > :is(.workspace-theme-toggle, .avatar-link) {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .topbar-actions
+    .icon-button {
+    min-width: 40px;
+    width: 40px;
+    min-height: 40px;
+    height: 40px;
+    padding: 8px;
+    border: 0;
+    background: transparent;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-header-presence {
+    min-height: 32px;
+    height: 32px;
+    padding: 5px 9px;
+    gap: 6px;
+    font-size: 12px;
+    border-radius: 20px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-header-presence-action {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-presence-controls {
+    gap: 4px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .app-footer {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .app-content.rider-content {
+    --rider-content-gutter: 12px;
+    padding: 8px 12px 20px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .live-updates-bar {
+    min-height: 30px;
+    padding: 0 2px;
+    margin: 0 0 10px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    font-size: 11px;
+    gap: 8px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .live-updates-bar
+    > button {
+    min-height: 28px;
+    min-width: 100px;
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 14px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .app-content.rider-content
+    .page-heading {
+    width: 100%;
+    min-height: 0;
+    padding: 4px 0 14px;
+    margin: 0 0 14px;
+    border: 0;
+    gap: 12px;
+    align-items: center;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .app-content.rider-content
+    .page-heading
+    h1 {
+    font-size: var(--text-title);
+    margin: 0 0 6px;
+    line-height: 1.25;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .app-content.rider-content
+    .page-heading
+    p {
+    font-size: var(--text-sm);
+    line-height: 1.6;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-mobile-bottom-nav {
+    display: grid;
+    position: fixed;
+    z-index: 50;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--rider-mobile-nav-height);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: 0 -4px 20px rgb(0 0 0 / 4%);
+    box-sizing: border-box;
+  }
+  .dineflow-app .rider-mobile-bottom-nav > a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 54px;
+    padding: 0;
+    border-radius: 12px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .rider-mobile-bottom-nav > a > span {
+    display: grid;
+    place-items: center;
+    min-width: 52px;
+    min-height: 28px;
+    border-radius: 18px;
+  }
+  .rider-mobile-bottom-nav > a > small {
+    font-size: 10.5px;
+    font-weight: 500;
+  }
+  .dineflow-app .rider-mobile-bottom-nav > a.is-current {
+    color: var(--ink);
+  }
+  .rider-mobile-bottom-nav > a.is-current > span {
+    background: var(--primary-soft);
+  }
+  .rider-mobile-bottom-nav > a.is-current > small {
+    font-weight: 650;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]:has(.rider-route-planner.is-expanded)
+    .rider-mobile-bottom-nav {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-mobile-profile-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 10px 6px;
+    margin: 4px 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .dineflow-app .rider-mobile-profile-actions > :is(a, button) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    min-height: 58px;
+    padding: 6px 2px;
+    border: 0;
+    border-radius: 10px;
+    color: var(--ink);
+    background: transparent;
+    font-size: 11px;
+    text-decoration: none;
+  }
+  .rider-mobile-profile-actions > :is(a, button):active {
+    background: var(--primary-soft);
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-dashboard-links {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    :is(.rider-dashboard-date, .rider-history-columns) {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-history-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 14px;
+    gap: 12px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-history-page-size {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-history-panel {
+    border-radius: 16px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-history-list {
+    padding: 0 14px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    :is(
+      .rider-status-card,
+      .rider-next-delivery,
+      .rider-dashboard-summary,
+      .rider-day-overview,
+      .dispatch-offer-card,
+      .rider-dispatch-panel,
+      .workspace-card
+    ) {
+    border-radius: 16px;
+    box-shadow: none;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-dispatch-panel {
+    padding: 14px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-dispatch-heading {
+    gap: 12px;
+    align-items: center;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-dispatch-heading
+    h2 {
+    font-size: 18px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .offers-subtitle {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .offers-update-bar {
+    gap: 10px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .workspace-settings-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .workspace-settings
+    .workspace-card {
+    padding: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-offers-page-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .app-content.rider-content
+    .rider-workspace
+    > .page-heading
+    h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .app-content.rider-content
+    .rider-workspace
+    > .page-heading {
+    width: 100%;
+    min-height: 36px;
+    padding: 0;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .app-content.rider-content
+    .rider-workspace
+    > .page-heading
+    .page-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    width: 100%;
+    max-width: none;
+    gap: 12px;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-assignment-count {
+    display: inline-flex;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-map {
+    height: clamp(300px, 52dvh, 560px);
+    min-height: 300px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-route-planner {
+    border-radius: 16px;
+  }
+}
+
+/* The title takes the free space; actions keep their natural width. This
+   beats the generic rider rule that pins the title column to 48px. */
+@media (max-width: 850px) {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-role="rider"]
+    .topbar-location {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-role="rider"]
+    .topbar-actions {
+    flex: 0 0 auto;
+  }
+}
+
+/* Deliveries: past deliveries, now off the bottom bar, as one row link. */
+.dineflow-app #main-content .rider-past-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  margin-top: 12px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+.rider-past-link > span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.rider-past-link > strong {
+  flex: 1;
+  font-size: 14.5px;
+}
+.rider-past-link > svg {
+  color: var(--muted);
+}

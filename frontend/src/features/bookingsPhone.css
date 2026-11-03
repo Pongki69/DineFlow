@@ -1,0 +1,305 @@
+/* ---- Service desk bookings on a phone ------------------------------------ */
+.bookings-phone {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 24px;
+}
+
+/* Period, view and filters in one card. */
+.bookings-phone-tools {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.bookings-phone-period {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bookings-phone-period strong {
+  font-size: 16px;
+  text-align: center;
+}
+.dineflow-app #main-content .bookings-phone-period button {
+  display: grid;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+}
+.bookings-phone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bookings-phone-modes {
+  display: flex;
+  flex: 1;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--neutral-soft, #eef1ec);
+}
+.dineflow-app #main-content .bookings-phone-modes button {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+}
+.dineflow-app #main-content .bookings-phone-modes button[aria-pressed="true"] {
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(16 34 24 / 14%);
+  color: var(--ink);
+}
+.dineflow-app #main-content .bookings-phone-today {
+  flex: none;
+  width: auto;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.bookings-phone-filters > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.dineflow-app #main-content .bookings-phone-filters :is(select, .date-picker > button) {
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  padding-block: 0;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.bookings-phone-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Day groups. */
+.bookings-phone-day {
+  display: grid;
+  gap: 8px;
+}
+.dineflow-app #main-content .bookings-phone-day > h2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 2px 0;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+.bookings-phone-day > h2 span {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.bookings-phone-day > ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One booking. */
+.bookings-phone-card {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.bookings-phone-main {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+}
+.bookings-phone-main > time {
+  display: grid;
+  flex: none;
+  align-content: center;
+  justify-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.bookings-phone-main > time b {
+  font-size: 16px;
+  line-height: 1.1;
+}
+.bookings-phone-main > time small {
+  font-size: 11px;
+  font-weight: 700;
+}
+.bookings-phone-card:is([data-status="cancelled"], [data-status="no_show"]) time {
+  background: #fbe9e7;
+  color: #a33a2c;
+}
+.bookings-phone-card[data-status="completed"] time {
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--muted);
+}
+.bookings-phone-info {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 3px;
+  min-width: 0;
+}
+.bookings-phone-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bookings-phone-title strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bookings-phone-status {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.bookings-phone-card[data-status="pending"] .bookings-phone-status {
+  background: #fbefcf;
+  color: #6f4f0b;
+}
+.bookings-phone-card:is([data-status="cancelled"], [data-status="no_show"]) .bookings-phone-status {
+  background: #fbe9e7;
+  color: #a33a2c;
+}
+.bookings-phone-card[data-status="completed"] .bookings-phone-status {
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--muted);
+}
+.bookings-phone-info > p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 13.5px;
+}
+.bookings-phone-info > small {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.dineflow-app #main-content .bookings-phone-info > p.bookings-phone-note {
+  align-items: flex-start;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--ink);
+  font-size: 12.5px;
+}
+.bookings-phone-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+.bookings-phone-history {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding: 0 0 0 16px;
+  font-size: 12.5px;
+}
+.bookings-phone-history small {
+  margin-left: 6px;
+  color: var(--muted);
+}
+
+/* Actions under a divider, on the right; the next step is the filled one. */
+.bookings-phone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+}
+.dineflow-app #main-content .bookings-phone-actions button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+.dineflow-app #main-content .bookings-phone-actions .bookings-phone-icon {
+  width: 36px;
+  padding: 0;
+  color: var(--muted);
+}
+.dineflow-app #main-content .bookings-phone-actions .bookings-phone-quiet {
+  color: #a33a2c;
+}
+.dineflow-app #main-content .bookings-phone-actions .bookings-phone-primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+/* Nothing left to do: just the History button, tucked under the details. */
+.bookings-phone-actions[data-compact] {
+  margin-top: -8px;
+  padding-top: 0;
+  border-top: 0;
+}
+.dineflow-app #main-content .bookings-phone-actions[data-compact] .bookings-phone-icon {
+  width: 32px;
+  min-height: 32px;
+}

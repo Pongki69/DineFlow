@@ -76,7 +76,7 @@ test("riders can review a timed offer, accept it and navigate to pickup", async 
     .fill("Acceptance-Password-123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.locator("#main-content")).toBeVisible();
-  await page.goto("/settings");
+  await page.goto("/account");
   await page
     .getByRole("combobox", { name: "Vehicle", exact: true })
     .selectOption("motorcycle");

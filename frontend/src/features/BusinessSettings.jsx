@@ -8,12 +8,14 @@ import {
   CreditCard,
   Palette,
   Settings2,
+  ShoppingBag,
   Store,
   Truck,
   TriangleAlert,
   RefreshCw,
 } from "lucide-react";
 import { api } from "../api";
+import { subscribeToLiveChanges } from "../liveUpdates";
 import { Button, Feedback, Field, Skeleton } from "../components/ui";
 import { useSaveDock } from "../components/useSaveDock";
 import "./businessSettings.css";
@@ -43,6 +45,16 @@ function useBusinessSettings() {
   const lock = useRef(false);
   const mounted = useRef(false);
   const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(saved);
+  useEffect(() => {
+    if (dirty || saving || loading) return;
+    return subscribeToLiveChanges(async () => {
+      const result = await api("/admin/settings");
+      if (!mounted.current) return;
+      const next = settingsDraft(result.data);
+      setDraft(next);
+      setSaved(next);
+    }, ["settings"]);
+  }, [dirty, saving, loading]);
 
   useEffect(() => {
     mounted.current = true;
@@ -283,6 +295,74 @@ export function BusinessSettings() {
                         Choose your restaurant’s primary brand color.
                       </small>
                     </div>
+                    <div
+                      className="business-brand-preview"
+                      style={{ borderTopColor: draft.brand_color }}
+                      aria-label="Brand preview"
+                    >
+                      <span
+                        className="business-brand-swatch"
+                        style={{ backgroundColor: draft.brand_color }}
+                        aria-hidden="true"
+                      />
+                      <div>
+                        <strong>
+                          {draft.restaurant_name || "Your restaurant"}
+                        </strong>
+                        <small>Brand preview</small>
+                      </div>
+                    </div>
+                  </div>
+                </fieldset>
+                <fieldset
+                  className="business-settings-card business-settings-card--notifications"
+                  disabled={saving}
+                >
+                  <legend className="sr-only">Operational notifications</legend>
+                  <header>
+                    <span className="business-settings-icon">
+                      <Bell size={20} aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h2>Notifications</h2>
+                      <p>Control restaurant operational updates.</p>
+                    </div>
+                  </header>
+                  <div className="business-settings-fields">
+                    <label className="business-settings-check">
+                      <input
+                        name="notifications_enabled"
+                        type="checkbox"
+                        checked={draft.notifications_enabled}
+                        onChange={(event) =>
+                          change("notifications_enabled", event.target.checked)
+                        }
+                      />
+                      <span>
+                        <strong>Enable operational notifications</strong>
+                        <small>
+                          Send updates about restaurant orders, reservations,
+                          and deliveries.
+                        </small>
+                      </span>
+                    </label>
+                    <ul
+                      className="business-notification-topics"
+                      aria-label="Included operational updates"
+                    >
+                      <li>
+                        <ShoppingBag size={16} aria-hidden="true" />
+                        Order activity
+                      </li>
+                      <li>
+                        <CalendarDays size={16} aria-hidden="true" />
+                        Reservation changes
+                      </li>
+                      <li>
+                        <Truck size={16} aria-hidden="true" />
+                        Delivery progress
+                      </li>
+                    </ul>
                   </div>
                 </fieldset>
                 <fieldset
@@ -330,40 +410,6 @@ export function BusinessSettings() {
                     />
                   </div>
                 </fieldset>
-                <fieldset
-                  className="business-settings-card business-settings-card--notifications"
-                  disabled={saving}
-                >
-                  <legend className="sr-only">Operational notifications</legend>
-                  <header>
-                    <span className="business-settings-icon">
-                      <Bell size={20} aria-hidden="true" />
-                    </span>
-                    <div>
-                      <h2>Notifications</h2>
-                      <p>Control restaurant operational updates.</p>
-                    </div>
-                  </header>
-                  <div className="business-settings-fields">
-                    <label className="business-settings-check">
-                      <input
-                        name="notifications_enabled"
-                        type="checkbox"
-                        checked={draft.notifications_enabled}
-                        onChange={(event) =>
-                          change("notifications_enabled", event.target.checked)
-                        }
-                      />
-                      <span>
-                        <strong>Enable operational notifications</strong>
-                        <small>
-                          Send updates about restaurant orders, reservations,
-                          and deliveries.
-                        </small>
-                      </span>
-                    </label>
-                  </div>
-                </fieldset>
               </div>
               <aside
                 className="business-settings-related"
@@ -373,7 +419,7 @@ export function BusinessSettings() {
                   <Settings2 size={19} aria-hidden="true" />
                   <h2 id="business-related-title">More settings</h2>
                 </div>
-                <p>Open the right settings for each part of your restaurant.</p>
+                <p>Manage each part of your restaurant.</p>
                 <nav aria-label="Related restaurant settings">
                   {relatedSettings.map(([label, description, path, Icon]) => (
                     <Link key={path} to={path}>

@@ -31,7 +31,7 @@
   border: 0;
 }
 .app-shell[data-workspace="delivery"] .rider-sage-home .page-heading h1 {
-  font-size: clamp(25px, 2.4vw, 39.0625px);
+  font-size: var(--text-title);
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: -0.025em;
@@ -810,7 +810,7 @@
     gap: var(--df-space-5, 20px);
   }
   .app-shell[data-workspace="delivery"] .rider-sage-home .page-heading h1 {
-    font-size: var(--df-type-xl, 25px);
+    font-size: var(--text-title);
   }
   .app-shell[data-workspace="delivery"] .rider-dashboard-date {
     display: none;

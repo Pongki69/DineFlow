@@ -28,9 +28,10 @@ class StaffAccountController extends Controller
         return response()->json(['data' => Role::orderBy('name')->get(['id', 'name', 'slug'])]);
     }
 
-    public function auditLogs(): JsonResponse
+    public function auditLogs(Request $request): JsonResponse
     {
-        return response()->json(AuditLog::with('actor:id,name,email')->latest()->paginate(50));
+        $data = $request->validate(['per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
+        return response()->json(AuditLog::with('actor:id,name,email')->latest()->orderByDesc('id')->paginate($data['per_page'] ?? 20));
     }
 
     public function store(Request $request, AuditLogService $audit): JsonResponse

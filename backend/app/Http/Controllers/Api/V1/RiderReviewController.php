@@ -15,7 +15,10 @@ class RiderReviewController extends Controller
     {
         $data = $request->validate(['rating' => ['required', 'integer', 'between:1,5'], 'comment' => ['nullable', 'string', 'max:1000'], 'categories' => ['sometimes', 'array', 'max:4'], 'categories.*' => ['required', 'string', 'distinct', Rule::in(array_keys(RiderReviewService::CATEGORIES))], 'show_name' => ['sometimes', 'boolean']]);
 
-        return response()->json(['message' => $request->isMethod('PATCH') ? 'Review updated.' : 'Thank you for rating your rider.', 'data' => $service->save($delivery, $request->user(), $data, $request->isMethod('PATCH'))]);
+        $review = $service->save($delivery, $request->user(), $data, $request->isMethod('PATCH'));
+        try { broadcast(new \App\Events\WorkspaceUpdated(['reviews'])); }
+        catch (\Throwable $exception) { report($exception); }
+        return response()->json(['message' => $request->isMethod('PATCH') ? 'Review updated.' : 'Thank you for rating your rider.', 'data' => $review]);
     }
 
     public function profile(Request $request, User $rider, RiderReviewService $service)

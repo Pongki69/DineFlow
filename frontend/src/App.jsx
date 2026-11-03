@@ -5,10 +5,9 @@ import {
   Routes,
   useLocation,
   useNavigate,
-  Link,
 } from "react-router-dom";
 import { api } from "./api";
-import { visibleNavigation } from "./navigation";
+import { defaultStartPath, visibleNavigation } from "./navigation";
 import { Account } from "./Account";
 import { AppShell } from "./components/AppShell";
 import { RiderScreenSkeleton } from "./components/RiderScreenSkeleton";
@@ -19,6 +18,11 @@ import { MenuBrowser } from "./features/Menu";
 import { useWorkspaceTheme } from "./components/useWorkspaceTheme";
 import { signInDestination } from "./components/signInDestination";
 import { RiderDispatchPanel } from "./components/RiderDispatchPanel";
+import { LiveUpdates } from "./components/LiveUpdates";
+import { CustomerScreenSkeleton } from "./components/CustomerScreenSkeleton";
+import { useMediaQuery } from "./components/useMediaQuery";
+import { subscribeToLiveChanges } from "./liveUpdates";
+import { initializeRealtime } from "./realtime";
 import "./features/workspaceSettings.css";
 import "./components/RiderScreenSkeleton.css";
 const WorkspaceSettings = screen(
@@ -36,10 +40,6 @@ const AdminDashboard = screen(
 const OutletManager = screen(
   () => import("./features/AdminWorkspace"),
   "OutletManager",
-);
-const RiderFleet = screen(
-  () => import("./features/AdminWorkspace"),
-  "RiderFleet",
 );
 const RiderOverview = screen(
   () => import("./features/RiderWorkspace"),
@@ -66,10 +66,6 @@ const MenuAdmin = screen(() => import("./features/CatalogAdmin"), "MenuAdmin");
 const StaffAccounts = screen(
   () => import("./features/Administration"),
   "StaffAccounts",
-);
-const AuditLogView = screen(
-  () => import("./features/Administration"),
-  "AuditLogView",
 );
 const ReservationBooking = screen(
   () => import("./Reservations"),
@@ -137,9 +133,29 @@ const ReportsDashboard = screen(
   () => import("./AdminOperations"),
   "ReportsDashboard",
 );
-const CashierSummary = screen(
-  () => import("./AdminOperations"),
-  "CashierSummary",
+const CashierToday = screen(
+  () => import("./features/CashierToday.jsx"),
+  "CashierToday",
+);
+const CashierDesk = screen(
+  () => import("./features/CashierDesk.jsx"),
+  "CashierDesk",
+);
+const MyActivity = screen(
+  () => import("./features/ActivityLog.jsx"),
+  "MyActivity",
+);
+const TeamActivity = screen(
+  () => import("./features/ActivityLog.jsx"),
+  "TeamActivity",
+);
+const AdminCustomers = screen(
+  () => import("./features/AdminCustomers.jsx"),
+  "AdminCustomers",
+);
+const WaiterFloor = screen(
+  () => import("./features/WaiterFloor.jsx"),
+  "WaiterFloor",
 );
 
 class ScreenBoundary extends Component {
@@ -163,9 +179,52 @@ class ScreenBoundary extends Component {
 }
 
 function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
+  useEffect(
+    () =>
+      subscribeToLiveChanges(async () => {
+        const result = await api("/me");
+        onUserUpdated(result.user);
+      }, ["accounts"]),
+    [user.id, onUserUpdated],
+  );
   const navigate = useNavigate();
   const links = visibleNavigation(user.permissions, user.roles);
+  const cashierOnly =
+    user.roles.includes("cashier") &&
+    !user.roles.some((role) => ["administrator", "manager"].includes(role));
+  const waiterOnly =
+    user.roles.includes("waiter") &&
+    !user.roles.some((role) =>
+      ["administrator", "manager", "cashier"].includes(role),
+    );
   const location = useLocation();
+  // Phones apply live updates by themselves; pull to refresh is the manual way.
+  const compactScreen = useMediaQuery("(max-width: 850px)");
+  // Pull to refresh reopens the page: it loads again behind its own skeleton.
+  const [pageRefresh, setPageRefresh] = useState(0);
+  useEffect(() => {
+    const reopen = () => setPageRefresh((value) => value + 1);
+    window.addEventListener("dineflow:reload-page", reopen);
+    return () => window.removeEventListener("dineflow:reload-page", reopen);
+  }, []);
+  // Customers: a placeholder shaped like the page that is loading.
+  const customerLoadingVariant = !user.roles.includes("customer")
+    ? null
+    : location.pathname === "/menu"
+      ? "menu"
+      : location.pathname === "/my-orders"
+        ? "orders"
+        : location.pathname === "/reserve"
+          ? "booking"
+          : location.pathname === "/my-reservations"
+            ? "bookings"
+            : location.pathname === "/settings"
+              ? "profile"
+              : location.pathname === "/account"
+                ? "account"
+                : location.pathname.startsWith("/delivery/")
+                  ? "tracking"
+                  : null;
   const riderLoadingVariant =
     location.pathname === "/rider"
       ? "dashboard"
@@ -177,7 +236,10 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
             ? "reviews"
             : location.pathname.startsWith("/rider/deliveries/")
               ? "details"
-              : null;
+              : location.pathname === "/settings" &&
+                  user.roles.includes("rider")
+                ? "profile"
+                : null;
   const screens = {
     "/account": <Account user={user} onUpdated={onUserUpdated} />,
     "/settings": (
@@ -198,17 +260,25 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
     "/orders": <OrdersView staff user={user} />,
     "/kitchen": <OrdersView kitchen staff user={user} />,
     "/admin/users": <StaffAccounts />,
-    "/admin/audit": <AuditLogView />,
+    "/admin/customers": <AdminCustomers />,
+    "/admin/audit": <TeamActivity />,
+    "/activity": <MyActivity />,
     "/admin/menu": <MenuAdmin />,
     "/reserve": <ReservationBooking user={user} />,
     "/my-reservations": <MyReservations />,
     "/reservations": <ReservationCalendar user={user} />,
     "/admin/floor-plan": <FloorPlanEditor />,
-    "/service": <TableOccupancy />,
+    // Waiters get the floor; managers keep the full occupancy board.
+    "/service": waiterOnly ? <WaiterFloor /> : <TableOccupancy />,
     "/admin/settings": <ReservationSettings />,
     "/admin/business-settings": <BusinessSettings />,
     "/admin/payment-settings": <PaymentSettings />,
-    "/payments": <PaymentDashboard user={user} />,
+    // Cashiers get the counter desk; managers and admins the full payments view.
+    "/payments": cashierOnly ? (
+      <CashierDesk />
+    ) : (
+      <PaymentDashboard user={user} />
+    ),
     "/admin/delivery": <DeliverySettings />,
     "/admin/deliveries": <DispatchDashboard />,
     "/admin/tracking": <AdminDashboard user={user} tracking />,
@@ -216,7 +286,7 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
     "/admin/orders": <OrdersView staff user={user} />,
     "/admin/system-settings": <BusinessSettings />,
     "/admin/outlets": <OutletManager />,
-    "/admin/riders": <RiderFleet user={user} />,
+    "/admin/riders": <Navigate to="/admin/tracking?view=riders" replace />,
     "/rider": <RiderOverview user={user} />,
     "/rider/deliveries": <RiderDeliveries />,
     "/rider/history": <RiderHistory />,
@@ -224,7 +294,7 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
     "/rider/offers": null,
     "/dashboard": <OperationsDashboard user={user} />,
     "/reports": <ReportsDashboard user={user} />,
-    "/cashier/summary": <CashierSummary />,
+    "/cashier/summary": <CashierToday user={user} />,
     "/restaurant": (
       <section className="welcome">
         <RestaurantLocation />
@@ -233,6 +303,10 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
   };
   return (
     <AppShell user={user} onSignOut={onSignOut}>
+      <LiveUpdates
+        userId={user.id}
+        seamless={user.roles.includes("rider") || compactScreen}
+      />
       {signOutError && <Feedback>{signOutError}</Feedback>}
       {user.roles.includes("rider") &&
         user.permissions.includes("deliveries.assigned") && (
@@ -257,11 +331,13 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
             />
           </div>
         )}
-      <ScreenBoundary key={location.pathname}>
+      <ScreenBoundary key={`${location.pathname}#${pageRefresh}`}>
         <Suspense
           fallback={
             riderLoadingVariant ? (
               <RiderScreenSkeleton variant={riderLoadingVariant} showHeading />
+            ) : customerLoadingVariant ? (
+              <CustomerScreenSkeleton variant={customerLoadingVariant} />
             ) : (
               <Skeleton label="Loading your page" />
             )
@@ -276,12 +352,7 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
                     user.preferences?.home_page === "/account" ||
                     links.some(([, , to]) => to === user.preferences?.home_page)
                       ? user.preferences.home_page
-                      : links.find(
-                          ([, , to]) => to === "/admin/dashboard",
-                        )?.[2] ||
-                        links.find(([, , to]) => to === "/dashboard")?.[2] ||
-                        links[0]?.[2] ||
-                        "/account"
+                      : defaultStartPath(links, user.roles)
                   }
                   replace
                 />
@@ -331,14 +402,36 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
   );
 }
 
+const REPLACED_KEY = "dineflow.signedInElsewhere";
+
 function AppContent() {
+  useEffect(() => {
+    initializeRealtime().catch(() => {});
+  }, []);
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState(null),
     [ready, setReady] = useState(false),
     [error, setError] = useState(""),
     [retry, setRetry] = useState(0),
-    [signOutError, setSignOutError] = useState("");
+    [signOutError, setSignOutError] = useState(""),
+    [replaced, setReplacedState] = useState(() => {
+      try {
+        return sessionStorage.getItem(REPLACED_KEY) === "1";
+      } catch {
+        return false;
+      }
+    });
+  // Kept for this tab, so a reload still says why it was signed out.
+  const setReplaced = (value) => {
+    setReplacedState(value);
+    try {
+      if (value) sessionStorage.setItem(REPLACED_KEY, "1");
+      else sessionStorage.removeItem(REPLACED_KEY);
+    } catch {
+      // Storage can be unavailable (private mode); the notice still shows now.
+    }
+  };
   useEffect(() => {
     const controller = new AbortController();
     setReady(false);
@@ -346,6 +439,7 @@ function AppContent() {
     api("/me", { signal: controller.signal })
       .then((data) => setUser(data.user))
       .catch((failure) => {
+        if (failure.code === "session_replaced") setReplaced(true);
         if (!controller.signal.aborted && ![401, 419].includes(failure.status))
           setError(failure.message);
       })
@@ -354,6 +448,17 @@ function AppContent() {
       });
     return () => controller.abort();
   }, [retry]);
+  // Signed in somewhere else: drop this device back to the sign-in page.
+  useEffect(() => {
+    const signedOutHere = () => {
+      setReplaced(true);
+      setUser(null);
+      navigate("/login", { replace: true });
+    };
+    window.addEventListener("dineflow:session-replaced", signedOutHere);
+    return () =>
+      window.removeEventListener("dineflow:session-replaced", signedOutHere);
+  }, [navigate]);
   async function signOut() {
     try {
       await api("/logout", { method: "POST" });
@@ -374,6 +479,7 @@ function AppContent() {
       requested,
       window.location.origin,
     );
+    setReplaced(false);
     setUser(nextUser);
     navigate(destination, { replace: true });
   }
@@ -416,14 +522,13 @@ function AppContent() {
         </Suspense>
       ) : (
         <div className="production-auth">
-          <Link to="/" className="auth-restaurant-link">
-            ← Back to restaurant
-          </Link>
           <AuthScreen
             initialNotice={
               location.state?.accountDeleted
                 ? "Your account has been deleted."
-                : ""
+                : replaced
+                  ? "You were signed out because your account signed in on another device. Only one device can use an account at a time."
+                  : ""
             }
             key={location.pathname}
             initialMode={

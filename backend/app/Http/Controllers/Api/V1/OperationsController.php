@@ -28,7 +28,7 @@ class OperationsController extends Controller
         $data = ['range' => ['from' => $from->toDateString(), 'to' => $to->toDateString()]];
 
         if ($user->hasPermission('orders.view') || $user->hasPermission('orders.manage')) {
-            $orders = Order::whereBetween('created_at', [$from, $to]);
+            $orders = Order::whereBetween('created_at', $this->stored($from, $to));
             $data['orders'] = [
                 'count' => (clone $orders)->count(),
                 'active' => (clone $orders)->whereIn('status', ['pending', 'confirmed', 'preparing', 'ready_to_serve', 'served'])->count(),
@@ -40,8 +40,8 @@ class OperationsController extends Controller
         if ($user->hasPermission('reservations.manage')) {
             $data['reservations'] = [
                 'upcoming' => Reservation::with(['table:id,table_number', 'tables:id,table_number'])->whereIn('status', ['pending', 'confirmed', 'checked_in', 'seated'])->whereBetween('starts_at', [$now, $now->copy()->addDays(7)])->orderBy('starts_at')->limit(8)->get(['id','reference','table_id','guest_name','guest_count','starts_at','status']),
-                'cancelled' => Reservation::whereBetween('starts_at', [$from, $to])->where('status', 'cancelled')->count(),
-                'no_show' => Reservation::whereBetween('starts_at', [$from, $to])->where('status', 'no_show')->count(),
+                'cancelled' => Reservation::whereBetween('starts_at', $this->stored($from, $to))->where('status', 'cancelled')->count(),
+                'no_show' => Reservation::whereBetween('starts_at', $this->stored($from, $to))->where('status', 'no_show')->count(),
                 'today' => Reservation::whereBetween('starts_at', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])->whereNotIn('status', ['cancelled', 'no_show'])->count(),
             ];
         }
@@ -50,14 +50,14 @@ class OperationsController extends Controller
             $data['open_sessions'] = DiningSession::with('table:id,table_number')->where('status', 'open')->latest('opened_at')->limit(8)->get(['id','table_id','guest_count','opened_at']);
         }
         if ($user->hasPermission('deliveries.manage')) {
-            $data['deliveries'] = ['active' => Delivery::whereNotIn('status', Delivery::TERMINAL)->count(), 'unassigned' => Delivery::where('status', 'pending_assignment')->count(), 'delivered' => Delivery::whereBetween('delivered_at', [$from, $to])->count(), 'failed' => Delivery::whereBetween('updated_at', [$from, $to])->where('status', 'failed')->count()];
+            $data['deliveries'] = ['active' => Delivery::whereNotIn('status', Delivery::TERMINAL)->count(), 'unassigned' => Delivery::where('status', 'pending_assignment')->count(), 'delivered' => Delivery::whereBetween('delivered_at', $this->stored($from, $to))->count(), 'failed' => Delivery::whereBetween('updated_at', $this->stored($from, $to))->where('status', 'failed')->count()];
         }
         if ($user->hasPermission('payments.manage') || $user->hasPermission('payments.refund')) {
             $data['recent_payments'] = Payment::with(['order:id,order_number','reservation:id,reference','receivedBy:id,name'])->latest()->limit(8)->get(['id','order_id','reservation_id','dining_session_id','purpose','method','status','amount','currency','reference_number','received_by','paid_at','created_at']);
-            $data['payments'] = ['paid' => Payment::where('status', 'paid')->whereBetween('paid_at', [$from, $to])->sum('amount'), 'refunded' => Payment::where('status', 'refunded')->whereBetween('refunded_at', [$from, $to])->sum('amount'), 'pending' => Payment::where('status', 'pending')->count()];
+            $data['payments'] = ['paid' => Payment::where('status', 'paid')->whereBetween('paid_at', $this->stored($from, $to))->sum('amount'), 'refunded' => Payment::where('status', 'refunded')->whereBetween('refunded_at', $this->stored($from, $to))->sum('amount'), 'pending' => Payment::where('status', 'pending')->count()];
         }
         if ($user->hasPermission('reports.operations') || $user->hasPermission('reports.financial') || $user->hasPermission('reports.daily_transactions')) {
-            $data['popular_items'] = OrderItem::whereHas('order', fn ($q) => $q->whereNotIn('status', ['cancelled'])->whereBetween('created_at', [$from, $to]))
+            $data['popular_items'] = OrderItem::whereHas('order', fn ($q) => $q->whereNotIn('status', ['cancelled'])->whereBetween('created_at', $this->stored($from, $to)))
                 ->select('item_name_snapshot', DB::raw('sum(quantity) as quantity'), DB::raw('sum(line_total) as sales'))->groupBy('item_name_snapshot')->orderByDesc('quantity')->limit(5)->get();
         }
         return response()->json(['data' => $data]);
@@ -70,32 +70,31 @@ class OperationsController extends Controller
         $user = $request->user();
         $data = ['range' => ['from' => $from->toDateString(), 'to' => $to->toDateString()]];
         if ($user->hasPermission('reports.operations') || $user->hasPermission('reports.financial')) {
-            $orders = Order::whereBetween('created_at', [$from, $to])->whereNotIn('status', ['cancelled']);
+            $orders = Order::whereBetween('created_at', $this->stored($from, $to))->whereNotIn('status', ['cancelled']);
             $data['sales'] = ['orders' => (clone $orders)->count(), 'gross' => (clone $orders)->sum('total'), 'discounts' => (clone $orders)->sum('item_discount_total'), 'tax' => (clone $orders)->sum('tax'), 'service_charges' => (clone $orders)->sum('service_charge'), 'delivery_fees' => (clone $orders)->sum('delivery_fee')];
-            $dailySales = [];
-            (clone $orders)->select(['id','created_at','total'])->orderBy('id')->chunk(1000, function ($rows) use (&$dailySales): void {
-                foreach ($rows as $order) {
-                    $date = $order->created_at->timezone($this->timezone())->toDateString();
-                    $dailySales[$date] ??= ['date' => $date, 'orders' => 0, 'gross' => 0.0];
-                    $dailySales[$date]['orders']++;
-                    $dailySales[$date]['gross'] += (float) $order->total;
-                }
-            });
-            ksort($dailySales);
-            $data['sales_by_day'] = array_values($dailySales);
+            $data['sales_by_day'] = $this->dailySales($from, $to);
+            // The same span just before this one, for "vs previous" figures.
+            $span = (int) $from->copy()->startOfDay()->diffInDays($to->copy()->startOfDay()) + 1;
+            $previousFrom = $from->copy()->subDays($span);
+            $previousTo = $from->copy()->subSecond();
+            $previous = Order::whereBetween('created_at', $this->stored($previousFrom, $previousTo))->whereNotIn('status', ['cancelled']);
+            $data['previous_sales'] = ['from' => $previousFrom->toDateString(), 'to' => $previousTo->toDateString(), 'orders' => (clone $previous)->count(), 'gross' => (clone $previous)->sum('total')];
+            // The day chart always shows at least a week.
+            $trendFrom = $span < 7 ? $to->copy()->startOfDay()->subDays(6) : $from;
+            $data['sales_trend'] = ['from' => $trendFrom->toDateString(), 'to' => $to->toDateString(), 'days' => $trendFrom->equalTo($from) ? $data['sales_by_day'] : $this->dailySales($trendFrom, $to)];
             $data['orders_by_type'] = (clone $orders)->select('order_type', DB::raw('count(*) as orders'), DB::raw('sum(total) as total'))->groupBy('order_type')->get();
-            $data['orders_by_status'] = Order::whereBetween('created_at', [$from, $to])->select('status', DB::raw('count(*) as total'))->groupBy('status')->get();
-            $data['popular_items'] = OrderItem::whereHas('order', fn ($q) => $q->whereNotIn('status', ['cancelled'])->whereBetween('created_at', [$from, $to]))->select('item_name_snapshot', DB::raw('sum(quantity) as quantity'), DB::raw('sum(line_total) as sales'))->groupBy('item_name_snapshot')->orderByDesc('quantity')->limit(10)->get();
-            $data['reservations'] = ['total' => Reservation::whereBetween('starts_at', [$from, $to])->count(), 'cancelled' => Reservation::whereBetween('starts_at', [$from, $to])->where('status', 'cancelled')->count(), 'no_show' => Reservation::whereBetween('starts_at', [$from, $to])->where('status', 'no_show')->count(), 'completed' => Reservation::whereBetween('starts_at', [$from, $to])->where('status', 'completed')->count()];
-            $data['deliveries'] = Delivery::whereHas('order', fn ($q) => $q->whereBetween('created_at', [$from, $to]))->select('status', DB::raw('count(*) as total'))->groupBy('status')->get();
-            $delivered = Delivery::with(['order:id,created_at','rider:id,name'])->whereNotNull('delivered_at')->whereHas('order', fn ($q) => $q->whereBetween('created_at', [$from, $to]))->get();
+            $data['orders_by_status'] = Order::whereBetween('created_at', $this->stored($from, $to))->select('status', DB::raw('count(*) as total'))->groupBy('status')->get();
+            $data['popular_items'] = OrderItem::whereHas('order', fn ($q) => $q->whereNotIn('status', ['cancelled'])->whereBetween('created_at', $this->stored($from, $to)))->select('item_name_snapshot', DB::raw('sum(quantity) as quantity'), DB::raw('sum(line_total) as sales'))->groupBy('item_name_snapshot')->orderByDesc('quantity')->limit(10)->get();
+            $data['reservations'] = ['total' => Reservation::whereBetween('starts_at', $this->stored($from, $to))->count(), 'cancelled' => Reservation::whereBetween('starts_at', $this->stored($from, $to))->where('status', 'cancelled')->count(), 'no_show' => Reservation::whereBetween('starts_at', $this->stored($from, $to))->where('status', 'no_show')->count(), 'completed' => Reservation::whereBetween('starts_at', $this->stored($from, $to))->where('status', 'completed')->count()];
+            $data['deliveries'] = Delivery::whereHas('order', fn ($q) => $q->whereBetween('created_at', $this->stored($from, $to)))->select('status', DB::raw('count(*) as total'))->groupBy('status')->get();
+            $delivered = Delivery::with(['order:id,created_at','rider:id,name'])->whereNotNull('delivered_at')->whereHas('order', fn ($q) => $q->whereBetween('created_at', $this->stored($from, $to)))->get();
             $measuredTrips = $delivered->filter(fn ($delivery) => $delivery->picked_up_at !== null);
             $data['delivery_performance'] = ['completed' => $delivered->count(), 'average_minutes' => $measuredTrips->isEmpty() ? null : round($measuredTrips->avg(fn ($delivery) => $delivery->picked_up_at->diffInMinutes($delivery->delivered_at)), 1), 'by_rider' => $delivered->groupBy(fn ($delivery) => $delivery->rider?->name ?? 'Unassigned')->map(fn ($rows,$rider) => ['rider'=>$rider,'delivered'=>$rows->count()])->values()];
             $data['table_occupancy'] = ['total_tables' => RestaurantTable::count(), 'active_tables' => RestaurantTable::where('is_active', true)->count(), 'current' => RestaurantTable::where('is_active', true)->select('operational_status', DB::raw('count(*) as total'))->groupBy('operational_status')->get()];
-            $data['table_occupancy']['changes'] = DB::table('table_occupancy_history')->whereBetween('created_at', [$from,$to])->select('to_status', DB::raw('count(*) as total'))->groupBy('to_status')->get();
+            $data['table_occupancy']['changes'] = DB::table('table_occupancy_history')->whereBetween('created_at', $this->stored($from, $to))->select('to_status', DB::raw('count(*) as total'))->groupBy('to_status')->get();
         }
         if ($user->hasPermission('reports.financial') || $user->hasPermission('reports.daily_transactions')) {
-            $data['payments'] = ['by_status' => Payment::whereBetween('created_at', [$from, $to])->select('status', DB::raw('count(*) as count'), DB::raw('sum(amount) as amount'))->groupBy('status')->get(), 'by_method' => Payment::where('status', 'paid')->whereBetween('paid_at', [$from, $to])->select('method', DB::raw('count(*) as count'), DB::raw('sum(amount) as amount'))->groupBy('method')->get(), 'refunds' => Payment::where('status', 'refunded')->whereBetween('refunded_at', [$from, $to])->sum('amount')];
+            $data['payments'] = ['by_status' => Payment::whereBetween('created_at', $this->stored($from, $to))->select('status', DB::raw('count(*) as count'), DB::raw('sum(amount) as amount'))->groupBy('status')->get(), 'by_method' => Payment::where('status', 'paid')->whereBetween('paid_at', $this->stored($from, $to))->select('method', DB::raw('count(*) as count'), DB::raw('sum(amount) as amount'))->groupBy('method')->get(), 'refunds' => Payment::where('status', 'refunded')->whereBetween('refunded_at', $this->stored($from, $to))->sum('amount')];
         }
         return response()->json(['data' => $data]);
     }
@@ -104,7 +103,7 @@ class OperationsController extends Controller
     {
         abort_unless($request->user()->hasPermission('reports.daily_transactions'), 403);
         $to = Carbon::now($this->timezone()); $from = $to->copy()->startOfDay();
-        return response()->json(['data' => ['date' => $from->toDateString(), 'paid_total' => Payment::where('status', 'paid')->whereBetween('paid_at', [$from, $to])->sum('amount'), 'refund_total' => Payment::where('status', 'refunded')->whereBetween('refunded_at', [$from, $to])->sum('amount'), 'payment_count' => Payment::where('status', 'paid')->whereBetween('paid_at', [$from, $to])->count(), 'recent' => Payment::with(['order:id,order_number','reservation:id,reference','receivedBy:id,name'])->whereBetween('created_at', [$from, $to])->latest()->limit(50)->get(['id','order_id','reservation_id','dining_session_id','method','status','amount','currency','reference_number','received_by','paid_at','created_at'])]]);
+        return response()->json(['data' => ['date' => $from->toDateString(), 'paid_total' => Payment::where('status', 'paid')->whereBetween('paid_at', $this->stored($from, $to))->sum('amount'), 'refund_total' => Payment::where('status', 'refunded')->whereBetween('refunded_at', $this->stored($from, $to))->sum('amount'), 'payment_count' => Payment::where('status', 'paid')->whereBetween('paid_at', $this->stored($from, $to))->count(), 'recent' => Payment::with(['order:id,order_number','reservation:id,reference','receivedBy:id,name'])->whereBetween('created_at', $this->stored($from, $to))->latest()->limit(50)->get(['id','order_id','reservation_id','dining_session_id','method','status','amount','currency','reference_number','received_by','paid_at','created_at'])]]);
     }
 
     public function export(Request $request): StreamedResponse
@@ -119,10 +118,10 @@ class OperationsController extends Controller
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
             $sets = [
-                'orders' => [Order::whereBetween('created_at', [$from,$to])->with('delivery:id,order_id,status')->orderBy('created_at'), ['Order','Created at','Type','Status','Customer','Total PHP','Payment status','Delivery status'], fn ($r) => [$r->order_number,$r->created_at?->toIso8601String(),$r->order_type,$r->status,$r->customer_name_snapshot,$r->total,$r->payments()->where('status','paid')->exists()?'paid':'unpaid',$r->delivery?->status]],
-                'payments' => [Payment::with(['order:id,order_number','reservation:id,reference','receivedBy:id,name'])->whereBetween('created_at', [$from,$to])->orderBy('created_at'), ['Reference','Created at','Purpose','Method','Status','Amount','Currency','Order','Reservation','Received by'], fn ($r) => [$r->reference_number,$r->created_at?->toIso8601String(),$r->purpose,$r->method,$r->status,$r->amount,$r->currency,$r->order?->order_number,$r->reservation?->reference,$r->receivedBy?->name]],
-                'reservations' => [Reservation::with(['table:id,table_number', 'tables:id,table_number'])->whereBetween('starts_at', [$from,$to])->orderBy('starts_at'), ['Reference','Starts at','Status','Guest','Guest count','Tables'], fn ($r) => [$r->reference,$r->starts_at?->toIso8601String(),$r->status,$r->guest_name,$r->guest_count,$r->tables->pluck('table_number')->join(', ') ?: $r->table?->table_number]],
-                'deliveries' => [Delivery::with(['order:id,order_number,created_at','rider:id,name'])->whereHas('order', fn ($q) => $q->whereBetween('created_at', [$from,$to]))->orderBy('created_at'), ['Order','Created at','Status','Rider','Delivered at','Failure reason'], fn ($r) => [$r->order?->order_number,$r->created_at?->toIso8601String(),$r->status,$r->rider?->name,$r->delivered_at?->toIso8601String(),$r->failure_reason]],
+                'orders' => [Order::whereBetween('created_at', $this->stored($from, $to))->with('delivery:id,order_id,status')->orderBy('created_at'), ['Order','Created at','Type','Status','Customer','Total PHP','Payment status','Delivery status'], fn ($r) => [$r->order_number,$r->created_at?->toIso8601String(),$r->order_type,$r->status,$r->customer_name_snapshot,$r->total,$r->payments()->where('status','paid')->exists()?'paid':'unpaid',$r->delivery?->status]],
+                'payments' => [Payment::with(['order:id,order_number','reservation:id,reference','receivedBy:id,name'])->whereBetween('created_at', $this->stored($from, $to))->orderBy('created_at'), ['Reference','Created at','Purpose','Method','Status','Amount','Currency','Order','Reservation','Received by'], fn ($r) => [$r->reference_number,$r->created_at?->toIso8601String(),$r->purpose,$r->method,$r->status,$r->amount,$r->currency,$r->order?->order_number,$r->reservation?->reference,$r->receivedBy?->name]],
+                'reservations' => [Reservation::with(['table:id,table_number', 'tables:id,table_number'])->whereBetween('starts_at', $this->stored($from, $to))->orderBy('starts_at'), ['Reference','Starts at','Status','Guest','Guest count','Tables'], fn ($r) => [$r->reference,$r->starts_at?->toIso8601String(),$r->status,$r->guest_name,$r->guest_count,$r->tables->pluck('table_number')->join(', ') ?: $r->table?->table_number]],
+                'deliveries' => [Delivery::with(['order:id,order_number,created_at','rider:id,name'])->whereHas('order', fn ($q) => $q->whereBetween('created_at', $this->stored($from, $to)))->orderBy('created_at'), ['Order','Created at','Status','Rider','Delivered at','Failure reason'], fn ($r) => [$r->order?->order_number,$r->created_at?->toIso8601String(),$r->status,$r->rider?->name,$r->delivered_at?->toIso8601String(),$r->failure_reason]],
             ];
             [$query,$headers,$row] = $sets[$dataset];
             fputcsv($out, $headers);
@@ -146,6 +145,22 @@ class OperationsController extends Controller
         return response()->json(['data'=>['business_profile'=>array_intersect_key($data,array_flip(['restaurant_name','timezone','brand_color','notifications_enabled'])),'tax_percent'=>(float)$data['tax_percent'],'service_charge_percent'=>(float)$data['service_charge_percent']]]);
     }
 
+    /** Order count and gross per business day, for days that had orders. */
+    private function dailySales(Carbon $from, Carbon $to): array
+    {
+        $days = [];
+        Order::whereBetween('created_at', $this->stored($from, $to))->whereNotIn('status', ['cancelled'])->select(['id','created_at','total'])->orderBy('id')->chunk(1000, function ($rows) use (&$days): void {
+            foreach ($rows as $order) {
+                $date = $order->created_at->timezone($this->timezone())->toDateString();
+                $days[$date] ??= ['date' => $date, 'orders' => 0, 'gross' => 0.0];
+                $days[$date]['orders']++;
+                $days[$date]['gross'] += (float) $order->total;
+            }
+        });
+        ksort($days);
+        return array_values($days);
+    }
+
     private function period(Request $request): array
     {
         $data = $request->validate(['from'=>['nullable','date'],'to'=>['nullable','date','after_or_equal:from']]);
@@ -154,6 +169,16 @@ class OperationsController extends Controller
         $to = Carbon::parse($data['to'] ?? $businessToday, $this->timezone())->endOfDay();
         abort_if($from->diffInDays($to) > 366, 422, 'Choose a report range of 366 days or less.');
         return [$from,$to];
+    }
+
+    /**
+     * Range ends as stored: timestamps are saved in the app timezone (UTC), while
+     * report days are business days, so convert before comparing.
+     */
+    private function stored(Carbon $from, Carbon $to): array
+    {
+        $zone = config('app.timezone', 'UTC');
+        return [$from->copy()->setTimezone($zone), $to->copy()->setTimezone($zone)];
     }
 
     private function timezone(): string

@@ -163,3 +163,59 @@ it("ignores damaged saved data and works when browser storage is unavailable", a
   expect(screen.getByLabelText("Quantity: 1")).toBeTruthy();
   storage.mockRestore();
 });
+
+it("opens a bottom sheet for dish options on mobile and requires a size", async () => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query) => ({ matches: query === "(max-width: 767px)" })),
+  );
+  HTMLDialogElement.prototype.showModal ??= function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close ??= function () {
+    this.open = false;
+  };
+  const base = api.getMockImplementation();
+  api.mockImplementation(async (path, options) =>
+    path.startsWith("/menu/items")
+      ? {
+          data: [
+            {
+              id: 8,
+              name: "Sized Dish",
+              base_price: 100,
+              variants: [
+                { id: 1, name: "Regular", price_adjustment: 0 },
+                { id: 2, name: "Large", price_adjustment: 40 },
+              ],
+              addons: [{ id: 5, name: "Egg", price: 15 }],
+            },
+          ],
+          last_page: 1,
+        }
+      : base(path, options),
+  );
+  render(<MenuBrowser user={{ id: 1 }} />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Add to order", exact: true }),
+  );
+  const sheet = within(screen.getByRole("dialog", { name: "Sized Dish" }));
+  expect(screen.queryByRole("combobox", { name: /Size for/ })).toBeNull();
+
+  fireEvent.click(sheet.getByRole("button", { name: /Add to order/ }));
+  expect(sheet.getByRole("alert").textContent).toBe(
+    "Choose a size to continue.",
+  );
+  expect(readSavedCart(1)).toEqual([]);
+
+  fireEvent.click(sheet.getByRole("radio", { name: /Large/ }));
+  fireEvent.click(sheet.getByRole("switch", { name: /Egg/ }));
+  const add = sheet.getByRole("button", { name: /Add to order/ });
+  expect(add.textContent).toContain("₱155.00");
+  fireEvent.click(add);
+  const panel = within(
+    screen.getByRole("complementary", { name: "Your order" }),
+  );
+  expect(panel.getByText("Large")).toBeTruthy();
+  expect(panel.getByText("Egg")).toBeTruthy();
+});

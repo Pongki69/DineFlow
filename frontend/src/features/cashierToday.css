@@ -1,0 +1,270 @@
+/* ---- Today at the counter ------------------------------------------------ */
+.cashier-today {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+.cashier-today-head h1 {
+  margin: 0;
+  font-size: 22px;
+}
+.cashier-today-head p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+@media (max-width: 850px) {
+  /* The title bar already names the page on phones. */
+  .cashier-today-head h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+
+/* Cash drawer. */
+.cashier-drawer {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.cashier-drawer[data-open] {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+.cashier-drawer > header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cashier-drawer > header div {
+  display: grid;
+}
+.cashier-drawer > header small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.cashier-drawer-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.cashier-drawer-figures {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.cashier-drawer-figures div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.cashier-drawer-figures dt {
+  color: var(--muted);
+}
+.cashier-drawer-figures dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-drawer-figures [data-kind="total"] {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-weight: 800;
+}
+.cashier-drawer-figures [data-kind="total"] dt {
+  color: var(--ink);
+}
+.cashier-drawer-form {
+  display: grid;
+  gap: 10px;
+}
+.cashier-drawer-difference {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+.cashier-drawer-difference[data-tone="even"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.cashier-drawer-difference[data-tone="over"] {
+  background: #fbefcf;
+  color: #6f4f0b;
+}
+.cashier-drawer-difference[data-tone="short"] {
+  background: var(--df-status-danger-bg, #fbe3df);
+  color: var(--df-status-danger-text, #9b2c22);
+}
+.cashier-drawer-last {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* Totals and the by-method split. */
+.cashier-today-totals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.cashier-today-totals article {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.cashier-today-totals small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cashier-today-totals strong {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-today-totals span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.cashier-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+.cashier-methods div {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--neutral-soft, #eef1ec);
+}
+.cashier-methods svg {
+  color: var(--primary);
+}
+.cashier-methods span {
+  font-size: 13px;
+  font-weight: 700;
+}
+.cashier-methods b {
+  grid-column: 1 / 3;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-methods small {
+  grid-row: 2;
+  grid-column: 3;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Activity: cards that read well on a phone. */
+.cashier-activity h2 {
+  margin: 4px 2px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cashier-activity ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  list-style: none;
+}
+.cashier-activity li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.cashier-activity li:last-child {
+  border-bottom: 0;
+}
+.cashier-activity-time {
+  flex: none;
+  width: 64px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-activity-main {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.cashier-activity-main strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cashier-activity-main small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cashier-activity-side {
+  display: grid;
+  flex: none;
+  justify-items: end;
+  gap: 2px;
+}
+.cashier-activity-side b {
+  font-size: 14.5px;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-activity-status {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.cashier-activity li[data-status="paid"] .cashier-activity-status {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.cashier-activity li:is([data-status="failed"], [data-status="refunded"]) .cashier-activity-status {
+  background: var(--df-status-danger-bg, #fbe3df);
+  color: var(--df-status-danger-text, #9b2c22);
+}
+.cashier-activity li[data-status="pending"] .cashier-activity-status {
+  background: #fbefcf;
+  color: #6f4f0b;
+}
+.cashier-activity-side a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}

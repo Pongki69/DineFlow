@@ -20,14 +20,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { api } from "../api";
-import {
-  EmptyState,
-  Feedback,
-  PageHeader,
-  Skeleton,
-  StatusBadge,
-} from "../components/ui";
+import { EmptyState, Feedback, PageHeader, Skeleton } from "../components/ui";
 import { DeliveryProofPhoto } from "../components/DeliveryProof";
+import { DeliveryStatusPill } from "../components/OrderStatusPill";
 import { RiderScreenSkeleton } from "../components/RiderScreenSkeleton";
 import { OrderItemDetails } from "../components/OrderItemDetails";
 import { Modal } from "../components/Modal";
@@ -225,7 +220,7 @@ export function RiderOrderDetails() {
                   <ReceiptText size={21} aria-hidden="true" />
                   Order summary
                 </h2>
-                <StatusBadge status={data.status} />
+                <DeliveryStatusPill status={data.status} />
               </div>
               <time dateTime={data.order.created_at}>
                 {orderDateTime(data.order.created_at)}
@@ -382,26 +377,28 @@ export function RiderOrderDetails() {
                   />
                 )}
               </section>
-              <section className="workspace-card">
-                <h2>
-                  <Clock3 size={20} aria-hidden="true" />
-                  Delivery timeline
-                </h2>
-                <ol className="rider-order-events" role="list">
-                  {data.history.map((event) => (
-                    <li key={event.id}>
-                      <strong>
-                        {deliveryLabels[event.to_status] ||
-                          event.to_status.replaceAll("_", " ")}
-                      </strong>
-                      <time dateTime={event.created_at}>
-                        {orderDateTime(event.created_at)}
-                      </time>
-                      {event.reason && <p>{event.reason}</p>}
-                    </li>
-                  ))}
-                </ol>
-              </section>
+              {!!data.history?.length && (
+                <section className="workspace-card">
+                  <h2>
+                    <Clock3 size={20} aria-hidden="true" />
+                    Delivery timeline
+                  </h2>
+                  <ol className="rider-order-events" role="list">
+                    {data.history.map((event) => (
+                      <li key={event.id}>
+                        <strong>
+                          {deliveryLabels[event.to_status] ||
+                            event.to_status.replaceAll("_", " ")}
+                        </strong>
+                        <time dateTime={event.created_at}>
+                          {orderDateTime(event.created_at)}
+                        </time>
+                        {event.reason && <p>{event.reason}</p>}
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              )}
             </div>
             {data.proof_available && (
               <DeliveryProofPhoto deliveryId={deliveryId} />

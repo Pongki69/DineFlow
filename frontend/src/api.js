@@ -1,6 +1,32 @@
+import {
+  deferLiveResult,
+  isLiveRequest,
+  liveRequestContext,
+  notifyLiveChange,
+} from "./liveUpdates";
 export const API_BASE =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 const pendingSubmissions = new Map();
+const listVersions = new Map();
+function listVersion(result) {
+  const lists = {};
+  const visit = (value, path, depth) => {
+    if (depth > 2 || !value || typeof value !== "object") return;
+    if (Array.isArray(value)) {
+      if (
+        !value.length ||
+        value.every(
+          (item) => item && typeof item === "object" && item.id != null,
+        )
+      )
+        lists[path] = value.map((item) => item.id);
+    } else
+      for (const [key, child] of Object.entries(value))
+        visit(child, `${path}.${key}`, depth + 1);
+  };
+  visit(result, "", 0);
+  return JSON.stringify(lists);
+}
 const DEFAULT_TIMEOUT_MS = 20000;
 
 // Bound both the request and its response body, even on an unreliable connection.
@@ -59,6 +85,12 @@ async function boundedRequest(options, perform) {
 }
 
 export async function api(path, options = {}) {
+  const { mapSnapshot = false, ...httpOptions } = options;
+  const quiet =
+    !mapSnapshot &&
+    isLiveRequest() &&
+    (!options.method || options.method === "GET");
+  const context = quiet ? liveRequestContext() : null;
   const protectedSubmission =
     options.method?.toUpperCase() === "POST" &&
     /^\/(orders|reservations)(\/\d+\/reschedule)?$/.test(path);
@@ -76,7 +108,7 @@ export async function api(path, options = {}) {
     ?.split("=")
     .slice(1)
     .join("=");
-  return boundedRequest(options, async (requestOptions) => {
+  const result = await boundedRequest(httpOptions, async (requestOptions) => {
     const response = await fetch(`${API_BASE}${path}`, {
       ...requestOptions,
       credentials: "include",
@@ -100,6 +132,11 @@ export async function api(path, options = {}) {
       error.status = response.status;
       error.code = details.code;
       error.errors = details.errors || {};
+      // Another device signed in to this account; the app returns to sign-in.
+      if (details.code === "session_replaced")
+        window.dispatchEvent(
+          new CustomEvent("dineflow:session-replaced", { detail: error.message }),
+        );
       throw error;
     }
     const result = response.status === 204 ? null : await response.json();
@@ -107,6 +144,25 @@ export async function api(path, options = {}) {
     if (submission) pendingSubmissions.delete(submission);
     return result;
   });
+  if (
+    options.method &&
+    !["GET", "HEAD"].includes(options.method.toUpperCase()) &&
+    !/broadcasting\/auth|\/rider\/(location|presence)/.test(path)
+  )
+    notifyLiveChange();
+  if (mapSnapshot) return result;
+  if (!options.method || options.method === "GET") {
+    const version = listVersion(result);
+    const changed =
+      listVersions.has(path) && listVersions.get(path) !== version;
+    const next = quiet
+      ? await deferLiveResult(result, options.signal, context, changed)
+      : result;
+    if (listVersions.size > 200) listVersions.clear();
+    listVersions.set(path, version);
+    return next;
+  }
+  return result;
 }
 
 export async function csrf() {

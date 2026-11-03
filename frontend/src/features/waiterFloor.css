@@ -1,0 +1,595 @@
+/* ---- Waiter floor ---------------------------------------------------------- */
+.waiter-floor {
+  display: grid;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+
+/* Panels: food at the pass, guests arriving. */
+.waiter-panel {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+.waiter-panel--ready {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background:
+    radial-gradient(130% 120% at 0% 0%, var(--primary-soft), transparent 60%),
+    var(--surface);
+}
+.dineflow-app #main-content .waiter-panel > h2,
+.dineflow-app #main-content .waiter-orders > h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+.waiter-panel > h2 span {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  letter-spacing: 0;
+}
+.waiter-panel ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.waiter-panel li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.waiter-panel li:first-child {
+  border-top: 0;
+}
+.waiter-pass-table {
+  display: grid;
+  flex: none;
+  min-width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font-size: 16px;
+  font-weight: 800;
+}
+.waiter-pass-table--time {
+  min-width: 64px;
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--ink);
+  font-size: 12.5px;
+}
+.waiter-row-main {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.waiter-row-main strong {
+  overflow: hidden;
+  font-size: 14.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.waiter-row-main small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Buttons. */
+.dineflow-app #main-content :is(.waiter-button, .waiter-primary, .waiter-secondary),
+.dineflow-app .waiter-sheet :is(.waiter-button, .waiter-primary, .waiter-secondary) {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dineflow-app #main-content .waiter-button--quiet,
+.dineflow-app :is(#main-content, .waiter-sheet) .waiter-secondary {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+.dineflow-app .waiter-sheet :is(.waiter-primary, .waiter-secondary) {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+:is(.waiter-button, .waiter-primary, .waiter-secondary):disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Filters and search. */
+.waiter-floor-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.waiter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dineflow-app #main-content .waiter-chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.dineflow-app #main-content .waiter-chips button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.waiter-chips button span {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+.waiter-search {
+  display: flex;
+  flex: 1 1 120px;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.waiter-search:focus-within {
+  border-color: var(--primary);
+}
+.dineflow-app :is(#main-content, .waiter-sheet) .waiter-search input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.waiter-bill-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #fbefcf;
+  color: #6f4f0b;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+/* The floor: one tile per table. */
+.waiter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.dineflow-app #main-content .waiter-table {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-height: 84px;
+  padding: 10px 6px;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.waiter-table b {
+  font-size: 22px;
+  line-height: 1.1;
+}
+.waiter-table small {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.dineflow-app #main-content .waiter-table[data-status="available"] {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+.dineflow-app #main-content .waiter-table[data-status="occupied"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.waiter-table[data-status="occupied"] small {
+  color: color-mix(in srgb, var(--df-color-on-brand, #fff) 80%, transparent);
+}
+.dineflow-app #main-content .waiter-table[data-status="cleaning"] {
+  border-style: dashed;
+  background: #eef4f7;
+}
+.dineflow-app #main-content .waiter-table[data-status="unavailable"] {
+  background: repeating-linear-gradient(135deg, #f1f2f1 0 6px, #e7e9e7 6px 12px);
+  color: var(--muted);
+}
+.dineflow-app #main-content .waiter-table[data-bill] {
+  box-shadow: 0 0 0 3px #e9c46a;
+}
+.waiter-table-flag {
+  position: absolute;
+  top: -7px;
+  right: -4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary);
+  box-shadow: 0 1px 4px rgb(16 34 24 / 25%);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 800;
+}
+.waiter-table-flag--bill {
+  top: auto;
+  bottom: -7px;
+  background: #fbefcf;
+  color: #6f4f0b;
+}
+
+/* ---- Table sheet ----------------------------------------------------------- */
+.waiter-sheet-layer {
+  position: fixed;
+  z-index: 2050;
+  inset: 0;
+  display: grid;
+  align-items: end;
+}
+.waiter-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--df-color-overlay, rgb(17 44 34 / 45%));
+}
+.waiter-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 90dvh;
+  border-radius: 22px 22px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -12px 40px rgb(16 34 24 / 25%);
+  animation: waiter-sheet-in 0.22s ease-out;
+}
+@keyframes waiter-sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0.6;
+  }
+}
+@media (min-width: 851px) {
+  .waiter-sheet-layer {
+    place-items: center;
+  }
+  .waiter-sheet {
+    width: min(540px, calc(100vw - 48px));
+    border-radius: 20px;
+  }
+}
+.waiter-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.waiter-sheet-head small {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.waiter-sheet-head h2 {
+  margin: 2px 0 0;
+  font-size: 20px;
+}
+.dineflow-app .waiter-sheet-head button {
+  display: grid;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--ink);
+  cursor: pointer;
+}
+.waiter-sheet-body {
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.waiter-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.waiter-facts div {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--neutral-soft, #eef1ec);
+}
+.waiter-facts dt {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.waiter-facts dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.waiter-orders {
+  display: grid;
+  gap: 8px;
+}
+.waiter-orders ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.waiter-orders li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.waiter-orders li[data-status="ready_to_serve"] {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.waiter-orders li > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.waiter-orders li small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.waiter-orders li .waiter-button {
+  justify-self: end;
+}
+.waiter-status {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.waiter-orders li[data-status="ready_to_serve"] .waiter-status {
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.waiter-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.waiter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.waiter-actions--sticky {
+  position: sticky;
+  bottom: calc(-16px - env(safe-area-inset-bottom, 0px));
+  margin: 0 -16px calc(-16px - env(safe-area-inset-bottom, 0px));
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* Seat guests. */
+.waiter-seat {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.waiter-seat p {
+  margin: 0;
+  font-weight: 650;
+}
+.waiter-seat .waiter-actions {
+  justify-self: stretch;
+}
+.waiter-stepper {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.dineflow-app .waiter-stepper button {
+  display: grid;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.waiter-stepper output {
+  min-width: 40px;
+  font-size: 32px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Order pad. */
+.waiter-pad {
+  display: grid;
+  gap: 10px;
+}
+.waiter-dishes {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.waiter-dishes li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.waiter-dishes li[data-chosen] .waiter-row-main strong {
+  color: var(--primary);
+}
+.waiter-qty {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+.dineflow-app .waiter-qty button {
+  display: grid;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--primary);
+  cursor: pointer;
+}
+.dineflow-app .waiter-qty button:last-child {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.waiter-qty output {
+  min-width: 18px;
+  font-weight: 800;
+  text-align: center;
+}
+.waiter-variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.dineflow-app .waiter-variants button {
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dineflow-app .waiter-variants button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+}
+.waiter-note {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.dineflow-app .waiter-sheet .waiter-note input {
+  height: 42px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waiter-sheet {
+    animation: none;
+  }
+}

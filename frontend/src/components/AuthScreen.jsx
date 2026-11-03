@@ -1,21 +1,15 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
   Eye,
   EyeOff,
-  KeyRound,
   UtensilsCrossed,
 } from "lucide-react";
 import { api, csrf } from "../api";
 import { Button, Feedback, Field } from "./ui";
 import { NewPasswordFields } from "./NewPasswordFields";
 import { validateNewPasswordForm } from "./passwordValidation";
-import {
-  getSavedLogin,
-  offerToSaveLogin,
-  supportsSavedLogins,
-} from "../browserCredentials";
 import "./authPreferences.css";
 
 const titles = {
@@ -38,9 +32,6 @@ export function AuthScreen({
   initialMode = "login",
   initialNotice = "",
 }) {
-  const formRef = useRef(null);
-  const [savedLoginsAvailable] = useState(supportsSavedLogins);
-  const [selectingLogin, setSelectingLogin] = useState(false);
   const params = new URLSearchParams(window.location.search);
   const [mode, setMode] = useState(params.has("token") ? "reset" : initialMode);
   const [error, setError] = useState("");
@@ -57,7 +48,7 @@ export function AuthScreen({
   }
   async function submit(event) {
     event.preventDefault();
-    if (busy || selectingLogin) return;
+    if (busy) return;
     if (
       ["register", "reset"].includes(mode) &&
       !validateNewPasswordForm(event.currentTarget)
@@ -91,11 +82,6 @@ export function AuthScreen({
           method: "POST",
           body: JSON.stringify(values),
         });
-        void offerToSaveLogin({
-          email: values.email,
-          password: values.password,
-          name: result.user.name,
-        });
         onSignedIn(result.user);
       }
     } catch (failure) {
@@ -104,18 +90,6 @@ export function AuthScreen({
     } finally {
       setBusy(false);
     }
-  }
-  async function useSavedLogin() {
-    setSelectingLogin(true);
-    const credential = await getSavedLogin();
-    setSelectingLogin(false);
-    if (!credential || !formRef.current) return;
-    formRef.current.elements.namedItem("email").value = credential.id;
-    formRef.current.elements.namedItem("password").value = credential.password;
-    setError("");
-    setErrors({});
-    setMessage("Saved login filled. Select Sign in to continue.");
-    formRef.current.querySelector('button[type="submit"]')?.focus();
   }
   const action = {
     login: "Sign in",
@@ -126,12 +100,16 @@ export function AuthScreen({
   return (
     <main className="auth-layout">
       <aside className="auth-story" aria-label="Welcome to DineFlow">
-        <div className="auth-wordmark">
+        <a
+          className="auth-wordmark"
+          href="/"
+          aria-label="DineFlow restaurant homepage"
+        >
           <span className="brand-mark">
             <UtensilsCrossed size={22} aria-hidden="true" />
           </span>
           DineFlow<span className="wordmark-dot">.</span>
-        </div>
+        </a>
         <div className="auth-story-copy">
           <span className="eyebrow">MADE FOR GOOD MOMENTS</span>
           <h2>
@@ -161,7 +139,11 @@ export function AuthScreen({
         </p>
       </aside>
       <div className="auth-form-area">
-        <a className="auth-mobile-brand" href="/">
+        <a
+          className="auth-mobile-brand"
+          href="/"
+          aria-label="DineFlow restaurant homepage"
+        >
           DineFlow<span>.</span>
         </a>
         <div className="auth-form-wrap">
@@ -173,7 +155,6 @@ export function AuthScreen({
           <h1>{titles[mode]}</h1>
           <p className="auth-intro">{descriptions[mode]}</p>
           <form
-            ref={formRef}
             key={mode}
             autoComplete="on"
             aria-label={mode === "login" ? "Sign in" : "Account access"}
@@ -252,7 +233,7 @@ export function AuthScreen({
                 <button
                   className="text-button"
                   type="button"
-                  disabled={busy || selectingLogin}
+                  disabled={busy}
                   onClick={() => changeMode("forgot")}
                 >
                   Forgot password?
@@ -265,32 +246,10 @@ export function AuthScreen({
             )}
             {error && <Feedback>{error}</Feedback>}
             {message && <Feedback tone="success">{message}</Feedback>}
-            <Button
-              type="submit"
-              busy={busy}
-              disabled={selectingLogin}
-              className="auth-submit"
-            >
+            <Button type="submit" busy={busy} className="auth-submit">
               {busy ? "Please wait…" : action}
               {!busy && <ArrowRight size={18} aria-hidden="true" />}
             </Button>
-            {mode === "login" && savedLoginsAvailable && (
-              <Button
-                variant="secondary"
-                busy={selectingLogin}
-                disabled={busy}
-                onClick={useSavedLogin}
-              >
-                <KeyRound size={18} aria-hidden="true" />
-                Use a saved login
-              </Button>
-            )}
-            {mode === "login" && (
-              <p className="auth-password-manager-hint">
-                Your browser’s password manager can save and autofill your
-                login. Manage saved passwords in your browser settings.
-              </p>
-            )}
           </form>
           <div className="auth-switch">
             {mode === "login" ? (
@@ -298,7 +257,7 @@ export function AuthScreen({
                 <span>New to the table?</span>
                 <button
                   className="text-button"
-                  disabled={busy || selectingLogin}
+                  disabled={busy}
                   onClick={() => changeMode("register")}
                 >
                   Create customer account
@@ -307,7 +266,7 @@ export function AuthScreen({
             ) : (
               <button
                 className="text-button"
-                disabled={busy || selectingLogin}
+                disabled={busy}
                 onClick={() => changeMode("login")}
               >
                 Back to sign in

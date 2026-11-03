@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
-import { LocateFixed, Maximize2, Minimize2 } from "lucide-react";
+import { LocateFixed, Maximize2, Minimize2, Navigation2 } from "lucide-react";
 import "./mapControls.css";
 
 export function useMapFullscreen(target, enabled = true) {
@@ -141,6 +141,8 @@ export function MapControls({
   bounds,
   onRecenter,
   recenterLabel = "Recenter map",
+  recenterIcon,
+  locate,
   fullscreen,
 }) {
   const map = useMap();
@@ -171,14 +173,19 @@ export function MapControls({
       fullscreen={view}
       onRecenter={recenter}
       recenterLabel={recenterLabel}
+      recenterIcon={recenterIcon}
+      locate={locate}
     />
   );
 }
 
+// `locate` (optional) adds a "my location" control: { active, label, onClick }.
 export function MapActionButtons({
   fullscreen: view,
   onRecenter,
   recenterLabel = "Recenter map",
+  recenterIcon: RecenterIcon = LocateFixed,
+  locate,
 }) {
   const controls = useRef(null);
   useEffect(() => {
@@ -206,13 +213,26 @@ export function MapActionButtons({
           <Maximize2 size={19} aria-hidden="true" />
         )}
       </button>
+      {locate && (
+        <button
+          type="button"
+          className="dineflow-map-locate"
+          data-active={locate.active || undefined}
+          aria-label={locate.label}
+          aria-pressed={!!locate.active}
+          title={locate.label}
+          onClick={locate.onClick}
+        >
+          <Navigation2 size={19} aria-hidden="true" />
+        </button>
+      )}
       <button
         type="button"
         aria-label={recenterLabel}
         title={recenterLabel}
         onClick={onRecenter}
       >
-        <LocateFixed size={19} aria-hidden="true" />
+        <RecenterIcon size={19} aria-hidden="true" />
       </button>
     </div>
   );

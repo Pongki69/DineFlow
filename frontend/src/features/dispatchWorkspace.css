@@ -1,0 +1,189 @@
+.dispatch-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.dispatch-dashboard .dispatch-eyebrow {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  margin-bottom: -12px;
+}
+.dispatch-dashboard > .page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.dispatch-dashboard .page-heading p {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 8px;
+}
+.dispatch-dashboard .dispatch-queues {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 4px 0 0;
+}
+.dispatch-dashboard .dispatch-queues > .ui-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  min-height: 108px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  white-space: normal;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+.dispatch-dashboard .dispatch-queue-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.dispatch-dashboard .dispatch-queue-label svg {
+  flex-shrink: 0;
+}
+.dispatch-dashboard .dispatch-queues strong {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.dispatch-dashboard .dispatch-queues > .ui-button:hover:not(:disabled),
+.dispatch-dashboard .dispatch-queues > .ui-button[aria-pressed="true"] {
+  background: var(--primary-soft);
+  color: var(--ink);
+  border-color: var(--control-border, #7f9387);
+}
+.dispatch-dashboard .dispatch-queues > .ui-button[aria-pressed="true"] {
+  box-shadow: inset 0 -3px #357b59;
+}
+.dispatch-dashboard .dispatch-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.dispatch-dashboard .dispatch-search {
+  flex: 1 1 300px;
+  width: 100%;
+  max-width: 560px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+}
+.dispatch-dashboard .dispatch-search-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--control-border, #7f9387);
+  border-radius: 7px;
+  color: var(--muted);
+}
+.dispatch-dashboard .dispatch-search-input input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+}
+.dispatch-dashboard .dispatch-toolbar .rider-data-freshness {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.dispatch-dashboard .dispatch-results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dispatch-dashboard .dispatch-results-heading h2 {
+  font-size: 16px;
+  font-weight: 650;
+}
+.dispatch-dashboard .dispatch-results-heading > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.dispatch-dashboard > .empty-state {
+  min-height: 230px;
+  margin: 0;
+  padding: 28px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.dispatch-dashboard > .empty-state .empty-state-icon {
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+.dispatch-dashboard > .empty-state .ui-button {
+  margin-top: 16px;
+}
+.dispatch-dashboard > .rider-delivery-list:empty {
+  display: none;
+}
+@media (max-width: 1000px) {
+  .dispatch-dashboard .dispatch-queues {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .dispatch-dashboard .dispatch-queues {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .dispatch-dashboard .dispatch-queues > .ui-button {
+    min-height: 96px;
+    padding: 14px;
+  }
+  .dispatch-dashboard .dispatch-queues > .ui-button:last-child {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    min-height: 64px;
+  }
+  .dispatch-dashboard .dispatch-toolbar {
+    padding: 14px;
+    gap: 12px;
+  }
+  .dispatch-dashboard .dispatch-toolbar .rider-data-freshness {
+    margin: 0;
+  }
+}

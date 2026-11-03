@@ -1,0 +1,107 @@
+.date-picker {
+  position: relative;
+  min-width: 0;
+}
+.report-date-filter {
+  display: grid;
+  gap: 7px;
+  min-width: 145px;
+  font-size: 12px;
+}
+.date-picker .date-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--control-border, #7f9387);
+  border-radius: 7px;
+  background: var(--surface, white);
+  color: var(--ink, #24352b);
+  text-align: left;
+  font-size: 13px;
+}
+.date-picker-trigger svg {
+  flex-shrink: 0;
+  color: var(--muted, #4b5e54);
+}
+.date-picker-trigger .is-placeholder {
+  color: var(--muted, #4b5e54);
+}
+.date-picker .date-picker-popover {
+  position: absolute;
+  z-index: 1100;
+  padding: 14px;
+  border: 1px solid var(--control-border, #7f9387);
+  border-radius: 12px;
+  background: var(--surface, white);
+  color: var(--ink, #24352b);
+  box-shadow: 0 10px 32px #152c2926;
+}
+.date-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.date-picker-heading strong {
+  font-size: 14px;
+}
+.date-picker .date-picker-popover button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 6px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink, #24352b);
+  font-size: 12px;
+  box-shadow: none;
+}
+.date-picker-weekdays,
+.date-picker-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+.date-picker-weekdays {
+  text-align: center;
+  color: var(--muted, #4b5e54);
+  font-size: 11px;
+  padding-block: 6px;
+}
+.date-picker .date-picker-days button {
+  min-width: 0;
+}
+.date-picker .date-picker-popover button:hover:not(:disabled) {
+  background: var(--primary-soft, #eaf4ee);
+  color: var(--ink, #24352b);
+  border-color: var(--border, #cbd6cd);
+}
+.date-picker .date-picker-days button[aria-pressed="true"] {
+  background: #246b55;
+  color: white;
+}
+.date-picker .date-picker-days button[aria-current="date"] {
+  border-color: var(--control-border, #7f9387);
+}
+.date-picker .date-picker-popover button:disabled {
+  color: var(--muted, #4b5e54);
+  background: var(--neutral-soft, #f3f6f4);
+  text-decoration: line-through;
+  cursor: not-allowed;
+  opacity: 1;
+}
+.date-picker-footer {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--border, #cbd6cd);
+  margin-top: 10px;
+  padding-top: 8px;
+}

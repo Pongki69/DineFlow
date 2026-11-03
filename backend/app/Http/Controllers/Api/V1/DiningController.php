@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\DiningSession;
+use App\Models\Order;
 use App\Models\RestaurantTable;
 use App\Models\TableOccupancyHistory;
 use App\Services\AuditLogService;
@@ -17,7 +18,23 @@ class DiningController extends Controller
 {
     public function tables(Request $request): JsonResponse
     {
-        $tables = RestaurantTable::with(['currentSession'])->orderBy('table_number')->get();
+        $tables = RestaurantTable::with(['currentSession.orders:id,dining_session_id,status,total'])->orderBy('table_number')->get();
+        $payments = app(\App\Services\PaymentService::class);
+        // What the floor needs at a glance: orders, food waiting at the pass, and the bill.
+        $tables->each(function (RestaurantTable $table) use ($payments): void {
+            $session = $table->currentSession;
+            if (! $session) {
+                return;
+            }
+            $orders = $session->orders->where('status', '!=', 'cancelled');
+            $session->setAttribute('service', [
+                'orders' => $orders->count(),
+                'ready' => $orders->where('status', 'ready_to_serve')->count(),
+                'in_kitchen' => $orders->whereIn('status', ['pending', 'confirmed', 'preparing'])->count(),
+                'balance_due' => round($orders->sum(fn ($order) => $payments->dueCents($order)) / 100, 2),
+            ]);
+            $session->unsetRelation('orders');
+        });
 
         return response()->json(['data' => $tables]);
     }
@@ -28,6 +45,19 @@ class DiningController extends Controller
         $table = RestaurantTable::create($data + ['qr_code' => (string) Str::uuid()]);
 
         return response()->json(['data' => $table], 201);
+    }
+
+    /** The orders on a table's open bill, for the waiter's table sheet. */
+    public function sessionOrders(DiningSession $session): JsonResponse
+    {
+        $orders = Order::with('items.addons')->where('dining_session_id', $session->id)->where('status', '!=', 'cancelled')->orderBy('created_at')->get()
+            ->map(fn (Order $order) => [
+                'id' => $order->id, 'order_number' => $order->order_number, 'status' => $order->status,
+                'total' => $order->total, 'created_at' => $order->created_at?->toIso8601String(),
+                'items' => $order->items->map(fn ($item) => ['name' => $item->item_name_snapshot, 'variant' => $item->variant_name_snapshot, 'quantity' => $item->quantity, 'notes' => $item->special_instructions])->values(),
+            ]);
+
+        return response()->json(['data' => $orders]);
     }
 
     public function openSession(Request $request, RestaurantTable $table, AuditLogService $audit): JsonResponse

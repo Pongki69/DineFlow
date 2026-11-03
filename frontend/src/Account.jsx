@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { LockKeyhole, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { api } from "./api";
 import { NewPasswordFields } from "./components/NewPasswordFields";
 import { validateNewPasswordForm } from "./components/passwordValidation";
@@ -15,6 +15,11 @@ import {
 
 const SavedDeliveryAddresses = lazy(
   () => import("./components/SavedDeliveryAddresses"),
+);
+const RiderProfileSettings = lazy(() =>
+  import("./features/RiderWorkspace").then((module) => ({
+    default: module.RiderProfileSettings,
+  })),
 );
 
 export function Account({
@@ -58,7 +63,9 @@ export function Account({
     }
   }
   return (
-    <section className="account-page">
+    <section
+      className={`account-page${embedded ? " account-page--embedded" : ""}`}
+    >
       {!embedded && (
         <PageHeader
           title="My account"
@@ -68,34 +75,57 @@ export function Account({
       {error && <Feedback>{error}</Feedback>}
       {notice && <Feedback tone="success">{notice}</Feedback>}
       <div className="account-layout">
-        <aside className="account-profile" aria-label="Your profile">
-          <span className="avatar" aria-hidden="true">
-            {user.name.slice(0, 1).toUpperCase()}
-          </span>
-          <h2>{user.name}</h2>
-          <p>{user.email}</p>
-          <StatusBadge status={user.roles[0]} />
-          <p className="profile-note">
-            <ShieldCheck size={18} aria-hidden="true" />
-            Your access is managed by your restaurant.
-          </p>
-        </aside>
+        {!embedded && (
+          <aside className="account-profile" aria-label="Your profile">
+            <span className="avatar" aria-hidden="true">
+              {user.name.slice(0, 1).toUpperCase()}
+            </span>
+            <h2>{user.name}</h2>
+            <p>{user.email}</p>
+            <StatusBadge status={user.roles[0]} />
+            <p className="profile-note">
+              <ShieldCheck size={18} aria-hidden="true" />
+              Your access is managed by your restaurant.
+            </p>
+          </aside>
+        )}
         <form className="account-form" onSubmit={save} aria-busy={busy}>
-          <div>
-            <h2>Personal details</h2>
-            <p>This is how your name appears on orders and reservations.</p>
-          </div>
-          <Field
-            label="Name"
-            name="name"
-            defaultValue={user.name}
-            required
-            maxLength={120}
-            autoComplete="name"
-            error={errors.name?.[0]}
-          />
-          <fieldset>
+          <section className="account-personal-details">
+            <div>
+              <h2>
+                <UserRound size={18} aria-hidden="true" />
+                Personal details
+              </h2>
+              <p>This is how your name appears on orders and reservations.</p>
+            </div>
+            <Field
+              label="Name"
+              name="name"
+              defaultValue={user.name}
+              required
+              maxLength={120}
+              autoComplete="name"
+              error={errors.name?.[0]}
+            />
+            {embedded && (
+              <div className="account-email-note">
+                <Mail size={18} aria-hidden="true" />
+                <div>
+                  <span>Sign-in email</span>
+                  <strong>{user.email}</strong>
+                </div>
+              </div>
+            )}
+            {embedded && (
+              <p className="account-access-note">
+                <ShieldCheck size={16} aria-hidden="true" />
+                Your access is managed by your restaurant.
+              </p>
+            )}
+          </section>
+          <fieldset className="account-password-settings">
             <legend>
+              <LockKeyhole size={18} aria-hidden="true" />
               Change password <span className="optional-label">Optional</span>
             </legend>
             <p>Leave these fields empty to keep your current password.</p>
@@ -122,11 +152,25 @@ export function Account({
               }
             />
           </fieldset>
-          <Button type="submit" busy={busy}>
-            {busy ? "Saving…" : "Save account"}
-          </Button>
+          <div className="account-form-actions">
+            {embedded && (
+              <p>Your password stays the same unless you change it.</p>
+            )}
+            <Button type="submit" busy={busy}>
+              {busy ? "Saving…" : "Save account"}
+            </Button>
+          </div>
         </form>
       </div>
+      {!embedded &&
+        user.roles.includes("rider") &&
+        user.permissions?.includes("deliveries.assigned") && (
+          <Suspense
+            fallback={<Skeleton cards={1} label="Loading rider details" />}
+          >
+            <RiderProfileSettings />
+          </Suspense>
+        )}
       {showAddresses && user.roles.includes("customer") && (
         <Suspense
           fallback={

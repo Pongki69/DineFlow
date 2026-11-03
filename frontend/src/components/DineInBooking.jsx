@@ -1,5 +1,7 @@
+import { subscribeToLiveChanges } from "../liveUpdates";
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock3, RefreshCw } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Clock3, RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "../api";
 import { Button, Field } from "./ui";
 
@@ -9,6 +11,14 @@ export function DineInBooking({ onReadyChange }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  useEffect(
+    () =>
+      subscribeToLiveChanges(async () => {
+        const result = await api("/orders/dine-in-reservations");
+        setBookings(result.data || []);
+      }, ["reservations", "floor"]),
+    [],
+  );
   const selected = bookings.find((booking) => booking.reference === choice);
   const ready =
     choice === "manual" || (!loading && !error && Boolean(selected?.ready));
@@ -143,10 +153,17 @@ export function DineInBooking({ onReadyChange }) {
         </p>
       )}
       {!loading && !error && bookings.length === 0 && (
-        <p className="dine-in-booking-hint">
-          No active bookings. Dining without a reservation? Ask staff for your
-          table code.
-        </p>
+        <div className="dine-in-book-prompt">
+          <p className="dine-in-booking-hint">
+            No booking yet. Book a table to order ahead, or ask staff for your
+            table code if you're already here.
+          </p>
+          {/* The cart is saved, so it is still here after booking. */}
+          <Link className="dine-in-book-link" to="/reserve">
+            <CalendarPlus size={16} aria-hidden="true" />
+            Book a table
+          </Link>
+        </div>
       )}
       {error && (
         <p className="field-error" role="alert">

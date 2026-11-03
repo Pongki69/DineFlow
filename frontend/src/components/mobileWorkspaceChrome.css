@@ -1,0 +1,549 @@
+.workspace-mobile-nav,
+.mobile-workspace-title,
+.public-mobile-nav {
+  display: none;
+}
+.mobile-workspace-menu:not([open]) {
+  display: none;
+}
+@media print {
+  .workspace-mobile-nav,
+  .rider-mobile-bottom-nav,
+  .public-mobile-nav,
+  .mobile-workspace-menu {
+    display: none !important;
+  }
+}
+@media (max-width: 850px) {
+  .dineflow-app .admin-shell .admin-metric {
+    padding: 12px;
+    min-height: 88px;
+  }
+  .dineflow-app .admin-shell .admin-metric > strong {
+    margin: 6px 0 0;
+    font-size: 26px;
+  }
+  .dineflow-app .admin-shell .admin-metric-top {
+    font-size: 11px;
+  }
+  .dineflow-app .admin-shell .admin-metric-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .dineflow-app .admin-shell .admin-metric-navigation {
+    right: 12px;
+    bottom: 12px;
+  }
+  .dineflow-app .admin-shell .admin-page {
+    gap: 12px;
+  }
+  .dineflow-app .admin-shell .admin-page > .admin-page-heading {
+    margin: 0;
+  }
+  .dineflow-app .admin-shell .admin-overview-bar {
+    min-height: 34px;
+    margin: 0;
+    gap: 8px;
+  }
+  .dineflow-app .admin-shell .admin-content h1,
+  .dineflow-app
+    .app-shell:not([data-workspace="delivery"]):not([data-workspace="customer"])
+    .app-content
+    h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .dineflow-app .admin-shell .admin-content :is(.admin-eyebrow, .eyebrow),
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    :is(.page-heading, .admin-page-heading, .sage-page-heading)
+    > div
+    > p,
+  .dineflow-app .admin-shell .business-settings-heading > p {
+    display: none;
+  }
+  .dineflow-app .admin-shell .admin-page-heading > div:first-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .dineflow-app .admin-shell .admin-page-heading {
+    justify-content: flex-end;
+    padding: 0;
+    margin: 0 0 12px;
+    min-height: 0;
+  }
+  .dineflow-app .admin-shell .admin-heading-actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .dineflow-app
+    .admin-shell
+    .admin-heading-actions
+    :is(.admin-button, .ui-button) {
+    min-height: var(--ui-control-height, 48px);
+    padding: 0.75rem 1rem;
+    font-size: var(--ui-button-text, 14px);
+    gap: 7px;
+  }
+  .dineflow-app .admin-shell .business-settings-heading {
+    padding: 0;
+    min-height: 24px;
+  }
+  .dineflow-app .admin-shell .business-settings-heading > .admin-form-status {
+    position: static;
+    margin-left: auto;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) {
+    --mobile-nav-height: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
+  .dineflow-app .app-shell:not([data-workspace="delivery"]) .app-body,
+  .dineflow-app .admin-shell .admin-body {
+    min-height: 100dvh;
+    padding-bottom: var(--mobile-nav-height);
+    box-sizing: border-box;
+  }
+  .dineflow-app .admin-shell {
+    display: block;
+  }
+  .dineflow-app .admin-shell .admin-sidebar {
+    display: none;
+  }
+  .dineflow-app .app-shell:not([data-workspace="delivery"]) .app-topbar,
+  .dineflow-app .admin-shell .admin-topbar {
+    display: flex;
+    min-height: 56px;
+    height: 56px;
+    padding: 6px 12px;
+    align-items: center;
+    gap: 8px;
+    background: var(--canvas);
+    border: 0;
+    position: relative;
+  }
+  .dineflow-app .app-shell:not([data-workspace="delivery"]) .topbar-location,
+  .dineflow-app .admin-shell .admin-topbar-left {
+    flex: 1;
+    min-width: 0;
+    gap: 0;
+  }
+  .dineflow-app
+    .app-shell:not([data-workspace="delivery"])
+    .topbar-location
+    > :not(.mobile-workspace-title),
+  .dineflow-app
+    .admin-shell
+    .admin-topbar-left
+    > :not(.mobile-workspace-title) {
+    display: none;
+  }
+  .dineflow-app .mobile-workspace-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    color: var(--ink);
+  }
+  .mobile-workspace-title strong {
+    font-size: var(--text-emphasis);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dineflow-app .mobile-workspace-title a {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    min-height: 44px;
+    color: var(--ink);
+    margin-left: -8px;
+    border-radius: 10px;
+  }
+  .dineflow-app .app-shell:not([data-workspace="delivery"]) .topbar-actions,
+  .dineflow-app .admin-shell .admin-topbar-right {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 4px;
+  }
+  .dineflow-app
+    .app-shell:not([data-workspace="delivery"])
+    .topbar-actions
+    > :is(.workspace-theme-toggle, .avatar-link, .workspace-label),
+  .dineflow-app
+    .admin-shell
+    .admin-topbar-right
+    > :is(
+      .admin-topbar-status,
+      .admin-avatar-button,
+      [aria-label^="Switch to "]
+    ) {
+    display: none;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .notification-trigger {
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    background: transparent;
+    border: 0;
+  }
+  .dineflow-app .app-shell:not([data-workspace="delivery"]) .app-content,
+  .dineflow-app .admin-shell .admin-content {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    padding: 8px 12px 24px;
+  }
+  .dineflow-app .app-shell:not([data-workspace="delivery"]) .app-footer,
+  .dineflow-app .admin-shell .admin-footer {
+    display: none;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .live-updates-bar {
+    min-height: 30px;
+    padding: 0 2px;
+    margin: 0 0 12px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    font-size: 11px;
+    gap: 8px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .live-updates-bar > button {
+    min-height: 28px;
+    min-width: 100px;
+    padding: 4px 8px;
+    border-radius: 14px;
+    font-size: 11px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    :is(.page-heading, .admin-page-heading) {
+    min-height: 0;
+    padding: 4px 0 12px;
+    margin: 0 0 14px;
+    border: 0;
+    gap: 12px;
+    align-items: center;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    :is(.page-heading, .admin-page-heading)
+    h1 {
+    font-size: var(--text-title);
+    line-height: 1.25;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .eyebrow {
+    font-size: 10px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    :is(.page-heading, .admin-page-heading)
+    p {
+    font-size: var(--text-sm);
+    line-height: 1.6;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    :is(
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+          [type="color"]
+        ),
+      select,
+      textarea
+    ) {
+    font-size: 16px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    :is(
+      .admin-panel,
+      .admin-card,
+      .workspace-card,
+      .order-card,
+      .ops-panel,
+      .sage-bill-card,
+      .sage-kds-ticket,
+      .sage-table-card
+    ) {
+    border-radius: 16px;
+    box-shadow: none;
+  }
+  .dineflow-app .workspace-mobile-nav {
+    display: grid;
+    position: fixed;
+    z-index: 50;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--mobile-nav-height);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgb(0 0 0 / 4%);
+  }
+  .dineflow-app .workspace-mobile-nav > :is(a, button) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 54px;
+    padding: 0;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .workspace-mobile-nav > :is(a, button) > span {
+    display: grid;
+    place-items: center;
+    min-width: 52px;
+    min-height: 28px;
+    border-radius: 18px;
+  }
+  .workspace-mobile-nav > :is(a, button) > small {
+    font-size: 10.5px;
+    font-weight: 500;
+  }
+  .dineflow-app .workspace-mobile-nav > .is-current {
+    color: var(--ink);
+  }
+  .workspace-mobile-nav > .is-current > span {
+    background: var(--primary-soft);
+  }
+  .workspace-mobile-nav > .is-current > small {
+    font-weight: 650;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell):has(
+      .dineflow-map--fullscreen,
+      .admin-map--fullscreen,
+      .rider-route-planner.is-expanded
+    )
+    .workspace-mobile-nav {
+    display: none;
+  }
+  .dineflow-app .mobile-workspace-menu {
+    position: fixed;
+    inset: auto 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    margin: 0 auto;
+    width: min(640px, calc(100% - 16px));
+    max-width: none;
+    max-height: 85dvh;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 -8px 40px rgb(0 0 0 / 15%);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .mobile-workspace-menu::backdrop {
+    background: rgb(9 24 16 / 45%);
+    backdrop-filter: blur(2px);
+  }
+  .mobile-workspace-menu > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 16px 14px;
+  }
+  .mobile-workspace-menu > header > div {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 12px;
+  }
+  .mobile-workspace-menu-avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--primary-soft);
+  }
+  .mobile-workspace-menu h2 {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.4;
+  }
+  .mobile-workspace-menu header p {
+    margin: 3px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .dineflow-app .mobile-workspace-menu header > button {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--neutral-soft);
+    color: var(--ink);
+  }
+  .mobile-workspace-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 16px 14px;
+    padding: 0 12px;
+    border: 1px solid var(--control-border);
+    border-radius: 12px;
+    color: var(--muted);
+    background: var(--surface);
+  }
+  .dineflow-app .mobile-workspace-search input {
+    flex: 1;
+    min-width: 0;
+    height: 46px;
+    padding: 8px 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font-size: 16px;
+    outline-offset: 0;
+  }
+  .mobile-workspace-tools {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 0 16px 16px;
+  }
+  .dineflow-app .mobile-workspace-tools a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 58px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--neutral-soft);
+    color: var(--ink);
+    font-size: 12px;
+    text-decoration: none;
+    line-height: 1.5;
+  }
+  .mobile-workspace-tools a svg {
+    flex-shrink: 0;
+  }
+  .mobile-workspace-tools a[aria-current="page"] {
+    background: var(--primary-soft);
+    border-color: var(--control-border);
+  }
+  .mobile-workspace-menu > footer {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    border-top: 1px solid var(--border);
+    padding: 10px 12px;
+  }
+  .dineflow-app .mobile-workspace-menu > footer > :is(a, button) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 7px;
+    min-height: 66px;
+    min-width: 0;
+    padding: 6px 2px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ink);
+    font-size: 11px;
+    text-decoration: none;
+    text-align: center;
+  }
+  .mobile-workspace-no-results {
+    padding: 0 16px 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .app-shell .customer-cart-shortcut {
+    bottom: calc(var(--mobile-nav-height) + 10px);
+    border-radius: 14px;
+    left: 12px;
+    right: 12px;
+  }
+  .dineflow-app .app-shell:has(.customer-cart-shortcut) .app-content {
+    padding-bottom: 100px;
+  }
+  .dineflow-app .admin-shell .admin-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .dineflow-app .public-landing {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
+  .dineflow-app .public-mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    position: fixed;
+    z-index: 40;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-height: 70px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--df-color-border);
+    background: var(--df-color-surface);
+  }
+  .public-mobile-nav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 54px;
+    border-radius: 12px;
+    color: var(--df-color-ink);
+    text-decoration: none;
+    font-size: 11px;
+  }
+  .dineflow-app .public-header {
+    position: relative;
+    padding: 10px 14px;
+    flex-wrap: nowrap;
+    min-height: 64px;
+    border: 0;
+  }
+  .public-header > nav > a {
+    display: none;
+  }
+  .dineflow-app .public-footer {
+    display: none;
+  }
+  .dineflow-app .auth-layout {
+    min-height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .dineflow-app .auth-form-area {
+    padding: 24px 18px;
+  }
+  .dineflow-app .auth-form-wrap {
+    padding: 8px 0;
+  }
+}

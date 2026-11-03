@@ -1,0 +1,1506 @@
+/* Administrator and manager workspace on phones: the same app layout as the
+   rider workspace. A slim translucent top bar with the page title centred,
+   alerts in the bottom bar, pull to refresh, and each page leading with its
+   content instead of long intros, forms and filters. */
+.orders-filter-toggle {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  /* Pull to refresh replaces the browser's reload-on-pull. */
+  html:has(.admin-shell),
+  body:has(.admin-shell) {
+    overscroll-behavior-y: contain;
+  }
+
+  /* Top bar: sticky, translucent, title centred with an optional back link. */
+  .dineflow-app .admin-shell .admin-topbar {
+    position: sticky;
+    z-index: 40;
+    top: 0;
+    height: auto;
+    min-height: 52px;
+    padding: calc(4px + env(safe-area-inset-top, 0px)) 8px 4px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    background: color-mix(in srgb, var(--canvas) 86%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
+  }
+  .dineflow-app .admin-shell .admin-topbar-right:not(:has(> :not([hidden]))) {
+    display: none;
+  }
+  .dineflow-app .admin-shell .mobile-workspace-title {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    width: 100%;
+  }
+  .dineflow-app .admin-shell .mobile-workspace-title > a {
+    grid-column: 1;
+    margin: 0;
+  }
+  .dineflow-app .admin-shell .mobile-workspace-title > strong {
+    grid-column: 2;
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    text-align: center;
+  }
+
+  /* Page intros: a short muted subtitle, not a paragraph to wade through. */
+  .dineflow-app
+    .admin-shell
+    .admin-content
+    :is(.page-heading, .admin-page-heading)
+    p,
+  .dineflow-app .admin-shell .admin-users > p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  /* Eyebrows repeat the title bar. */
+  .dineflow-app .admin-shell :is(.dispatch-eyebrow, .admin-users > .eyebrow) {
+    display: none;
+  }
+
+  /* Refresh: pull to refresh does the job, so the button is a small icon.
+     Its accessible name stays the full label. */
+  .dineflow-app .admin-shell .admin-refresh-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .admin-shell
+    :is(
+      .admin-heading-actions .admin-button--secondary,
+      .orders-refresh,
+      .dispatch-dashboard .page-heading .ui-button--secondary
+    ):has(.admin-refresh-label) {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .dineflow-app .admin-shell .admin-heading-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .dineflow-app
+    .admin-shell
+    .admin-heading-actions
+    > .admin-button:not(.admin-button--secondary) {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* Orders: filters fold behind one button with a count of active ones. */
+  .dineflow-app .admin-shell .orders-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    margin: 0 0 12px;
+    padding: 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .dineflow-app .admin-shell .orders-filter-toggle[aria-expanded="true"] {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .dineflow-app .admin-shell .orders-filter-count {
+    display: grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .dineflow-app .admin-shell .order-filters:not([data-open]) {
+    display: none;
+  }
+  .dineflow-app .admin-shell .order-filters[data-open] {
+    animation: rider-rise var(--df-motion-duration, 200ms)
+      var(--df-motion-easing, ease-out) backwards;
+  }
+
+  /* Team & access: the people first, then the form to add someone. */
+  .dineflow-app .admin-shell .admin-users {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dineflow-app .admin-shell .admin-users > .staff-list {
+    order: 1;
+  }
+  .dineflow-app .admin-shell .admin-users > .staff-form {
+    order: 2;
+  }
+}
+
+@media (max-width: 850px) {
+  /* A busy refresh shows only its spinner, not two icons. */
+  .dineflow-app
+    .admin-shell
+    :has(> .admin-refresh-label)[aria-busy="true"]
+    > svg.lucide-refresh-cw {
+    display: none;
+  }
+
+  /* Orders header: subtitle, then [Filters] [refresh] on one row. */
+  .dineflow-app .admin-shell .orders-page-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app .admin-shell .orders-page-heading > div {
+    flex: 1 1 100%;
+  }
+  .dineflow-app .admin-shell .orders-page-heading .eyebrow {
+    display: none;
+  }
+  .dineflow-app .admin-shell .orders-page-heading p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .dineflow-app .admin-shell .orders-page-heading > .orders-filter-toggle {
+    flex: 1 1 auto;
+    justify-content: center;
+    margin: 0;
+  }
+
+  /* Dispatch: subtitle and refresh share one row; no empty band above. */
+  .dineflow-app .admin-shell .dispatch-dashboard > .page-heading {
+    flex-wrap: nowrap;
+    min-height: 0;
+    margin: 0 0 12px;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app .admin-shell .dispatch-dashboard > .page-heading p {
+    margin: 0;
+  }
+  .dineflow-app .admin-shell .dispatch-dashboard > .page-heading .page-actions {
+    flex: none;
+    margin: 0;
+  }
+
+  /* Team cards: who, then role and status on one row, then the action. */
+  .dineflow-app .admin-shell .staff-list > h2 {
+    margin: 4px 0 8px;
+    font-size: 18px;
+  }
+  .dineflow-app .admin-shell .staff-list article {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px 12px;
+    margin: 0 0 10px;
+    padding: 14px 16px;
+  }
+  .dineflow-app .admin-shell .staff-list article > div:first-child {
+    display: grid;
+    grid-column: 1 / -1;
+    gap: 2px;
+  }
+  .dineflow-app .admin-shell .staff-list article > select {
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+  }
+  .dineflow-app
+    .admin-shell
+    .staff-list
+    article
+    > :is(.status-active, .status-inactive) {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--primary-soft);
+    font-size: 12.5px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .dineflow-app .admin-shell .staff-list article > .status-inactive {
+    background: var(--neutral-soft);
+    color: var(--muted);
+  }
+  .dineflow-app .admin-shell .staff-list article > button {
+    grid-column: 1 / -1;
+    justify-self: end;
+    width: auto;
+    min-height: 40px;
+    margin: 0;
+    padding: 0 14px;
+  }
+}
+
+/* More sheet: group headings across the tool grid. */
+.mobile-workspace-tools > .mobile-workspace-group {
+  grid-column: 1 / -1;
+  margin: 10px 2px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mobile-workspace-tools > .mobile-workspace-group:first-child {
+  margin-top: 0;
+}
+
+.staff-form > h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+@media (max-width: 850px) {
+  /* Page sections start right under the title bar (desktop gives some a
+     top rule and spacing, which left an empty band on phones). */
+  .dineflow-app .admin-shell .admin-content > .welcome {
+    margin-top: 0;
+    padding-top: 4px;
+    border-top: 0;
+  }
+  /* Team cards: role select fills the row, status chip beside it. */
+  .dineflow-app .admin-shell .staff-list article > select {
+    grid-column: 1;
+  }
+  .dineflow-app
+    .admin-shell
+    .staff-list
+    article
+    > :is(.status-active, .status-inactive) {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 850px) {
+  .dineflow-app .admin-shell .dispatch-dashboard > .page-heading {
+    justify-content: flex-end;
+  }
+  .dineflow-app
+    .admin-shell
+    .dispatch-dashboard
+    > .page-heading
+    > div:first-child:not(:has(:is(h1, p):not([hidden]))) {
+    display: none;
+  }
+}
+
+/* ---- Compact admin pages on phones ------------------------------------ */
+@media (max-width: 850px) {
+  /* Intros under the title bar: one short muted line, not a paragraph. */
+  .dineflow-app .admin-shell .admin-content > section > h1 + p,
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    :is(.admin-content, .app-content)
+    .sage-page-heading
+    p,
+  .dineflow-app .admin-shell .admin-content .page-heading p {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  /* Staff pages (kitchen, tables, payments): refresh is a small icon at
+     the right instead of a wide text button on its own row. */
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-height: 0;
+    margin: 0 0 10px;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-page-heading
+    > div:first-child:not(:has(p)) {
+    display: none;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-page-heading
+    > div:first-child {
+    flex: 1 1 auto;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-page-heading
+    > .sage-button--secondary {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 12px;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-page-heading
+    .admin-refresh-label,
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-refresh-action
+    > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Counts as a row of small tiles instead of tall stacked rows. */
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-stat-grid--four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-stat-grid
+    > article {
+    display: grid;
+    align-content: start;
+    gap: 2px;
+    min-height: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-stat-grid
+    > article
+    > span {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-stat-grid
+    > article
+    > strong {
+    order: 2;
+    font-size: 20px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-stat-grid
+    > article
+    > small:empty {
+    display: none;
+  }
+
+  /* Staff toolbars: search and select side by side when they fit. */
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 10px;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-toolbar
+    > .sage-filter-chips {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-toolbar
+    > .sage-field:only-of-type:not(.sage-field--search) {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-field {
+    gap: 4px;
+    font-size: 13px;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-field
+    :is(select, input) {
+    min-height: 44px;
+    height: 44px;
+    font-size: 15px;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-filter-chips {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    .sage-filter-chips
+    > button {
+    flex: none;
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+
+  /* Bookings: previous, range and next on one line, then view, date and
+     status. */
+  .dineflow-app .admin-shell .calendar-controls {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+  }
+  .dineflow-app .admin-shell .calendar-controls > button:nth-of-type(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .dineflow-app .admin-shell .calendar-controls > strong {
+    grid-column: 2 / 4;
+    grid-row: 1;
+    font-size: 15px;
+    text-align: center;
+  }
+  .dineflow-app .admin-shell .calendar-controls > button:nth-of-type(2) {
+    grid-column: 4;
+    grid-row: 1;
+  }
+  .dineflow-app .admin-shell .calendar-controls > button:nth-of-type(3) {
+    grid-column: 1;
+  }
+  .dineflow-app .admin-shell .calendar-controls > select:first-of-type {
+    grid-column: 2;
+  }
+  .dineflow-app .admin-shell .calendar-controls > .date-picker {
+    grid-column: 3 / 5;
+  }
+  .dineflow-app .admin-shell .calendar-controls > select:last-of-type {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app
+    .admin-shell
+    .calendar-controls
+    > :is(button, select, .date-picker),
+  .dineflow-app .admin-shell .calendar-controls .date-picker-trigger {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    height: 44px;
+    margin: 0;
+    padding-inline: 8px;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  /* Reports: presets as a segmented row, dates side by side, figures as a
+     two-column grid of small tiles. */
+  .dineflow-app .admin-shell .report-range {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px;
+  }
+  .dineflow-app .admin-shell .report-range > button {
+    grid-column: span 2;
+    min-height: 40px;
+    height: 40px;
+    padding: 0 6px;
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+  .dineflow-app .admin-shell .report-range > .report-date-filter {
+    grid-column: span 3;
+    min-width: 0;
+  }
+  .dineflow-app .admin-shell .ops-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .dineflow-app .admin-shell .ops-stat {
+    min-height: 0;
+    padding: 12px;
+  }
+  .dineflow-app .admin-shell .ops-stat > span {
+    font-size: 11.5px;
+  }
+  .dineflow-app .admin-shell .ops-stat > strong {
+    font-size: 20px;
+  }
+  .dineflow-app .admin-shell .ops-report-grid {
+    gap: 10px;
+  }
+  .dineflow-app .admin-shell .ops-panel {
+    padding: 12px;
+  }
+  .dineflow-app .admin-shell .ops-panel > h3 {
+    font-size: 15px;
+  }
+  .dineflow-app .admin-shell .reports-dashboard > h2 {
+    margin: 16px 0 8px;
+    font-size: 17px;
+  }
+
+  /* Menu: search on top, category and sort side by side, slimmer actions. */
+  .dineflow-app .admin-shell .catalog-filter-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .dineflow-app .admin-shell .catalog-filter-bar > .search-field {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app .admin-shell .catalog-filter-field {
+    min-width: 0;
+    font-size: 13px;
+  }
+  .dineflow-app .admin-shell .catalog-filter-field select {
+    min-height: 44px;
+    height: 44px;
+    font-size: 15px;
+  }
+  .dineflow-app .admin-shell .catalog-dish-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .dineflow-app .admin-shell .catalog-dish-actions > :is(button, a) {
+    min-height: 40px;
+    height: 40px;
+    padding: 0 10px;
+    font-size: 14px;
+  }
+
+  /* Audit: one empty message, not an empty state and an empty table. */
+  .dineflow-app
+    .admin-shell
+    .audit-workspace:has(> .empty-state)
+    > .audit-panel {
+    display: none;
+  }
+
+  /* Home: compact figures, list-style priorities, no orphaned footer. */
+  .dineflow-app .admin-shell .admin-metrics {
+    gap: 8px;
+  }
+  .dineflow-app .admin-shell .admin-metric {
+    min-height: 0;
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .dineflow-app .admin-shell .admin-metric > strong {
+    margin: 4px 0 0;
+    font-size: 24px;
+    line-height: 1.1;
+  }
+  .dineflow-app .admin-shell .admin-metric > small:empty,
+  .dineflow-app .admin-shell .admin-metric-navigation {
+    display: none;
+  }
+  .dineflow-app .admin-shell .admin-overview-bar {
+    margin: 0;
+    padding: 0 2px 4px;
+    border: 0;
+    font-size: 13px;
+  }
+  .dineflow-app .admin-shell .admin-overview-grid {
+    gap: 12px;
+  }
+  .dineflow-app .admin-shell .admin-panel {
+    padding: 14px;
+    border-radius: 16px;
+  }
+  .dineflow-app .admin-shell .admin-panel > .admin-panel-heading {
+    min-height: 0;
+    margin: 0 0 6px;
+    padding: 0 0 10px;
+  }
+  .dineflow-app .admin-shell .admin-panel-heading h2 {
+    font-size: 17px;
+  }
+  .dineflow-app .admin-shell .admin-panel-heading p {
+    font-size: 13px;
+  }
+  .dineflow-app .admin-shell .admin-priority-actions {
+    display: grid;
+    gap: 0;
+    margin: 0;
+  }
+  .dineflow-app .admin-shell .admin-priority-action {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 0;
+    margin: 0;
+    padding: 12px 0;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: none;
+  }
+  .dineflow-app .admin-shell .admin-priority-action:last-child {
+    border-bottom: 0;
+  }
+  .dineflow-app .admin-shell .admin-priority-action > .admin-outlet-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+  .dineflow-app .admin-shell .admin-priority-copy {
+    display: grid;
+    gap: 2px;
+  }
+  .dineflow-app .admin-shell .admin-priority-copy > strong {
+    font-size: 15px;
+  }
+  /* The count says enough; the sentence repeats the title. */
+  .dineflow-app .admin-shell .admin-priority-copy > span {
+    display: none;
+  }
+  .dineflow-app .admin-shell .admin-priority-copy > small {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .dineflow-app .admin-shell .admin-tracking-shortcut {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0 0;
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .dineflow-app .admin-shell .admin-tracking-shortcut > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .dineflow-app .admin-shell .admin-tracking-shortcut p {
+    display: none;
+  }
+  .dineflow-app .admin-shell .admin-tracking-shortcut > .admin-button {
+    flex: none;
+    min-height: 40px;
+    padding: 0 14px;
+  }
+  .dineflow-app .admin-shell .admin-summary-number {
+    padding: 4px 0 8px;
+  }
+  .dineflow-app .admin-shell .admin-summary-number > strong {
+    font-size: 30px;
+  }
+  .dineflow-app .admin-shell .admin-outlet-summary-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .dineflow-app .admin-shell .admin-outlet-summary-footer > .admin-button {
+    min-height: 40px;
+    padding: 0 14px;
+  }
+  .dineflow-app .admin-shell .admin-bottom-note {
+    display: none;
+  }
+
+  /* Orders: a tighter card. Number and status share a line, details are
+     one muted line, money sits in a compact strip. */
+  .dineflow-app .admin-shell .order-card {
+    padding: 0;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+  .dineflow-app .admin-shell .order-card-summary {
+    display: grid;
+    gap: 8px;
+    padding: 14px 14px 12px;
+  }
+  .dineflow-app .admin-shell .order-card-title {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 0;
+    margin: 0;
+  }
+  .dineflow-app .admin-shell .order-card-reference {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .dineflow-app .admin-shell .order-card-reference > .order-type-icon {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+  .dineflow-app .admin-shell .order-card-reference > strong {
+    overflow: hidden;
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dineflow-app .admin-shell .order-card-title > .df-status {
+    flex: none;
+    padding: 2px 9px;
+    font-size: 12px;
+  }
+  .dineflow-app .admin-shell .order-card-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 0;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .admin-shell .order-card-metadata > * {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app .admin-shell .order-card-metadata > *::before,
+  .dineflow-app .admin-shell .order-card-metadata > *::after {
+    content: none;
+  }
+  .dineflow-app .admin-shell .order-card-metadata > * + *::before {
+    margin: 0 6px;
+    content: "·";
+  }
+  .dineflow-app .admin-shell .order-card-items {
+    margin: 0;
+    font-size: 14px;
+  }
+  .dineflow-app .admin-shell .order-payment-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--neutral-soft);
+  }
+  .dineflow-app .admin-shell .order-payment-summary > div {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+  }
+  .dineflow-app .admin-shell .order-payment-summary dt {
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  .dineflow-app .admin-shell .order-payment-summary dd {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 650;
+  }
+  .dineflow-app .admin-shell .order-delivery-metadata {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .admin-shell .order-card-workbench {
+    margin: 0;
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--border);
+    background: none;
+  }
+  .dineflow-app .admin-shell .order-card-workbench .order-action-button {
+    min-height: 44px;
+  }
+  .dineflow-app .admin-shell .orders-result-bar {
+    margin: 0 0 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Stronger than the workspace defaults, which kept desktop padding. */
+  .dineflow-app .admin-shell .orders-list > .order-card {
+    padding: 0;
+    margin: 0 0 10px;
+  }
+  .dineflow-app .admin-shell .orders-list > .order-card > .order-card-summary {
+    padding: 14px 14px 12px;
+  }
+  .dineflow-app
+    .admin-shell
+    .orders-list
+    > .order-card
+    > .order-card-workbench {
+    width: auto;
+    margin: 0;
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--border);
+    background: transparent;
+  }
+  .dineflow-app .admin-shell .admin-panel > .admin-priority-actions {
+    padding: 0;
+  }
+  .dineflow-app
+    .admin-shell
+    .admin-dispatch-summary
+    > :is(
+      .admin-summary-legend,
+      .admin-summary-row,
+      .admin-progress-track,
+      .admin-summary-number
+    ) {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+  .dineflow-app .admin-shell .admin-dispatch-summary > .admin-summary-legend {
+    padding-block: 10px;
+  }
+  .dineflow-app .admin-shell .admin-dispatch-summary > .admin-summary-row {
+    padding-block: 10px;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Bookings controls: stronger than the page's own flex layout. */
+  .dineflow-app
+    .admin-shell
+    .admin-content
+    .reservation-calendar
+    > .calendar-controls {
+    display: grid;
+    flex-direction: initial;
+  }
+  .dineflow-app
+    .admin-shell
+    .admin-content
+    .reservation-calendar
+    > .calendar-controls
+    > * {
+    flex: initial;
+    width: 100%;
+    max-width: none;
+  }
+  /* Count tiles: label above the number. */
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    :is(.admin-content, .app-content)
+    .sage-stat-grid
+    > article {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: none;
+  }
+  .dineflow-app
+    :is(.admin-shell, .app-shell[data-workspace="restaurant"])
+    :is(.admin-content, .app-content)
+    .sage-stat-grid
+    > article
+    > * {
+    grid-area: auto;
+    grid-column: 1;
+    justify-self: start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Bookings: previous and next as arrow buttons around the range. */
+  .dineflow-app
+    .admin-shell
+    .admin-content
+    .reservation-calendar
+    > .calendar-controls
+    > button:is(:nth-of-type(1), :nth-of-type(2)) {
+    gap: 0;
+    font-size: 0;
+  }
+  .dineflow-app
+    .admin-shell
+    .admin-content
+    .reservation-calendar
+    > .calendar-controls
+    > button:is(:nth-of-type(1), :nth-of-type(2))
+    svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 850px) {
+  .dineflow-app
+    .admin-content
+    .workspace-settings
+    .workspace-toggle
+    input[type="checkbox"] {
+    position: relative;
+    flex: none;
+    width: 46px;
+    height: 28px;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--neutral-soft);
+    cursor: pointer;
+    appearance: none;
+    transition: background-color 160ms ease;
+  }
+  .dineflow-app
+    .admin-content
+    .workspace-settings
+    .workspace-toggle
+    input[type="checkbox"]::before {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(16 34 24 / 25%);
+    content: "";
+    transition: left 160ms ease;
+  }
+  .dineflow-app
+    .admin-content
+    .workspace-settings
+    .workspace-toggle
+    input[type="checkbox"]:checked {
+    border-color: var(--primary);
+    background: var(--primary);
+  }
+  .dineflow-app
+    .admin-content
+    .workspace-settings
+    .workspace-toggle
+    input[type="checkbox"]:checked::before {
+    left: 21px;
+  }
+}
+
+/* ---- Admin button system (phones only) ----------------------------------
+   One size per kind of button, and actions always on the right:
+   - main actions (save, create, publish): 44px, grouped right;
+   - actions inside a card (edit, deactivate, record cash): 40px, right;
+   - filter chips: 36px pills.
+   Pull to refresh replaces the Refresh buttons. */
+@media (max-width: 850px) {
+  .dineflow-app
+    .admin-shell
+    #main-content
+    :is([aria-label^="Refresh"], :has(> .admin-refresh-label)):is(button, a) {
+    display: none;
+  }
+
+  /* Main actions. */
+  .dineflow-app
+    .admin-shell
+    #main-content
+    :is(
+      .page-actions,
+      .admin-heading-actions,
+      .reservation-settings-save,
+      .delivery-config-save,
+      .business-settings-action-buttons,
+      .admin-save-actions,
+      .floor-toolbar-group
+    ) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .dineflow-app
+    .admin-shell
+    #main-content
+    :is(
+      .page-actions,
+      .admin-heading-actions,
+      .reservation-settings-save,
+      .delivery-config-save,
+      .business-settings-action-buttons,
+      .admin-save-actions,
+      .floor-toolbar-group
+    )
+    > :is(button, a),
+  .dineflow-app .admin-shell #main-content .staff-form > button:not([type="button"]),
+  .dineflow-app
+    .admin-shell
+    #main-content
+    .payment-settings-form
+    > button:not([type="button"]) {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .dineflow-app .admin-shell #main-content .staff-form > button:not([type="button"]),
+  .dineflow-app
+    .admin-shell
+    #main-content
+    .payment-settings-form
+    > button:not([type="button"]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: end;
+    margin-left: auto;
+  }
+  /* The primary action sits furthest right. */
+  .dineflow-app
+    .admin-shell
+    #main-content
+    :is(.page-actions, .business-settings-action-buttons, .admin-save-actions)
+    > .ui-button--primary {
+    order: 2;
+  }
+
+  /* Actions inside cards. */
+  .dineflow-app
+    .admin-shell
+    #main-content
+    :is(.catalog-dish-actions, .order-action-buttons) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .dineflow-app
+    .admin-shell
+    #main-content
+    :is(.catalog-dish-actions, .order-action-buttons)
+    > :is(button, a),
+  .dineflow-app .admin-shell #main-content .staff-list article > button,
+  .dineflow-app .admin-shell #main-content .sage-bill-card > .sage-button,
+  .dineflow-app .admin-shell #main-content .admin-radius-row > .admin-button,
+  .dineflow-app .admin-shell #main-content .delivery-config-copy,
+  .dineflow-app .admin-shell #main-content .admin-hours-bulk > .admin-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .dineflow-app .admin-shell #main-content .sage-bill-card > .sage-button,
+  .dineflow-app .admin-shell #main-content .delivery-config-copy,
+  .dineflow-app .admin-shell #main-content .admin-hours-bulk > .admin-button {
+    justify-self: end;
+    margin-left: auto;
+  }
+  .dineflow-app .admin-shell #main-content .admin-hours-bulk {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* Filter chips. */
+  .dineflow-app
+    .admin-shell
+    #main-content
+    :is(.admin-segmented, .sage-filter-chips, .report-range, .ops-export)
+    > button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .admin-shell
+    #main-content
+    :is(.admin-segmented, .sage-filter-chips, .report-range, .ops-export) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Search buttons beside a field match the field's height. */
+  .dineflow-app .admin-shell #main-content .admin-map-search > .ui-button {
+    width: auto;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Save footers: the "changes save…" note on its own line, Save at right. */
+  .dineflow-app
+    .admin-shell
+    #main-content
+    footer:is(.reservation-settings-save, .delivery-config-save) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .dineflow-app
+    .admin-shell
+    #main-content
+    footer:is(.reservation-settings-save, .delivery-config-save)
+    > button {
+    justify-self: end;
+    margin: 0;
+  }
+}
+
+/* Live and Home overview on phones: the date and freshness on the left,
+   Open dispatch on the right of the same row; Review dispatch in the alert
+   card always sits on the right. */
+@media (max-width: 850px) {
+  .dineflow-app .admin-shell .admin-overview-bar[data-with-action] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .dineflow-app .admin-shell .admin-overview-when {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .dineflow-app .admin-shell .admin-overview-when > * {
+    margin: 0;
+  }
+  .dineflow-app .admin-shell .admin-overview-bar .admin-open-dispatch {
+    flex: none;
+    width: auto;
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+  .dineflow-app .admin-shell .admin-priority-strip > .admin-button {
+    grid-column: 1 / -1;
+    justify-self: end;
+    margin-left: 0;
+  }
+}
+@media (max-width: 850px) {
+  /* Its only visible action moved to the date row, so it takes no space. */
+  .dineflow-app .admin-shell :is(.admin-page--tracking, .admin-page--overview) > .admin-page-heading {
+    padding: 0;
+  }
+}
+
+/* Tables on phones: the Order and Customer columns stay put while the rest
+   scrolls sideways underneath them. */
+@media (max-width: 850px) {
+  .dineflow-app .admin-shell .admin-table-scroll:has(.admin-table--pinned) {
+    position: relative;
+  }
+  .dineflow-app .admin-shell .admin-table--pinned :is(th, td):nth-child(-n + 2) {
+    position: sticky;
+    z-index: 1;
+    background: var(--surface);
+  }
+  .dineflow-app .admin-shell .admin-table--pinned th:nth-child(-n + 2) {
+    z-index: 2;
+    background: var(--admin-subtle, var(--neutral-soft));
+  }
+  .dineflow-app .admin-shell .admin-table--pinned :is(th, td):nth-child(1) {
+    left: 0;
+    box-sizing: border-box;
+    width: 118px;
+    min-width: 118px;
+    max-width: 118px;
+    padding-right: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dineflow-app .admin-shell .admin-table--pinned :is(th, td):nth-child(2) {
+    left: 118px;
+    max-width: 150px;
+    padding-left: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 8px 0 8px -8px rgb(16 34 24 / 22%);
+  }
+  .dineflow-app .admin-shell .admin-table--pinned tbody tr:hover td:nth-child(-n + 2) {
+    background: var(--admin-subtle, var(--neutral-soft));
+  }
+}
+
+/* ---- Rider fleet on a phone: one card per rider, button on the right ---- */
+@media (max-width: 850px) {
+  .dineflow-app .admin-shell #main-content .admin-fleet-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-card > .admin-small-avatar {
+    align-self: start;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-main {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-main > strong {
+    overflow: hidden;
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-meta,
+  .dineflow-app .admin-shell #main-content .admin-fleet-main > small {
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-card > .admin-fleet-toggle {
+    width: auto;
+    min-width: 0;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-card > .admin-fleet-toggle[data-tone="danger"]:not(:disabled) {
+    border-color: #e3b4aa;
+    color: #a33a2c;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-card > .admin-fleet-toggle:disabled {
+    opacity: 0.5;
+  }
+}
+
+/* Rider fleet: search and status share one row on a phone. */
+@media (max-width: 850px) {
+  .dineflow-app .admin-shell #main-content .admin-fleet-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-toolbar > .admin-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-toolbar .admin-search input {
+    min-width: 0;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-toolbar > .admin-filter-label {
+    flex: 0 0 auto;
+    max-width: 44%;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-toolbar .admin-filter-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app .admin-shell #main-content .admin-fleet-toolbar select {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 28px 0 12px;
+    border-radius: 7px;
+    font-size: 14px;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Home: the outlet card. The button never breaks mid-word; if it can't sit
+   beside the status it drops to its own line, still on the right. */
+.dineflow-app .admin-shell .admin-outlet-summary-footer {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.dineflow-app .admin-shell .admin-outlet-summary-footer > .admin-button {
+  flex: none;
+  margin-left: auto;
+  white-space: nowrap;
+}
+@media (max-width: 850px) {
+  /* Phones: dispatch and outlet cards stack at full width. */
+  .dineflow-app .admin-shell #main-content .admin-insight-column {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dineflow-app .admin-shell #main-content .admin-outlet-summary {
+    padding: 16px;
+  }
+  .dineflow-app .admin-shell #main-content .admin-outlet-summary h2 {
+    font-size: 17px;
+  }
+  .dineflow-app .admin-shell #main-content .admin-outlet-summary p {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .dineflow-app .admin-shell #main-content .admin-outlet-summary-footer {
+    margin-top: 4px;
+    padding-top: 12px;
+  }
+  .dineflow-app .admin-shell #main-content .admin-outlet-summary-footer > .admin-button {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    font-size: 13.5px;
+  }
+}
+
+/* ---- Phone fixes from the design review ---------------------------------- */
+@media (max-width: 850px) {
+  /* Live → fleet overview: one segmented control, never wrapping, with the
+     located count on its own small line. */
+  .dineflow-app #main-content .admin-map-toolbar {
+    display: grid;
+    gap: 8px;
+  }
+  .dineflow-app #main-content .admin-map-toolbar > .admin-segmented {
+    justify-self: stretch;
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+  }
+  .dineflow-app #main-content .admin-map-toolbar > .admin-segmented > button {
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    box-shadow: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .dineflow-app #main-content .admin-map-toolbar > .admin-segmented > button[aria-pressed="true"] {
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app #main-content .admin-map-toolbar > .admin-map-count {
+    justify-self: end;
+    font-size: 12px;
+  }
+
+  /* Outlets: the address Search button keeps its word on one line. */
+  .dineflow-app #main-content .admin-map-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dineflow-app #main-content .admin-map-search > .admin-search {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .dineflow-app #main-content .admin-map-search > .admin-button {
+    flex: none;
+    width: auto;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+}

@@ -1,7 +1,9 @@
+import { useLiveSettings } from "./components/useLiveSettings";
 import { Feedback, Skeleton } from "./components/ui";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { MapPin, X } from "lucide-react";
+import { MapPin, X, Clock3, Truck, Store, Check, Save } from "lucide-react";
+import "./features/deliverySettings.css";
 import {
   Circle,
   MapContainer,
@@ -429,6 +431,7 @@ export function DeliverySettings() {
   const [data, setData] = useState({});
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const days = [
     "monday",
     "tuesday",
@@ -438,13 +441,24 @@ export function DeliverySettings() {
     "saturday",
     "sunday",
   ];
+  const [receiveData, markSaved] = useLiveSettings(
+    async () => {
+      const [p, l] = await Promise.all([
+        api("/admin/delivery-policy"),
+        api("/restaurant/location"),
+      ]);
+      return { policy: p.data.policy, location: l.data || {} };
+    },
+    data,
+    setData,
+  );
   useEffect(() => {
     setLoading(true);
     setInitialError("");
     setError("");
     Promise.all([api("/admin/delivery-policy"), api("/restaurant/location")])
       .then(([p, l]) =>
-        setData({ policy: p.data.policy, location: l.data || {} }),
+        receiveData({ policy: p.data.policy, location: l.data || {} }),
       )
       .catch((e) => {
         setError(e.message);
@@ -453,9 +467,11 @@ export function DeliverySettings() {
       .finally(() => setLoading(false));
   }, [attempt]);
   function change(group, key, val) {
+    setNotice("");
     setData((d) => ({ ...d, [group]: { ...d[group], [key]: val } }));
   }
   function setHours(group, day, key, val) {
+    setNotice("");
     setData((d) => ({
       ...d,
       [group]: {
@@ -476,6 +492,8 @@ export function DeliverySettings() {
   }
   async function save(e) {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     setError("");
     setNotice("");
     try {
@@ -500,55 +518,107 @@ export function DeliverySettings() {
           longitude: Number(data.location.longitude),
         }),
       });
+      markSaved(data);
       setNotice("Delivery area and restaurant location saved.");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
   const hoursEditor = (group, label) => {
     const key = group === "policy" ? "operating_hours" : "opening_hours";
     return (
-      <>
-        <h2>{label}</h2>
-        {days.map((day) => {
-          const hours = data[group]?.[key]?.[day] || {};
-          return (
-            <div className="hours-row" key={`${group}-${day}`}>
-              <strong>{day}</strong>
-              <label>
-                <span>Opens</span>
-                <input
-                  type="time"
-                  disabled={hours.closed}
-                  value={hours.open || ""}
-                  onChange={(e) => setHours(group, day, "open", e.target.value)}
-                />
-              </label>
-              <label>
-                <span>Closes</span>
-                <input
-                  type="time"
-                  disabled={hours.closed}
-                  value={hours.close || ""}
-                  onChange={(e) =>
-                    setHours(group, day, "close", e.target.value)
-                  }
-                />
-              </label>
-              <label className="closed-toggle">
-                <input
-                  type="checkbox"
-                  checked={!!hours.closed}
-                  onChange={(e) =>
-                    setHours(group, day, "closed", e.target.checked)
-                  }
-                />
-                Closed
-              </label>
-            </div>
-          );
-        })}
-      </>
+      <section
+        className="delivery-config-card delivery-schedule"
+        aria-label={label}
+      >
+        <header className="delivery-config-card-heading">
+          <span className="delivery-config-icon">
+            <Clock3 size={19} aria-hidden="true" />
+          </span>
+          <div>
+            <h2>{label}</h2>
+            <p>
+              {group === "policy"
+                ? "When customers can place delivery orders."
+                : "When your restaurant is open for service."}
+            </p>
+          </div>
+        </header>
+        <div className="delivery-schedule-days">
+          {days.map((day) => {
+            const hours = data[group]?.[key]?.[day] || {};
+            return (
+              <div
+                className="delivery-schedule-day"
+                data-closed={!!hours.closed}
+                key={`${group}-${day}`}
+              >
+                <strong>{day}</strong>
+                {!hours.closed ? (
+                  <div className="delivery-schedule-times">
+                    <label>
+                      <span>Opens</span>
+                      <input
+                        type="time"
+                        aria-label={`${group === "policy" ? "Delivery" : "Restaurant"} ${day} opens`}
+                        disabled={hours.closed}
+                        value={hours.open || ""}
+                        onChange={(e) =>
+                          setHours(group, day, "open", e.target.value)
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Closes</span>
+                      <input
+                        type="time"
+                        aria-label={`${group === "policy" ? "Delivery" : "Restaurant"} ${day} closes`}
+                        disabled={hours.closed}
+                        value={hours.close || ""}
+                        onChange={(e) =>
+                          setHours(group, day, "close", e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <span className="delivery-day-closed">
+                    Closed for {group === "policy" ? "deliveries" : "service"}
+                  </span>
+                )}
+                <label className="closed-toggle">
+                  <input
+                    type="checkbox"
+                    aria-label={`${group === "policy" ? "Delivery" : "Restaurant"} ${day} closed`}
+                    checked={!!hours.closed}
+                    onChange={(e) =>
+                      setHours(group, day, "closed", e.target.checked)
+                    }
+                  />
+                  Closed
+                </label>
+              </div>
+            );
+          })}
+        </div>
+        <button
+          className="delivery-config-copy"
+          type="button"
+          onClick={() => {
+            const hours = data[group]?.[key]?.monday || {};
+            change(
+              group,
+              key,
+              Object.fromEntries(days.map((day) => [day, { ...hours }])),
+            );
+          }}
+        >
+          <Clock3 size={15} aria-hidden="true" />
+          Apply Monday’s hours to all days
+        </button>
+      </section>
     );
   };
   if (loading || initialError)
@@ -565,109 +635,211 @@ export function DeliverySettings() {
       </section>
     );
   return (
-    <section className="welcome">
-      <span className="eyebrow">DELIVERY CONFIGURATION</span>
-      <h1>Restaurant and delivery area</h1>
+    <section className="welcome delivery-config-page">
+      <div className="delivery-config-intro">
+        <div>
+          <span className="eyebrow">DELIVERY CONFIGURATION</span>
+          <h1>Delivery settings</h1>
+          <p>
+            Set your pickup location, delivery fees, and weekly availability.
+          </p>
+        </div>
+        <span className="delivery-config-status">
+          <Truck size={16} aria-hidden="true" />
+          Your delivery setup
+        </span>
+      </div>
       {error && <div className="error">{error}</div>}
       {notice && <div className="success">{notice}</div>}
       {data.policy && (
-        <form className="delivery-settings-form" onSubmit={save}>
-          <h2>Restaurant location</h2>
-          {import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY ? (
-            <GoogleRestaurantPin
-              location={data.location}
-              radius={data.policy.radius_km}
-              apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}
-              onChange={(location) =>
-                setData((current) => ({
-                  ...current,
-                  location:
-                    typeof location === "function"
-                      ? location(current.location)
-                      : location,
-                }))
-              }
-            />
-          ) : (
-            <RestaurantPinEditor
-              location={data.location}
-              radius={data.policy.radius_km}
-              onChange={(location) =>
-                setData((current) => ({
-                  ...current,
-                  location:
-                    typeof location === "function"
-                      ? location(current.location)
-                      : location,
-                }))
-              }
-            />
-          )}
-          {[
-            ["name", "Restaurant name"],
-            ["address", "Address"],
-            ["latitude", "Latitude"],
-            ["longitude", "Longitude"],
-            ["phone", "Phone"],
-            ["contact_email", "Contact email"],
-          ].map(([key, label]) => (
-            <label key={key}>
-              {label}
-              <input
-                required={["address", "latitude", "longitude"].includes(key)}
-                type={
-                  ["latitude", "longitude"].includes(key)
-                    ? "number"
-                    : key === "contact_email"
-                      ? "email"
-                      : key === "phone"
-                        ? "tel"
-                        : "text"
-                }
-                step={
-                  ["latitude", "longitude"].includes(key) ? "any" : undefined
-                }
-                min={
-                  key === "latitude"
-                    ? -90
-                    : key === "longitude"
-                      ? -180
-                      : undefined
-                }
-                max={
-                  key === "latitude"
-                    ? 90
-                    : key === "longitude"
-                      ? 180
-                      : undefined
-                }
-                value={data.location?.[key] ?? ""}
-                onChange={(e) => change("location", key, e.target.value)}
-              />
-            </label>
-          ))}
-          {hoursEditor("location", "Restaurant opening hours")}
-          <h2>Delivery rules</h2>
-          {[
-            ["radius_km", "Coverage radius (km)"],
-            ["minimum_order", "Minimum order (₱)"],
-            ["base_fee", "Base fee (₱)"],
-            ["per_km_fee", "Fee per road km (₱)"],
-            ["free_delivery_over", "Free delivery above (₱)"],
-          ].map(([key, label]) => (
-            <label key={key}>
-              {label}
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={data.policy?.[key] ?? ""}
-                onChange={(e) => change("policy", key, e.target.value)}
-              />
-            </label>
-          ))}
-          {hoursEditor("policy", "Delivery operating hours")}
-          <button>Save settings</button>
+        <form
+          className="delivery-config-form"
+          onSubmit={save}
+          aria-busy={saving}
+        >
+          <div className="delivery-config-location-grid">
+            <section
+              className="delivery-config-card delivery-config-map"
+              aria-label="Pickup location"
+            >
+              <header className="delivery-config-card-heading">
+                <span className="delivery-config-icon">
+                  <MapPin size={19} aria-hidden="true" />
+                </span>
+                <div>
+                  <h2>Pickup location & coverage</h2>
+                  <p>Place the pin where riders collect your orders.</p>
+                </div>
+              </header>
+              {import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY ? (
+                <GoogleRestaurantPin
+                  location={data.location}
+                  radius={data.policy.radius_km}
+                  apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}
+                  onChange={(location) =>
+                    setData((current) => ({
+                      ...current,
+                      location:
+                        typeof location === "function"
+                          ? location(current.location)
+                          : location,
+                    }))
+                  }
+                />
+              ) : (
+                <RestaurantPinEditor
+                  location={data.location}
+                  radius={data.policy.radius_km}
+                  onChange={(location) =>
+                    setData((current) => ({
+                      ...current,
+                      location:
+                        typeof location === "function"
+                          ? location(current.location)
+                          : location,
+                    }))
+                  }
+                />
+              )}
+              <div className="delivery-coverage-note">
+                <MapPin size={16} aria-hidden="true" />
+                <span>
+                  <strong>
+                    {data.policy.radius_km || 0} km delivery radius
+                  </strong>
+                  <small>
+                    Coverage uses a straight-line radius. Fees use road
+                    distance.
+                  </small>
+                </span>
+              </div>
+            </section>
+            <section
+              className="delivery-config-card"
+              aria-label="Restaurant details"
+            >
+              <header className="delivery-config-card-heading">
+                <span className="delivery-config-icon">
+                  <Store size={19} aria-hidden="true" />
+                </span>
+                <div>
+                  <h2>Restaurant details</h2>
+                  <p>Keep your pickup and contact details current.</p>
+                </div>
+              </header>
+              <div className="delivery-config-fields">
+                {[
+                  ["name", "Restaurant name"],
+                  ["address", "Address"],
+                  ["latitude", "Latitude"],
+                  ["longitude", "Longitude"],
+                  ["phone", "Phone"],
+                  ["contact_email", "Contact email"],
+                ].map(([key, label]) => (
+                  <label key={key}>
+                    {label}
+                    <input
+                      required={["address", "latitude", "longitude"].includes(
+                        key,
+                      )}
+                      type={
+                        ["latitude", "longitude"].includes(key)
+                          ? "number"
+                          : key === "contact_email"
+                            ? "email"
+                            : key === "phone"
+                              ? "tel"
+                              : "text"
+                      }
+                      step={
+                        ["latitude", "longitude"].includes(key)
+                          ? "any"
+                          : undefined
+                      }
+                      min={
+                        key === "latitude"
+                          ? -90
+                          : key === "longitude"
+                            ? -180
+                            : undefined
+                      }
+                      max={
+                        key === "latitude"
+                          ? 90
+                          : key === "longitude"
+                            ? 180
+                            : undefined
+                      }
+                      value={data.location?.[key] ?? ""}
+                      onChange={(e) => change("location", key, e.target.value)}
+                    />
+                  </label>
+                ))}
+              </div>
+            </section>
+          </div>
+          <section
+            className="delivery-config-card"
+            aria-label="Delivery fees and coverage"
+          >
+            <header className="delivery-config-card-heading">
+              <span className="delivery-config-icon">
+                <Truck size={19} aria-hidden="true" />
+              </span>
+              <div>
+                <h2>Delivery fees & coverage</h2>
+                <p>Set the delivery reach and pricing for new orders.</p>
+              </div>
+            </header>
+            <div className="delivery-config-pricing">
+              {[
+                ["radius_km", "Coverage radius (km)"],
+                ["minimum_order", "Minimum order (₱)"],
+                ["base_fee", "Base fee (₱)"],
+                ["per_km_fee", "Fee per road km (₱)"],
+                ["free_delivery_over", "Free delivery above (₱)"],
+              ].map(([key, label]) => (
+                <label key={key}>
+                  {label}
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={data.policy?.[key] ?? ""}
+                    onChange={(e) => change("policy", key, e.target.value)}
+                  />
+                  {key === "free_delivery_over" && (
+                    <small>Leave blank to keep standard fees.</small>
+                  )}
+                </label>
+              ))}
+            </div>
+            <p className="delivery-config-fee-help">
+              Delivery fee = base fee + road distance × fee per km. Free
+              delivery applies when the order reaches your threshold.
+            </p>
+          </section>
+          <div className="delivery-config-schedules">
+            {hoursEditor("location", "Restaurant opening hours")}
+            {hoursEditor("policy", "Delivery operating hours")}
+          </div>
+          <footer className="delivery-config-save">
+            <div>
+              <Check size={18} aria-hidden="true" />
+              <span>
+                <strong>
+                  {notice ? "Settings saved" : "Ready to save your setup?"}
+                </strong>
+                <small>
+                  Location, fees, and both schedules are saved together.
+                </small>
+              </span>
+            </div>
+            <button type="submit" disabled={saving}>
+              <Save size={16} aria-hidden="true" />
+              {saving ? "Saving…" : "Save settings"}
+            </button>
+          </footer>
         </form>
       )}
     </section>

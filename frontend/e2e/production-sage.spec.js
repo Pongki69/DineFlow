@@ -140,9 +140,9 @@ test("public landing reads restaurant data and preserves booking sign-in destina
 const roles = [
   ["administrator", "/admin/dashboard", ".admin-page"],
   ["manager", "/admin/dashboard", ".admin-page"],
-  ["cashier", "/payments", ".sage-payments"],
+  ["cashier", "/payments", ".cashier-desk"],
   ["kitchen_staff", "/kitchen", ".sage-kitchen"],
-  ["waiter", "/service", ".sage-service"],
+  ["waiter", "/service", ".waiter-floor"],
   ["rider", "/rider", ".rider-sage-home"],
   ["customer", "/menu", ".customer-menu"],
 ];
@@ -267,16 +267,20 @@ test("real pickup order reaches kitchen and cash settlement through redesigned s
     await ticket
       .getByRole("button", { name: "Mark ready", exact: true })
       .click();
-    await expect(ticket).toHaveCount(0);
+    // Ready tickets stay on the board for a while, with an Undo.
+    await expect(
+      ticket.getByRole("button", { name: /Undo ready/ }),
+    ).toBeVisible();
     await expect(
       kitchen.getByRole("status").filter({ hasText: /ready for handoff/ }),
     ).toBeVisible();
     await login(cashier, "cashier");
     await cashier.goto("/payments");
     const bill = cashier
-      .locator(".sage-bill-card")
+      // Desktop rows, or the phone's slim rows.
+      .locator(".cashier-row, .cashier-prow-item")
       .filter({ hasText: order.order_number });
-    await bill.getByRole("button", { name: "Review payment" }).click();
+    await bill.getByRole("button", { name: /^Collect/ }).click();
     const review = cashier.getByRole("dialog", {
       name: order.order_number,
       exact: true,
@@ -287,9 +291,10 @@ test("real pickup order reaches kitchen and cash settlement through redesigned s
       path: info.outputPath(`cashier-payment-review-${info.project.name}.png`),
       fullPage: true,
     });
-    await review
-      .getByRole("button", { name: "Record cash", exact: true })
-      .click();
+    await review.getByRole("button", { name: "Exact", exact: true }).click();
+    await review.getByRole("button", { name: /^Record .* cash$/ }).click();
+    await expect(review.getByText(/^Paid ₱/)).toBeVisible();
+    await review.getByRole("button", { name: "Close", exact: true }).click();
     await expect(review).not.toBeVisible();
     await expect(
       cashier.getByRole("status").filter({ hasText: "Cash payment recorded" }),

@@ -18,12 +18,14 @@ import {
   Star,
   Sun,
   ShoppingBag,
+  ShieldCheck,
   Table2,
   Truck,
   UserRound,
   UsersRound,
   UtensilsCrossed,
   X,
+  History,
 } from "lucide-react";
 import { api } from "../api";
 import "../features/riderWorkspace.css";
@@ -35,14 +37,27 @@ import {
   navigationContext,
 } from "../navigation";
 import { Notifications } from "./Notifications";
+import { useMediaQuery } from "./useMediaQuery";
 import { brandTheme } from "./brandTheme";
 import { AdminShell } from "./AdminShell";
+import "./customerMobile.css";
 import { useWorkspaceTheme } from "./useWorkspaceTheme";
 import {
   readTemporaryRiderLocation,
   setTemporaryRiderIdentity,
 } from "./temporaryRiderLocation";
 import "./temporaryRiderLocation.css";
+import {
+  RiderMobileNavigation,
+  RiderMobileProfileActions,
+  RiderPullToRefresh,
+} from "./RiderMobileChrome";
+import {
+  MobileWorkspaceChrome,
+  MobileWorkspaceTitle,
+  TitleMark,
+} from "./MobileWorkspaceChrome";
+import { mobileWorkspaceTitle } from "./mobileWorkspaceNavigation";
 
 const icons = {
   "/menu": UtensilsCrossed,
@@ -196,6 +211,15 @@ export function AppShell(props) {
 function StandardAppShell({ user, onSignOut, children }) {
   const { theme, toggleTheme } = useWorkspaceTheme();
   const riderIdentity = user.roles.includes("rider") ? user.id : null;
+  // Customers on phones get the rider app layout: alerts and profile in the
+  // bottom bar, and a profile page with the same card.
+  const customerApp = user.roles.includes("customer");
+  // Kitchen, waiter and cashier staff get the same phone app layout.
+  const staffApp = !riderIdentity && !customerApp;
+  // Matches the rider app's phone breakpoint, where the bell moves to the
+  // bottom navigation.
+  const compactScreen = useMediaQuery("(max-width: 850px)");
+  const appLayout = (customerApp || staffApp) && compactScreen;
   const [previewTime, setPreviewTime] = useState(Date.now);
   const temporaryLocation = readTemporaryRiderLocation(
     riderIdentity,
@@ -233,6 +257,16 @@ function StandardAppShell({ user, onSignOut, children }) {
   const links = visibleNavigation(user.permissions, user.roles);
   const context = navigationContext(location.pathname, links);
   const current = context.title;
+  const mobileTitle =
+    {
+      "/rider": "DineFlow",
+      "/rider/deliveries": "My deliveries",
+      "/rider/offers": "Offers",
+      "/rider/history": "Activity",
+      "/settings": "Profile",
+      "/account": "My account",
+      "/rider/reviews": "Reviews",
+    }[location.pathname] || current;
   useEffect(() => {
     api("/restaurant/branding")
       .then((result) => setBranding(result.data))
@@ -244,6 +278,8 @@ function StandardAppShell({ user, onSignOut, children }) {
   }
   useEffect(() => {
     document.title = `${current} · ${branding.name}`;
+  }, [current, branding.name]);
+  useEffect(() => {
     const focusHeading = () => {
       const heading = content.current?.querySelector("h1");
       if (content.current) {
@@ -260,7 +296,7 @@ function StandardAppShell({ user, onSignOut, children }) {
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [location.pathname, current, branding.name]);
+  }, [location.pathname]);
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1024px)");
     const resize = () => {
@@ -338,6 +374,29 @@ function StandardAppShell({ user, onSignOut, children }) {
       <div className="app-body">
         <header className="app-topbar">
           <div className="topbar-location">
+            {!riderIdentity && (
+              <MobileWorkspaceTitle
+                title={
+                  appLayout && location.pathname === "/settings"
+                    ? "Profile"
+                    : location.pathname === "/payments" &&
+                        user.roles?.includes("cashier")
+                      ? "Collect"
+                      : mobileWorkspaceTitle(location.pathname, current)
+                }
+                parent={
+                  customerApp && location.pathname.startsWith("/riders/")
+                    ? { path: "/my-orders", title: "My orders" }
+                    : context.parent
+                }
+              />
+            )}
+            {riderIdentity && (
+              <span className="rider-mobile-app-title">
+                <TitleMark />
+                {mobileTitle}
+              </span>
+            )}
             <button
               className="icon-button mobile-menu-button"
               ref={menuButton}
@@ -383,7 +442,8 @@ function StandardAppShell({ user, onSignOut, children }) {
             </button>
             {user.roles.includes("rider") &&
             user.permissions.includes("deliveries.assigned") ? (
-              <div id="rider-presence-slot" />
+              // Phones show availability in the bottom navigation instead.
+              !compactScreen && <div id="rider-presence-slot" />
             ) : (
               <span className="workspace-label">
                 {user.roles.includes("customer")
@@ -393,9 +453,12 @@ function StandardAppShell({ user, onSignOut, children }) {
                     : "Restaurant workspace"}
               </span>
             )}
-            <Notifications
-              showBadge={user.preferences?.show_notification_badge !== false}
-            />
+            {!(riderIdentity && compactScreen) && !appLayout && (
+              <Notifications
+                user={user}
+                showBadge={user.preferences?.show_notification_badge !== false}
+              />
+            )}
             <Link
               to="/account"
               className="avatar-link"
@@ -412,13 +475,52 @@ function StandardAppShell({ user, onSignOut, children }) {
           className={`app-content${
             location.pathname === "/rider" ||
             location.pathname.startsWith("/rider/") ||
-            location.pathname.replace(/\/+$/, "") === "/settings"
+            location.pathname.replace(/\/+$/, "") === "/settings" ||
+            (riderIdentity && location.pathname === "/account")
               ? " rider-content"
               : ""
           }`}
           ref={content}
           tabIndex={-1}
         >
+          {riderIdentity && location.pathname === "/settings" && (
+            <RiderMobileProfileActions
+              user={user}
+              theme={theme}
+              toggleTheme={toggleTheme}
+              onSignOut={onSignOut}
+            />
+          )}
+          {staffApp && compactScreen && location.pathname === "/settings" && (
+            <RiderMobileProfileActions
+              user={user}
+              theme={theme}
+              toggleTheme={toggleTheme}
+              onSignOut={onSignOut}
+              label="Profile shortcuts"
+              links={[
+                ["/account", "Account & security", ShieldCheck],
+                ["/activity", "My activity", History],
+              ]}
+            />
+          )}
+          {customerApp &&
+            compactScreen &&
+            location.pathname === "/settings" && (
+              <RiderMobileProfileActions
+                user={user}
+                theme={theme}
+                toggleTheme={toggleTheme}
+                onSignOut={onSignOut}
+                label="Profile shortcuts"
+                links={[
+                  ["/account", "Account & security", ShieldCheck],
+                  ["/my-orders", "My orders", ShoppingBag],
+                  ["/my-reservations", "My bookings", CalendarDays],
+                  ["/restaurant", "Restaurant location", MapPin],
+                ]}
+              />
+            )}
           {temporaryLocation && (
             <aside
               className="temporary-rider-location"
@@ -453,6 +555,49 @@ function StandardAppShell({ user, onSignOut, children }) {
           </Link>
         </footer>
       </div>
+      {riderIdentity && (
+        <>
+          <RiderMobileNavigation
+            user={user}
+            pathname={location.pathname}
+            presenceSlot={
+              compactScreen && user.permissions.includes("deliveries.assigned")
+            }
+            extraTab={
+              compactScreen && (
+                <Notifications
+                  user={user}
+                  variant="tab"
+                  showBadge={
+                    user.preferences?.show_notification_badge !== false
+                  }
+                />
+              )
+            }
+          />
+          <RiderPullToRefresh />
+        </>
+      )}
+      {!riderIdentity && (
+        <MobileWorkspaceChrome
+          user={user}
+          pathname={location.pathname}
+          theme={theme}
+          toggleTheme={toggleTheme}
+          onSignOut={onSignOut}
+          profileTab={appLayout ? "/settings" : null}
+          extraTab={
+            appLayout ? (
+              <Notifications
+                user={user}
+                variant="tab"
+                showBadge={user.preferences?.show_notification_badge !== false}
+              />
+            ) : null
+          }
+        />
+      )}
+      {appLayout && <RiderPullToRefresh />}
     </div>
   );
 }

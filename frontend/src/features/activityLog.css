@@ -1,0 +1,173 @@
+/* ---- Activity log: My activity and the administrator's audit log -------- */
+.activity-filters {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 14px;
+}
+.activity-chips {
+  display: flex;
+  gap: 6px;
+  margin: 0 -2px;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dineflow-app #main-content .activity-chips button {
+  flex: none;
+  width: auto;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+}
+.dineflow-app #main-content .activity-chips button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.activity-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.activity-day {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dineflow-app #main-content .activity-clear {
+  width: auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  text-decoration: underline;
+}
+.activity-person {
+  display: inline-flex;
+  flex: 1 1 200px;
+  align-items: center;
+  gap: 6px;
+  max-width: 320px;
+  height: 40px;
+  padding: 0 4px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.dineflow-app #main-content .activity-person select {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  min-height: 38px;
+  border: 0;
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.activity-group {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+.dineflow-app #main-content .activity-group > h2 {
+  margin: 0 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.activity-group > ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  list-style: none;
+}
+.activity-group li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--border);
+}
+.activity-group li:first-child {
+  border-top: 0;
+}
+.activity-icon {
+  display: grid;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.activity-group li[data-area="cashier"] .activity-icon {
+  background: #fbefcf;
+  color: #6f4f0b;
+}
+.activity-group li[data-area="kitchen"] .activity-icon {
+  background: #fde8dc;
+  color: #9a4a1c;
+}
+.activity-group li[data-area="delivery"] .activity-icon {
+  background: #e3ecfb;
+  color: #2f5aa8;
+}
+.activity-group li[data-area="accounts"] .activity-icon {
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--muted);
+}
+.activity-group li > div {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.activity-group li p {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.activity-group li small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.activity-group li small strong {
+  color: var(--ink);
+}
+.activity-device {
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 850px) {
+  .activity-filter-row {
+    justify-content: space-between;
+  }
+  .activity-person {
+    max-width: none;
+  }
+}

@@ -1,0 +1,53 @@
+/* The thermal receipt: never on screen, only when printing one. */
+.thermal-receipt {
+  display: none;
+}
+@media print {
+  html:has(body.printing-thermal) {
+    background: #fff;
+  }
+  /* Only the receipt goes to the printer: the app is left out entirely. */
+  body.printing-thermal > *:not(.thermal-receipt) {
+    display: none !important;
+  }
+  body.printing-thermal {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+  body.printing-thermal > .thermal-receipt {
+    display: block;
+    width: 72mm;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
+  }
+  /* The logo, centred above the store name. */
+  body.printing-thermal .thermal-receipt-logo {
+    display: grid;
+    width: 12mm;
+    height: 12mm;
+    place-items: center;
+    margin: 0 auto 2mm;
+    border-radius: 3mm;
+    background: #000;
+    color: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing-thermal .thermal-receipt-logo svg {
+    width: 8mm;
+    height: 8mm;
+  }
+  body.printing-thermal .thermal-receipt pre {
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    color: #000;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 8.4pt;
+    line-height: 1.25;
+    white-space: pre;
+  }
+}

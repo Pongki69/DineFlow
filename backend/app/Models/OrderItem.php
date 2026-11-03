@@ -9,7 +9,7 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id', 'menu_item_id', 'category_id', 'item_name_snapshot', 'category_name_snapshot',
         'variant_name_snapshot', 'base_unit_price', 'variant_price_adjustment', 'discount_percent',
-        'discount_total', 'quantity', 'line_total', 'special_instructions',
+        'discount_total', 'quantity', 'line_total', 'special_instructions', 'prepared_at',
     ];
 
     protected function casts(): array
@@ -17,7 +17,7 @@ class OrderItem extends Model
         return [
             'base_unit_price' => 'decimal:2', 'variant_price_adjustment' => 'decimal:2',
             'discount_percent' => 'decimal:2', 'discount_total' => 'decimal:2',
-            'quantity' => 'integer', 'line_total' => 'decimal:2',
+            'quantity' => 'integer', 'line_total' => 'decimal:2', 'prepared_at' => 'datetime',
         ];
     }
 

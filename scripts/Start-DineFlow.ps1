@@ -1,6 +1,7 @@
 param(
     [switch]$SmokeTest,
-    [switch]$KeepDatabaseOnExit
+    [switch]$KeepDatabaseOnExit,
+    [switch]$Lan
 )
 
 $ErrorActionPreference = 'Stop'
@@ -29,6 +30,38 @@ function Test-Port($port) {
     try { return $client.ConnectAsync('127.0.0.1', $port).Wait(300) -and $client.Connected }
     catch { return $false }
     finally { $client.Dispose() }
+}
+
+function Get-LanCertificate([string]$address, [string]$folder) {
+    # Phones only offer GPS to secure pages, so LAN mode serves https:// with a
+    # self-signed certificate for this computer's Wi-Fi address.
+    $pfx = Join-Path $folder 'dev-https.pfx'
+    $stamp = Join-Path $folder 'dev-https.address'
+    $password = 'dineflow-lan'
+    $current = if (Test-Path $stamp) { Get-Content -LiteralPath $stamp -TotalCount 1 } else { '' }
+    if (-not (Test-Path $pfx) -or $current -ne $address) {
+        New-Item -ItemType Directory -Path $folder -Force | Out-Null
+        $cert = New-SelfSignedCertificate -Subject 'CN=DineFlow LAN' -FriendlyName 'DineFlow LAN development' `
+            -TextExtension @("2.5.29.17={text}IPAddress=$address&DNS=localhost") `
+            -KeyExportPolicy Exportable -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 `
+            -CertStoreLocation 'Cert:\CurrentUser\My' -NotAfter (Get-Date).AddYears(1)
+        try {
+            $secure = ConvertTo-SecureString $password -AsPlainText -Force
+            Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $secure | Out-Null
+        } finally {
+            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)" -ErrorAction SilentlyContinue
+        }
+        Set-Content -LiteralPath $stamp -Value $address
+    }
+    return @{ Path = $pfx; Password = $password }
+}
+
+function Get-LanAddress {
+    $connection = Get-NetIPConfiguration | Where-Object {
+        $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' -and $_.IPv4Address
+    } | Sort-Object { $_.NetIPv4Interface.InterfaceMetric } | Select-Object -First 1
+    if (-not $connection) { throw 'No active Wi-Fi or Ethernet connection was found. Connect to your network and try again.' }
+    return ($connection.IPv4Address | Where-Object { $_.IPAddress -notlike '169.254.*' } | Select-Object -First 1).IPAddress
 }
 
 function Start-PostgresServer($program, $dataDirectory, $logFile, $port) {
@@ -152,6 +185,34 @@ try {
     $apiUrl = [uri](Read-Setting $config 'APP_URL' 'http://localhost:8081')
     $webUrl = [uri](Read-Setting $config 'FRONTEND_URL' 'http://localhost:5173')
     $reverbPort = [int](Read-Setting $config 'REVERB_SERVER_PORT' '8080')
+    $listenAddress = '127.0.0.1'
+    if ($Lan) {
+        $lanAddress = Get-LanAddress
+        if (-not $lanAddress) { throw 'Could not determine this computer''s network address.' }
+        $listenAddress = '0.0.0.0'
+        $apiUrl = [uri]"http://${lanAddress}:$($apiUrl.Port)"
+        $webUrl = [uri]"https://${lanAddress}:$($webUrl.Port)"
+        $lanCertificate = Get-LanCertificate $lanAddress (Join-Path $root '.local')
+        $env:DINEFLOW_HTTPS_PFX = $lanCertificate.Path
+        $env:DINEFLOW_HTTPS_PASSPHRASE = $lanCertificate.Password
+        # Process-only overrides keep saved environment files and database access unchanged.
+        $env:APP_URL = $webUrl.AbsoluteUri.TrimEnd('/')
+        $env:FRONTEND_URL = $webUrl.AbsoluteUri.TrimEnd('/')
+        $env:SANCTUM_STATEFUL_DOMAINS = "${lanAddress}:$($webUrl.Port),${lanAddress}:$($apiUrl.Port)"
+        $env:SESSION_DOMAIN = 'null'
+        $env:SESSION_SECURE_COOKIE = 'true'
+        $env:REVERB_HOST = '127.0.0.1'
+        $env:REVERB_PORT = "$reverbPort"
+        $env:REVERB_SCHEME = 'http'
+        $env:REVERB_ALLOWED_ORIGINS = $lanAddress
+        $env:DINEFLOW_API_PROXY_TARGET = "http://127.0.0.1:$($apiUrl.Port)"
+        $env:DINEFLOW_TRUST_LOCAL_PROXY = 'true'
+        $env:DINEFLOW_REVERB_PROXY_TARGET = "ws://127.0.0.1:$reverbPort"
+        $env:VITE_API_BASE_URL = '/api/v1'
+        $env:VITE_REVERB_HOST = $lanAddress
+        $env:VITE_REVERB_PORT = "$($webUrl.Port)"
+        $env:VITE_REVERB_SCHEME = 'https'
+    }
     foreach ($port in @($apiUrl.Port, $webUrl.Port, $reverbPort)) {
         if (Test-Port $port) { throw "Port $port is already in use. Close the existing app/server before starting DineFlow." }
     }
@@ -224,7 +285,7 @@ try {
     } finally { Pop-Location }
 
     Start-ServiceProcess 'api' $php @('artisan', 'serve', '--host=127.0.0.1', "--port=$($apiUrl.Port)", '--tries=1', '--no-reload') $backend
-    Start-ServiceProcess 'frontend' $node @('node_modules/vite/bin/vite.js', '--host=127.0.0.1', "--port=$($webUrl.Port)", '--strictPort') $frontend
+    Start-ServiceProcess 'frontend' $node @('node_modules/vite/bin/vite.js', "--host=$listenAddress", "--port=$($webUrl.Port)", '--strictPort') $frontend
     Start-ServiceProcess 'reverb' $php @('artisan', 'reverb:start', '--host=127.0.0.1', "--port=$reverbPort") $backend
     Start-ServiceProcess 'scheduler' $php @('artisan', 'schedule:work') $backend
 
@@ -238,8 +299,13 @@ try {
     } until ($ready -or [DateTime]::UtcNow -ge $deadline)
     if (-not $ready) { throw "Startup timed out. Check logs in $logs." }
     Write-Host "`nDineFlow is ready at $webUrl" -ForegroundColor Green
+    if ($Lan) {
+        Write-Host "On another device connected to the same Wi-Fi, open: $webUrl" -ForegroundColor Cyan
+        Write-Host 'The first visit warns that the certificate is not trusted (it is this computer''s own). Choose Advanced, then continue, so the phone can use GPS.' -ForegroundColor Cyan
+    }
     Write-Host "Logs: $logs"
     if ($SmokeTest) {
+        if ($Lan) { [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true } }
         $response = Invoke-WebRequest -Uri $webUrl.AbsoluteUri -UseBasicParsing
         if ($response.StatusCode -ne 200) { throw 'Frontend check failed.' }
         Write-Host 'Startup check passed.'

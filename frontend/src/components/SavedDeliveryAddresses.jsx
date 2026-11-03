@@ -1,3 +1,4 @@
+import { subscribeToLiveChanges } from "../liveUpdates";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MapPin, Plus } from "lucide-react";
 import { api } from "../api";
@@ -41,6 +42,13 @@ export default function SavedDeliveryAddresses({ user }) {
     if (editor) editorHeading.current?.focus();
   }, [Boolean(editor)]);
 
+  useEffect(() => {
+    if (editor || busy) return;
+    return subscribeToLiveChanges(async () => {
+      const result = await api("/addresses");
+      setAddresses(result.data || []);
+    }, ["addresses"]);
+  }, [editor, busy]);
   function edit(address) {
     setNotice("");
     setError("");

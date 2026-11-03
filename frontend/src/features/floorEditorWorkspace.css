@@ -1,0 +1,105 @@
+/* Canvas objects follow world units; global control hit sizes must not stretch them. */
+.dineflow-app .floor-editor > p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.dineflow-app .editor-board .editor-object {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  font-size: clamp(5px, calc(var(--floor-grid-x, 40px) * 0.27), 13px);
+  line-height: 1.15;
+}
+.editor-board .editor-object > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.editor-board .editor-object:not(.table) > span {
+  white-space: nowrap;
+}
+.editor-board .editor-object.flooring > span {
+  display: none;
+}
+.editor-board .editor-chair,
+.editor-board .editor-object.table.long .editor-chair {
+  width: calc(0.38 * var(--floor-grid-x, 40px));
+  height: calc(0.38 * var(--floor-grid-y, 40px));
+}
+.editor-board::after {
+  content: none;
+}
+.dineflow-app .floor-editor .editor-board {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.dineflow-app .floor-editor .editor-selection {
+  min-width: 0;
+  margin-top: 0;
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: 12px;
+}
+.dineflow-app .floor-editor .editor-inspector-toggle {
+  background: var(--surface);
+  color: var(--ink);
+}
+.dineflow-app .floor-editor .editor-inspector-toggle > span {
+  color: var(--muted);
+}
+.dineflow-app .floor-editor .editor-board-hint {
+  max-width: calc(100% - 30px);
+  bottom: 12px;
+  font-size: 11px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.floor-editor .editor-room-label {
+  display: none;
+}
+.dineflow-app .floor-editor .editor-transform-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.floor-editor .editor-inspector-empty {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+@media (min-width: 1100px) {
+  .dineflow-app .admin-content .floor-editor,
+  .dineflow-app .app-content .floor-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 310px;
+    align-items: start;
+    gap: 16px;
+  }
+  .dineflow-app
+    .floor-editor
+    > :not(.editor-board):not(.editor-selection):not(.floor-scene) {
+    grid-column: 1/-1;
+  }
+  .dineflow-app .floor-editor > .editor-board,
+  .dineflow-app .floor-editor > .floor-scene {
+    grid-column: 1;
+    height: 640px;
+    min-height: 640px;
+  }
+  .dineflow-app .floor-editor > .editor-selection {
+    grid-column: 2;
+    position: static;
+    max-height: 640px;
+    overflow: auto;
+  }
+  .dineflow-app .floor-editor .editor-selection > div {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 1099px) {
+  .dineflow-app .floor-editor > .editor-selection {
+    margin-top: 16px;
+  }
+}

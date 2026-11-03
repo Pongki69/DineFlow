@@ -1,9 +1,24 @@
+import { subscribeToLiveChanges } from "../liveUpdates";
 import { EmptyState, Feedback, Skeleton } from "../components/ui";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { NewPasswordFields } from "../components/NewPasswordFields";
 import { validateNewPasswordForm } from "../components/passwordValidation";
+import { Pagination } from "../components/Pagination";
+import {
+  ChevronRight,
+  Clock3,
+  Plus,
+  Search,
+  ShieldCheck,
+  UserRound,
+  X,
+} from "lucide-react";
+import { useMediaQuery } from "../components/useMediaQuery";
+import "./reservationAdmin.css";
+import "./adminCustomers.css";
+import "./teamPhone.css";
 export function StaffAccounts() {
   const [loading, setLoading] = useState(true);
 
@@ -13,6 +28,11 @@ export function StaffAccounts() {
   const [notice, setNotice] = useState("");
   const [creating, setCreating] = useState(false);
   const [errors, setErrors] = useState({});
+  // Phones: a searchable list; details and the new-account form open in sheets.
+  const phone = useMediaQuery("(max-width: 850px)");
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
+  const [adding, setAdding] = useState(false);
   async function load() {
     setError("");
     try {
@@ -30,6 +50,7 @@ export function StaffAccounts() {
   }
   useEffect(() => {
     load();
+    return subscribeToLiveChanges(load);
   }, []);
   async function create(event) {
     event.preventDefault();
@@ -47,6 +68,7 @@ export function StaffAccounts() {
       });
       form.reset();
       setNotice("Staff account created.");
+      setAdding(false);
       await load();
     } catch (e) {
       setError(e.message);
@@ -77,6 +99,168 @@ export function StaffAccounts() {
       setError(e.message);
     }
   }
+  const staffForm = (
+    <form
+      className="staff-form"
+      onSubmit={create}
+      aria-busy={creating}
+      aria-labelledby="staff-form-heading"
+    >
+      <h2 id="staff-form-heading">Add a staff member</h2>
+      <label>
+        Name
+        <input name="name" required maxLength="120" />
+      </label>
+      <label>
+        Email
+        <input name="email" type="email" required />
+      </label>
+      <NewPasswordFields
+        passwordLabel="Temporary password"
+        errors={errors}
+        onEdit={() =>
+          setErrors((current) => ({
+            ...current,
+            password: undefined,
+            password_confirmation: undefined,
+          }))
+        }
+      />
+      <label>
+        Role
+        <select name="role" required>
+          {roles
+            .filter((r) => r.slug !== "customer")
+            .map((r) => (
+              <option value={r.slug} key={r.slug}>
+                {r.name}
+              </option>
+            ))}
+        </select>
+      </label>
+      <button disabled={creating}>
+        {creating ? "Creating account…" : "Create staff account"}
+      </button>
+    </form>
+  );
+  if (phone) {
+    const term = search.trim().toLowerCase();
+    const visible = data.filter(
+      (person) =>
+        !term ||
+        person.name.toLowerCase().includes(term) ||
+        person.email.toLowerCase().includes(term),
+    );
+    const selected = data.find((person) => person.id === selectedId);
+    return (
+      <section className="welcome admin-users admin-users--phone">
+        {error && <Feedback onRetry={load}>{error}</Feedback>}
+        {notice && <Feedback tone="success">{notice}</Feedback>}
+        <div className="team-phone-tools">
+          <label className="admin-customers-search">
+            <Search size={16} aria-hidden="true" />
+            <span className="sr-only">Search team</span>
+            <input
+              type="search"
+              placeholder="Search by name or email"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            className="team-phone-add"
+            onClick={() => setAdding(true)}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Add staff
+          </button>
+        </div>
+        {loading && <Skeleton label="Loading your team" />}
+        {!loading && (
+          <p className="team-phone-meta">
+            {visible.length} {visible.length === 1 ? "person" : "people"}
+          </p>
+        )}
+        {!loading && !visible.length && (
+          <EmptyState
+            compact
+            title={term ? "No one matches" : "Your team starts here"}
+            description={
+              term
+                ? "Try another name or email."
+                : "Add a staff account and choose the right role for each person."
+            }
+          />
+        )}
+        <ul className="team-phone-list">
+          {visible.map((person) => (
+            <li key={person.id} data-inactive={!person.is_active || undefined}>
+              <span className="admin-customers-avatar" aria-hidden="true">
+                {person.name.slice(0, 1).toUpperCase()}
+              </span>
+              <span className="team-phone-main">
+                <strong>{person.name}</strong>
+                <small>{person.email}</small>
+                <span className="team-phone-badges">
+                  <span>{person.roles?.[0]?.name || "No role"}</span>
+                  {!person.is_active && (
+                    <span data-tone="off">Deactivated</span>
+                  )}
+                </span>
+              </span>
+              <button
+                type="button"
+                className="team-phone-view"
+                onClick={() => setSelectedId(person.id)}
+                aria-label={`View ${person.name}`}
+              >
+                View <ChevronRight size={15} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+        {selected && (
+          <TeamSheet title={selected.name} onClose={() => setSelectedId(null)}>
+            <p className="team-sheet-line">{selected.email}</p>
+            <label className="team-sheet-field">
+              Role
+              <select
+                value={selected.roles?.[0]?.slug || ""}
+                onChange={(event) => setRole(selected, event.target.value)}
+              >
+                {roles.map((r) => (
+                  <option key={r.slug} value={r.slug}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="team-sheet-line">
+              {selected.is_active
+                ? "This account can sign in."
+                : "This account is deactivated and can’t sign in."}
+            </p>
+            <div className="team-sheet-actions">
+              <button
+                type="button"
+                className="team-sheet-toggle"
+                data-tone={selected.is_active ? "danger" : undefined}
+                onClick={() => toggle(selected)}
+              >
+                {selected.is_active ? "Deactivate" : "Reactivate"}
+              </button>
+            </div>
+          </TeamSheet>
+        )}
+        {adding && (
+          <TeamSheet title="Add a staff member" onClose={() => setAdding(false)}>
+            {staffForm}
+          </TeamSheet>
+        )}
+      </section>
+    );
+  }
   return (
     <section className="welcome admin-users">
       <span className="eyebrow">ADMINISTRATION</span>
@@ -94,42 +278,7 @@ export function StaffAccounts() {
       )}
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {notice && <Feedback tone="success">{notice}</Feedback>}
-      <form className="staff-form" onSubmit={create} aria-busy={creating}>
-        <label>
-          Name
-          <input name="name" required maxLength="120" />
-        </label>
-        <label>
-          Email
-          <input name="email" type="email" required />
-        </label>
-        <NewPasswordFields
-          passwordLabel="Temporary password"
-          errors={errors}
-          onEdit={() =>
-            setErrors((current) => ({
-              ...current,
-              password: undefined,
-              password_confirmation: undefined,
-            }))
-          }
-        />
-        <label>
-          Role
-          <select name="role" required>
-            {roles
-              .filter((r) => r.slug !== "customer")
-              .map((r) => (
-                <option value={r.slug} key={r.slug}>
-                  {r.name}
-                </option>
-              ))}
-          </select>
-        </label>
-        <button disabled={creating}>
-          {creating ? "Creating account…" : "Create staff account"}
-        </button>
-      </form>
+      {!phone && staffForm}
       <div className="staff-list">
         <h2>Accounts</h2>
         {data.map((person) => (
@@ -164,29 +313,78 @@ export function StaffAccounts() {
   );
 }
 
+/** A bottom sheet in the same style as the customer details sheet. */
+function TeamSheet({ title, onClose, children }) {
+  useEffect(() => {
+    const close = (event) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [onClose]);
+  return (
+    <div className="admin-customer-layer">
+      <button
+        type="button"
+        className="admin-customer-scrim"
+        aria-label="Close"
+        onClick={onClose}
+      />
+      <section
+        className="admin-customer-sheet team-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <header>
+          <div>
+            <h2>{title}</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close">
+            <X size={18} aria-hidden="true" />
+          </button>
+        </header>
+        <div className="admin-customer-body team-sheet-body">{children}</div>
+      </section>
+    </div>
+  );
+}
+
 export function AuditLogView() {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState({ total: 0, last_page: 1 });
+  const requestVersion = useRef(0);
   async function load() {
+    const version = ++requestVersion.current;
     setError("");
     try {
-      const result = await api("/admin/audit-logs");
+      const result = await api(`/admin/audit-logs?page=${page}&per_page=20`);
+      if (version !== requestVersion.current) return;
       setEvents(result.data || []);
+      setMeta(result);
     } catch (failure) {
-      setError(failure.message);
+      if (version === requestVersion.current) setError(failure.message);
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   }
   useEffect(() => {
+    setLoading(true);
     load();
-  }, []);
+    const stop = subscribeToLiveChanges(load);
+    return () => {
+      requestVersion.current++;
+      stop();
+    };
+  }, [page]);
   return (
-    <section className="welcome">
+    <section className="welcome audit-workspace">
       <span className="eyebrow">ADMINISTRATION</span>
       <h1>Audit log</h1>
-      <p>Recorded account and permission changes.</p>
+      <p>
+        Review account activity, settings changes, and restaurant operations.
+      </p>
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {loading && <Skeleton label="Loading audit history" />}
       {!loading && !error && !events.length && (
@@ -195,22 +393,65 @@ export function AuditLogView() {
           description="Account and permission changes will appear here."
         />
       )}
-      <div className="staff-list">
-        {events.map((event) => (
-          <article key={event.id}>
-            <div>
-              <strong>{event.event}</strong>
-              <small>
-                {event.actor?.name || "System"} · {event.created_at}
-              </small>
-            </div>
-            <span>
-              {event.subject_type
-                ? `${event.subject_type} #${event.subject_id}`
-                : "System event"}
-            </span>
-          </article>
-        ))}
+      <div className="audit-panel">
+        <header className="audit-panel-heading">
+          <ShieldCheck size={19} aria-hidden="true" />
+          <div>
+            <h2>Activity history</h2>
+            <p>
+              Newest activity first · {meta.total || events.length} recorded
+              events
+            </p>
+          </div>
+        </header>
+        <div className="audit-list" aria-busy={loading}>
+          {events.map((event) => (
+            <article key={event.id}>
+              <span className="audit-event-icon">
+                <ShieldCheck size={17} aria-hidden="true" />
+              </span>
+              <div>
+                <strong>
+                  {event.event
+                    .replaceAll(/[._]/g, " ")
+                    .replace(/^\w/, (c) => c.toUpperCase())}
+                </strong>
+                <small>
+                  <UserRound size={13} aria-hidden="true" />
+                  {event.actor?.name || "System"}
+                  <span>·</span>
+                  <Clock3 size={13} aria-hidden="true" />
+                  <time dateTime={event.created_at}>
+                    {new Date(event.created_at).toLocaleString([], {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </time>
+                </small>
+              </div>
+              <span className="audit-subject">
+                {event.subject_type
+                  ? `${event.subject_type
+                      .split("\\")
+                      .at(-1)
+                      .replace(
+                        /([a-z])([A-Z])/g,
+                        "$1 $2",
+                      )} #${event.subject_id}`
+                  : "System event"}
+              </span>
+            </article>
+          ))}
+        </div>
+        <Pagination
+          page={page}
+          lastPage={meta.last_page || 1}
+          total={meta.total ?? events.length}
+          from={meta.from || (events.length ? 1 : 0)}
+          to={meta.to || events.length}
+          disabled={loading}
+          onChange={setPage}
+        />
       </div>
     </section>
   );

@@ -1,0 +1,950 @@
+/* ---- Cashier desk: what to collect, then the collect sheet ---------------- */
+.cashier-desk {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+
+.cashier-desk-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    radial-gradient(130% 120% at 0% 0%, var(--primary-soft), transparent 65%),
+    var(--surface);
+}
+.cashier-desk-summary > div {
+  display: grid;
+  gap: 2px;
+}
+.cashier-desk-summary small {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.cashier-desk-summary strong {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-desk-summary span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.cashier-desk-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #fbefcf;
+  color: #6f4f0b !important;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cashier-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.cashier-search:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+.dineflow-app #main-content .cashier-search input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+/* Groups: Asked for the bill, Tables, Counter, Delivery. */
+.cashier-group {
+  display: grid;
+  gap: 8px;
+}
+.cashier-group > h2,
+.cashier-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 2px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cashier-group > h2 span,
+.cashier-group > summary span {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--neutral-soft, #eef1ec);
+  letter-spacing: 0;
+}
+.cashier-group[data-group="requested"] > h2 {
+  color: #8a6110;
+}
+.cashier-group ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cashier-group--delivery > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.cashier-group--delivery > summary::-webkit-details-marker {
+  display: none;
+}
+.cashier-group--delivery > summary svg:last-child {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+.cashier-group--delivery[open] > summary svg:last-child {
+  transform: rotate(180deg);
+}
+.cashier-group--delivery > p {
+  margin: 0 2px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* A compact row: who and what on the left, amount and Collect on the right. */
+.cashier-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.cashier-row[data-requested] {
+  border-color: #e9c46a;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #e9c46a 30%, transparent);
+}
+.cashier-row-icon {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.cashier-row-main {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.cashier-row-main strong {
+  overflow: hidden;
+  font-size: 15.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cashier-row-main small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cashier-row-main .cashier-row-flag {
+  color: #8a6110;
+  font-weight: 700;
+}
+.cashier-row-main .cashier-row-pending {
+  color: var(--primary);
+  font-weight: 700;
+}
+.cashier-row-side {
+  display: grid;
+  flex: none;
+  justify-items: end;
+  gap: 6px;
+}
+.cashier-row-side b {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.dineflow-app #main-content .cashier-row-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: auto;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dineflow-app #main-content .cashier-row-button--quiet {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* ---- The collect sheet: bottom sheet on phones, dialog on larger screens. */
+.cashier-sheet-layer {
+  position: fixed;
+  z-index: 2050;
+  inset: 0;
+  display: grid;
+  align-items: end;
+}
+.cashier-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--df-color-overlay, rgb(17 44 34 / 45%));
+}
+.cashier-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 92dvh;
+  border-radius: 22px 22px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -12px 40px rgb(16 34 24 / 25%);
+  outline: none;
+  animation: cashier-sheet-in 0.22s ease-out;
+}
+@keyframes cashier-sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0.6;
+  }
+}
+@media (min-width: 851px) {
+  .cashier-sheet-layer {
+    place-items: center;
+  }
+  .cashier-sheet {
+    width: min(560px, calc(100vw - 48px));
+    max-height: 88vh;
+    border-radius: 20px;
+  }
+}
+.cashier-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.cashier-sheet-head small {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.cashier-sheet-head h2 {
+  margin: 2px 0 0;
+  font-size: 20px;
+}
+.dineflow-app .cashier-sheet-head button {
+  display: grid;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--ink);
+  cursor: pointer;
+}
+.cashier-sheet-body {
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Itemised bill. */
+.cashier-bill {
+  display: grid;
+  gap: 10px;
+}
+.cashier-bill-order h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.cashier-bill-order h3 span {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.cashier-bill ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cashier-bill li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 14px;
+}
+.cashier-bill-qty {
+  flex: none;
+  min-width: 26px;
+  color: var(--primary);
+  font-weight: 800;
+}
+.cashier-bill-name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.cashier-bill-name small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.cashier-bill-amount {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-bill-totals {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.cashier-bill-totals div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+}
+.cashier-bill-totals dt {
+  color: var(--muted);
+}
+.cashier-bill-totals dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-bill-totals [data-kind="total"] {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 800;
+}
+.cashier-bill-totals [data-kind="total"] dt {
+  color: var(--ink);
+}
+
+/* Senior / PWD discount. */
+.dineflow-app .cashier-discount-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1.5px dashed color-mix(in srgb, var(--primary) 45%, var(--border));
+  border-radius: 12px;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.cashier-discount form {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.cashier-discount-applied {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.cashier-discount-applied span {
+  display: grid;
+  flex: 1;
+}
+.cashier-discount-applied small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.dineflow-app .cashier-discount-applied button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.cashier-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Payment. */
+.cashier-pay {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.cashier-due {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.cashier-due span {
+  color: var(--muted);
+  font-weight: 600;
+}
+.cashier-due strong {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-split {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.cashier-field {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.dineflow-app #main-content .cashier-field input,
+.dineflow-app .cashier-sheet .cashier-field input {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.cashier-method {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--neutral-soft, #eef1ec);
+}
+.dineflow-app .cashier-method button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dineflow-app .cashier-method button[aria-pressed="true"] {
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(16 34 24 / 15%);
+  color: var(--ink);
+}
+.dineflow-app .cashier-method button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.cashier-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dineflow-app .cashier-quick button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.cashier-change {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.cashier-change span {
+  font-weight: 700;
+}
+.cashier-change strong {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.cashier-change[data-short] {
+  background: var(--df-status-danger-bg, #fbe3df);
+  color: var(--df-status-danger-text, #9b2c22);
+}
+.cashier-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.cashier-actions p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.dineflow-app .cashier-primary,
+.dineflow-app .cashier-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dineflow-app .cashier-primary {
+  border: 0;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.dineflow-app .cashier-primary:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.dineflow-app .cashier-secondary {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* Receipt. */
+.cashier-receipt {
+  display: grid;
+  gap: 12px;
+}
+.cashier-receipt-done {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 0;
+  text-align: center;
+}
+.cashier-receipt-done > span {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.cashier-receipt-done strong {
+  font-size: 22px;
+}
+.cashier-receipt-change {
+  margin: 0;
+  color: var(--primary);
+  font-size: 15px;
+}
+.cashier-receipt-change b {
+  font-size: 22px;
+}
+.cashier-receipt dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+.cashier-receipt dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+}
+.cashier-receipt dt {
+  color: var(--muted);
+}
+.cashier-receipt dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.cashier-receipt-remaining {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fbefcf;
+  color: #6f4f0b;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Print only the receipt. */
+@media print {
+  body.printing-receipt * {
+    visibility: hidden !important;
+  }
+  body.printing-receipt .cashier-receipt,
+  body.printing-receipt .cashier-receipt * {
+    visibility: visible !important;
+  }
+  body.printing-receipt .cashier-receipt {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 80mm;
+  }
+  body.printing-receipt .cashier-receipt .cashier-actions {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cashier-sheet {
+    animation: none;
+  }
+}
+
+/* Group and section labels stay small: the page heading rule would enlarge them. */
+.dineflow-app #main-content :is(.cashier-group > h2, .cashier-group > summary, .cashier-activity h2) {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ---- Collect on a phone ---------------------------------------------------
+   Slim rows in one card per section, waiting times and counter tags, the
+   total split into filter chips, and a sheet whose pay button stays in reach.
+   Scoped to the Collect screen; the Today tab shares this file. */
+@media (max-width: 850px) {
+  .cashier-desk .cashier-split-chips {
+    display: flex;
+    flex-basis: 100%;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .dineflow-app #main-content .cashier-desk .cashier-split-chips button {
+    display: grid;
+    flex: 1;
+    justify-items: start;
+    gap: 0;
+    min-width: 0;
+    min-height: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+  }
+  .cashier-desk .cashier-split-chips span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .cashier-desk .cashier-split-chips b {
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .dineflow-app #main-content .cashier-desk .cashier-split-chips button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    box-shadow: inset 0 0 0 1px var(--primary);
+  }
+  .cashier-desk .cashier-desk-summary {
+    flex-wrap: wrap;
+  }
+
+  /* One card per section, thin rows inside. */
+  .cashier-desk .cashier-group ul {
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .cashier-desk .cashier-prow-item + .cashier-prow-item {
+    border-top: 1px solid var(--border);
+  }
+  .dineflow-app #main-content .cashier-desk .cashier-prow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 0;
+    padding: 11px 12px 11px 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .dineflow-app #main-content .cashier-desk .cashier-prow[data-urgent] {
+    background: color-mix(in srgb, var(--primary-soft) 55%, transparent);
+  }
+  .cashier-desk .cashier-prow .cashier-row-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+  }
+  .cashier-prow-main {
+    display: grid;
+    flex: 1;
+    gap: 2px;
+    min-width: 0;
+  }
+  .cashier-prow-main strong {
+    overflow: hidden;
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cashier-prow-main small {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 12.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cashier-prow-side {
+    display: grid;
+    flex: none;
+    justify-items: end;
+    gap: 4px;
+    color: var(--muted);
+  }
+  .cashier-prow-side b {
+    color: var(--ink);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+  .cashier-prow-collect {
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+
+  /* Counter tags: what matters when taking the money. */
+  .cashier-tag {
+    justify-self: start;
+    margin-top: 2px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--neutral-soft, #eef1ec);
+    color: var(--muted);
+    font-size: 11.5px;
+    font-style: normal;
+    font-weight: 700;
+  }
+  .cashier-tag[data-tone="ready"] {
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .cashier-tag[data-tone="late"] {
+    background: #fbe9e7;
+    color: #a33a2c;
+  }
+  .cashier-tag[data-tone="cooking"] {
+    background: #fbefcf;
+    color: #6f4f0b;
+  }
+
+  /* Delivery heading matches Tables and Counter. */
+  .dineflow-app #main-content .cashier-desk .cashier-group--delivery > summary {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+  }
+
+  /* Sheet: order names as small labels, the money stands out. */
+  .cashier-bill[data-compact] .cashier-bill-order h3 {
+    margin: 4px 0 2px;
+    color: var(--muted);
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .cashier-bill[data-compact] .cashier-bill-order h3 span {
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .cashier-bill[data-compact] li {
+    border-bottom-style: solid;
+  }
+  .cashier-sheet .cashier-change[data-short] {
+    background: #fbefcf;
+    color: #6f4f0b;
+  }
+  .cashier-sheet .cashier-change[data-ok] {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+
+  /* Pay button pinned at the bottom of the sheet, on the right. */
+  .cashier-sheet-foot {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .cashier-sheet-foot .cashier-primary {
+    flex: 1 1 auto;
+    justify-content: center;
+    max-width: 100%;
+  }
+  .cashier-sheet .cashier-sheet-body {
+    padding-bottom: 16px;
+  }
+
+  /* "Pay part now" as a switch row. */
+  .cashier-split[data-switch] {
+    justify-content: space-between;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    flex-direction: row-reverse;
+  }
+  .cashier-split[data-switch] input {
+    position: relative;
+    flex: none;
+    width: 44px;
+    height: 26px;
+    margin: 0;
+    border-radius: 999px;
+    background: var(--border);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: background 0.15s ease;
+  }
+  .cashier-split[data-switch] input::after {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(16 34 24 / 30%);
+    content: "";
+    transition: transform 0.15s ease;
+  }
+  .cashier-split[data-switch] input:checked {
+    background: var(--primary);
+  }
+  .cashier-split[data-switch] input:checked::after {
+    transform: translateX(18px);
+  }
+}
+@media (max-width: 850px) {
+  .cashier-prow-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .cashier-prow-tags .cashier-tag {
+    margin-top: 0;
+  }
+  .cashier-prow-wait {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+}

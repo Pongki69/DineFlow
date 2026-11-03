@@ -8,6 +8,7 @@ use App\Console\Commands\PurgeReadNotifications;
 use App\Console\Commands\SendReservationReminders;
 use App\Http\Middleware\ApiErrorCode;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureSingleSession;
 use App\Http\Middleware\IdempotentSubmission;
 use App\Http\Middleware\RequirePermission;
 use Illuminate\Database\QueryException;
@@ -18,17 +19,22 @@ use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(web: __DIR__.'/../routes/web.php', api: __DIR__.'/../routes/api.php', commands: __DIR__.'/../routes/console.php', health: '/up')
-    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api/v1', 'middleware' => ['api', 'auth:sanctum', 'account.active']])
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api/v1', 'middleware' => ['api', 'auth:sanctum', 'account.active', 'single.session']])
     ->withCommands([CreateAdministrator::class, PrepareDeployment::class, PurgeDeliveryLocations::class, ExpirePendingPayments::class, SendReservationReminders::class, PurgeReadNotifications::class])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         $middleware->appendToGroup('api', ApiErrorCode::class);
         if (env('RENDER') === 'true') {
             $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_FORWARDED_PORT);
+        } elseif (env('DINEFLOW_TRUST_LOCAL_PROXY') === 'true') {
+            // LAN mode: the dev server on this same computer relays each
+            // phone's address, so the activity log shows the real device.
+            $middleware->trustProxies(at: ['127.0.0.1', '::1'], headers: Request::HEADER_X_FORWARDED_FOR);
         }
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('login'));
         $middleware->alias([
             'account.active' => EnsureAccountIsActive::class,
+            'single.session' => EnsureSingleSession::class,
             'permission' => RequirePermission::class,
             'idempotent' => IdempotentSubmission::class,
         ]);

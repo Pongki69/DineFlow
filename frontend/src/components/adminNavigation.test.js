@@ -26,14 +26,14 @@ const allPaths = [
 describe("consolidated admin navigation", () => {
   it("keeps one entry per module and exposes unique tools without duplicate aliases", () => {
     const result = adminNavigation(allPaths.map((path) => link(path)));
-    expect(result.primary).toHaveLength(6);
+    expect(result.primary).toHaveLength(5);
     expect(result.tools.map(([, , path]) => path)).toEqual([
       "/reports",
       "/payments",
       "/admin/users",
       "/admin/audit",
     ]);
-    expect(new Set(result.primary.map(({ path }) => path)).size).toBe(6);
+    expect(new Set(result.primary.map(({ path }) => path)).size).toBe(5);
   });
 
   it("uses the accessible legacy route when its newer module is not granted", () => {
@@ -56,6 +56,7 @@ describe("consolidated admin navigation", () => {
     expect(adminModuleForPath("/admin/deliveries", primary)?.key).toBe(
       "tracking",
     );
+    expect(adminModuleForPath("/admin/riders", primary)?.key).toBe("tracking");
     expect(adminModuleForPath("/admin/delivery", primary)?.key).toBe(
       "settings",
     );

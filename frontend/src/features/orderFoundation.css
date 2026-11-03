@@ -1,0 +1,358 @@
+/* Dineflow multi-role foundation.
+   Adds only layout, scaling, bottom-bar, sheet and alert rules. Every color
+   comes from existing tokens in design-tokens.css / production-theme.css.
+   Opt in by using the .df-* classes; nothing here restyles existing screens. */
+
+/* Role scaling: reuse the existing control-height token. */
+.dineflow-app [data-workspace="delivery"] {
+  --ui-control-height: 3.5rem; /* driver: 56px */
+}
+.dineflow-app [data-workspace="kitchen"] {
+  --ui-control-height: 4rem; /* KDS tablet: 64px */
+}
+
+/* Order status pill: existing Sage status pairs, icon + label. */
+.dineflow-app .df-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--df-space-1, 4px);
+  padding: var(--df-space-1, 4px) var(--df-space-3, 12px);
+  border: var(--df-border-width, 1px) solid;
+  border-radius: var(--df-radius-pill, 9999px);
+  font-size: var(--text-sm);
+  font-weight: var(--df-font-medium, 500);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.dineflow-app .df-status[data-tone="pending"] {
+  color: var(--df-status-pending-text);
+  background: var(--df-status-pending-bg);
+  border-color: var(--df-status-pending-border);
+}
+.dineflow-app .df-status[data-tone="progress"] {
+  color: var(--df-status-progress-text);
+  background: var(--df-status-progress-bg);
+  border-color: var(--df-status-progress-border);
+}
+.dineflow-app .df-status[data-tone="success"] {
+  color: var(--df-status-success-text);
+  background: var(--df-status-success-bg);
+  border-color: var(--df-status-success-border);
+}
+
+.dineflow-app .df-status[data-tone="neutral"] {
+  color: var(--df-status-neutral-text);
+  background: var(--df-status-neutral-bg);
+  border-color: var(--df-status-neutral-border);
+}
+.dineflow-app .df-status[data-tone="danger"] {
+  color: var(--df-status-danger-text);
+  background: var(--df-status-danger-bg);
+  border-color: var(--df-status-danger-border);
+}
+
+/* Sticky bottom action bar (mobile): primary full width, ghost above it. */
+.dineflow-app .df-bottom-bar {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: var(--df-z-sticky, 20);
+  display: grid;
+  gap: var(--df-space-2, 8px);
+  padding: var(--df-space-2, 8px) var(--df-space-4, 16px);
+  padding-block-end: calc(
+    var(--df-space-2, 8px) + env(safe-area-inset-bottom, 0px)
+  );
+  background: var(--df-color-surface);
+  border-block-start: var(--df-border-width, 1px) solid var(--df-color-border);
+}
+.dineflow-app .df-bottom-bar .ui-button--primary {
+  inline-size: 100%;
+  min-block-size: var(--ui-control-height);
+}
+.dineflow-app .df-bottom-bar .df-ghost {
+  min-block-size: var(--df-target-size, 48px);
+  background: transparent;
+  border: 0;
+  color: var(--df-color-brand);
+  font-weight: var(--df-font-medium, 500);
+}
+/* Keep scrolling content clear of the bar. */
+.dineflow-app .df-screen-with-bar {
+  padding-block-end: calc(
+    var(--ui-control-height) + var(--df-space-8, 32px) +
+      env(safe-area-inset-bottom, 0px)
+  );
+}
+
+/* Bottom sheet with drag handle (use on a native <dialog> or a div). */
+.dineflow-app .df-sheet {
+  max-block-size: 92dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  border-radius: var(--df-radius-xl, 24px) var(--df-radius-xl, 24px) 0 0;
+  background: var(--df-color-surface);
+  box-shadow: var(--df-shadow-high);
+}
+.dineflow-app .df-sheet::-webkit-scrollbar {
+  display: none;
+}
+.dineflow-app .df-sheet::before {
+  content: "";
+  display: block;
+  inline-size: 36px;
+  block-size: 4px;
+  margin: var(--df-space-2, 8px) auto;
+  border-radius: 2px;
+  background: var(--df-color-control-border);
+}
+.dineflow-app .df-sheet .df-bottom-bar {
+  position: sticky;
+  inset-block-end: 0;
+}
+
+/* Alert hierarchy: card / sheet banner sits directly above the primary CTA. */
+.dineflow-app .df-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--df-space-2, 8px);
+  padding: var(--df-space-3, 12px) var(--df-space-4, 16px);
+  border: var(--df-border-width, 1px) solid var(--df-status-danger-border);
+  border-radius: var(--df-radius-md, 12px);
+  background: var(--df-status-danger-bg);
+  color: var(--df-status-danger-text);
+  font-size: var(--text-sm);
+}
+.dineflow-app .df-alert--context {
+  margin-block-end: var(--df-space-2, 8px);
+}
+
+/* Global banner: sticky below the header, slides down. */
+.dineflow-app .df-global-banner {
+  position: sticky;
+  inset-block-start: var(--df-topbar-height, 72px);
+  z-index: var(--df-z-toast, 60);
+  transform: translateY(-100%);
+  opacity: 0;
+  transition:
+    transform var(--df-motion-duration, 200ms)
+      var(--df-motion-easing-enter, ease-out),
+    opacity var(--df-motion-duration, 200ms)
+      var(--df-motion-easing-enter, ease-out);
+}
+.dineflow-app .df-global-banner[data-open="true"] {
+  transform: none;
+  opacity: 1;
+}
+
+/* Swipe to confirm (touch only; mouse users get a plain button). */
+.dineflow-app .df-swipe {
+  --df-swipe-thumb: calc(var(--ui-control-height) - 8px);
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  row-gap: 2px;
+  inline-size: 100%;
+  min-block-size: var(--ui-control-height);
+  padding: 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--df-radius-pill, 9999px);
+  background: var(--df-color-brand-panel);
+  color: var(--df-color-ink);
+  font: inherit;
+  font-weight: 700;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dineflow-app .df-swipe:focus-visible {
+  outline: 3px solid var(--df-color-focus);
+  outline-offset: 2px;
+}
+.dineflow-app .df-swipe:disabled {
+  background: var(--df-color-disabled-bg);
+  color: var(--df-color-disabled-text);
+}
+.dineflow-app .df-swipe-fill {
+  position: absolute;
+  inset-block: 4px;
+  inset-inline-start: 4px;
+  border-radius: inherit;
+  background: var(--df-color-brand);
+  opacity: 0.18;
+}
+.dineflow-app .df-swipe-thumb {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-start: 4px;
+  display: grid;
+  place-items: center;
+  inline-size: var(--df-swipe-thumb);
+  block-size: var(--df-swipe-thumb);
+  border-radius: 50%;
+  background: var(--df-color-brand);
+  color: var(--df-color-on-brand);
+  box-shadow: var(--df-shadow-high);
+}
+.dineflow-app .df-swipe:disabled .df-swipe-thumb {
+  background: var(--df-color-disabled-text);
+}
+.dineflow-app .df-swipe:not([data-dragging]) .df-swipe-thumb,
+.dineflow-app .df-swipe:not([data-dragging]) .df-swipe-fill {
+  transition:
+    transform var(--df-motion-duration, 200ms) ease-out,
+    inline-size var(--df-motion-duration, 200ms) ease-out;
+}
+.dineflow-app .df-swipe-label {
+  padding-inline: calc(var(--df-swipe-thumb) + 8px);
+  line-height: 1.2;
+}
+.dineflow-app .df-swipe-hint {
+  font-size: var(--text-xs, 12px);
+  font-weight: 500;
+  opacity: 0.75;
+}
+.dineflow-app .df-swipe[data-nudge] .df-swipe-thumb {
+  animation: df-swipe-nudge 600ms ease-out;
+}
+.dineflow-app .df-swipe[data-confirmed] .df-swipe-fill {
+  opacity: 0.32;
+}
+.dineflow-app .df-swipe[data-confirmed] .df-swipe-thumb {
+  animation: df-swipe-confirm var(--df-motion-duration-slow, 320ms)
+    cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+@keyframes df-swipe-confirm {
+  50% {
+    scale: 1.12;
+  }
+}
+@keyframes df-swipe-nudge {
+  30% {
+    transform: translateX(28px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dineflow-app .df-swipe[data-nudge] .df-swipe-thumb {
+    animation: none;
+  }
+}
+
+/* Desktop: the bar becomes a right-aligned form/modal footer. */
+@media (min-width: 1024px) {
+  .dineflow-app .df-bottom-bar {
+    position: static;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .dineflow-app .df-bottom-bar .ui-button--primary {
+    inline-size: auto;
+    min-inline-size: 7.5rem;
+  }
+  .dineflow-app .df-bottom-bar .df-ghost {
+    order: 0;
+  }
+  .dineflow-app .df-bottom-bar .ui-button--primary {
+    order: 1;
+  }
+}
+
+/* Segmented control: native radios styled as a single pill row. */
+.dineflow-app .df-segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--df-space-2, 8px);
+}
+.dineflow-app .df-segmented label {
+  flex: 1 1 auto;
+  position: relative;
+}
+.dineflow-app .df-segmented input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+}
+.dineflow-app .df-segmented span {
+  display: grid;
+  place-items: center;
+  min-block-size: var(--df-target-size, 48px);
+  padding: var(--df-space-2, 8px) var(--df-space-3, 12px);
+  border: var(--df-border-width, 1px) solid var(--df-color-control-border);
+  border-radius: var(--df-radius-md, 12px);
+  background: var(--df-color-surface);
+  color: var(--df-color-ink);
+  font-weight: 600;
+  text-align: center;
+}
+.dineflow-app .df-segmented small {
+  color: var(--df-color-secondary);
+  font-weight: 500;
+}
+.dineflow-app .df-segmented input:checked + span {
+  border-color: var(--df-color-brand);
+  background: var(--df-color-brand);
+  color: var(--df-color-on-brand);
+}
+.dineflow-app .df-segmented input:checked + span small {
+  color: inherit;
+}
+.dineflow-app .df-segmented input:focus-visible + span {
+  outline: 3px solid var(--df-color-focus);
+  outline-offset: 2px;
+}
+
+/* Toggle row: a full-width tap target with a switch on the end. */
+.dineflow-app .df-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--df-space-3, 12px);
+  min-block-size: var(--df-target-size, 48px);
+  padding-block: var(--df-space-2, 8px);
+  border-block-end: var(--df-border-width, 1px) solid var(--df-color-border);
+}
+.dineflow-app .df-toggle-row > span {
+  display: grid;
+}
+.dineflow-app .df-toggle-row small {
+  color: var(--df-color-secondary);
+}
+.dineflow-app .df-toggle-row input[role="switch"] {
+  appearance: none;
+  flex: none;
+  position: relative;
+  inline-size: 48px;
+  block-size: 28px;
+  margin: 0;
+  border-radius: 9999px;
+  background: var(--df-color-control-border);
+  cursor: pointer;
+  transition: background var(--df-motion-duration, 200ms) ease-out;
+}
+.dineflow-app .df-toggle-row input[role="switch"]::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 3px;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 50%;
+  background: var(--df-color-surface);
+  transition: transform var(--df-motion-duration, 200ms) ease-out;
+}
+.dineflow-app .df-toggle-row input[role="switch"]:checked {
+  background: var(--df-color-brand);
+}
+.dineflow-app .df-toggle-row input[role="switch"]:checked::after {
+  transform: translateX(20px);
+}
+.dineflow-app .df-toggle-row input[role="switch"]:focus-visible {
+  outline: 3px solid var(--df-color-focus);
+  outline-offset: 2px;
+}

@@ -28,6 +28,7 @@ describe("role-driven navigation", () => {
       "Delivery offers",
       "Delivery history",
       "Ratings & reviews",
+      "My activity",
       "Settings",
     ]);
     expect(
@@ -46,7 +47,7 @@ describe("role-driven navigation", () => {
       visibleNavigation(["customer.account"], ["administrator"]).map(
         ([label]) => label,
       ),
-    ).toEqual(["Settings"]);
+    ).toEqual(["My activity", "Settings"]);
   });
 });
 

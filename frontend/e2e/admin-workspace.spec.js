@@ -1,6 +1,184 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("reservation settings explains timing, protects drafts and saves booking controls in both themes", async ({
+  page,
+}, info) => {
+  let policy = {
+    open_time: "10:00",
+    close_time: "22:00",
+    duration_minutes: 90,
+    buffer_minutes: 30,
+    booking_window_days: 60,
+    grace_minutes: 15,
+    cancellation_cutoff_hours: 4,
+    automatic_confirmation: true,
+    automatic_table_assignment: true,
+    deposit_required: false,
+    deposit_amount: 0,
+  };
+  let saved;
+  await page.route("**/api/v1/admin/reservation-policy", async (route) => {
+    if (route.request().method() === "PUT")
+      policy = saved = route.request().postDataJSON();
+    await route.fulfill({ json: { data: policy } });
+  });
+  await login(page);
+  await page.goto("/admin/settings");
+  const save = page.getByRole("button", {
+    name: "Save reservation policy",
+    exact: true,
+  });
+  await expect(save).toBeDisabled();
+  await expect(
+    page.getByText("120 minutes per table cycle", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Reservation duration (minutes)", { exact: true })
+    .fill("120");
+  await expect(
+    page.getByText("150 minutes per table cycle", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("checkbox", { name: /Require a reservation deposit/ })
+    .check();
+  const deposit = page.getByLabel("Deposit per reservation (PHP)", {
+    exact: true,
+  });
+  await expect(deposit).toHaveAttribute("min", "1");
+  await deposit.fill("250");
+  await page
+    .getByRole("checkbox", { name: /Automatically confirm bookings/ })
+    .uncheck();
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent("workspace:changed", {
+        detail: { topics: ["settings"] },
+      }),
+    ),
+  );
+  await expect(
+    page.getByLabel("Reservation duration (minutes)", { exact: true }),
+  ).toHaveValue("120");
+  await expect(
+    page.getByText("Unsaved changes", { exact: true }),
+  ).toBeVisible();
+  await save.click();
+  await expect(
+    page.getByText("Reservation policy saved.", { exact: true }),
+  ).toBeVisible();
+  expect(saved).toMatchObject({
+    duration_minutes: 120,
+    buffer_minutes: 30,
+    automatic_confirmation: false,
+    automatic_table_assignment: true,
+    deposit_required: true,
+    deposit_amount: 250,
+  });
+  await expect(save).toBeDisabled();
+  await audit(page);
+  await page.screenshot({
+    path: info.outputPath("reservation-settings-light.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await audit(page);
+  await page.screenshot({
+    path: info.outputPath("reservation-settings-dark.png"),
+    fullPage: true,
+  });
+});
+
+test("delivery settings groups location, fees and independent schedules in both themes", async ({
+  page,
+}, info) => {
+  const hours = Object.fromEntries(
+    [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ].map((day, i) => [day, { open: "08:00", close: "17:00", closed: i > 4 }]),
+  );
+  let policy = {
+    radius_km: 5,
+    minimum_order: 100,
+    base_fee: 40,
+    per_km_fee: 5,
+    free_delivery_over: null,
+    operating_hours: structuredClone(hours),
+  };
+  let location = {
+    name: "Demo restaurant",
+    address: "Los Baños, Laguna",
+    latitude: 14.186936,
+    longitude: 121.231878,
+    phone: "09171234567",
+    contact_email: "restaurant@example.test",
+    opening_hours: structuredClone(hours),
+  };
+  let savedPolicy, savedLocation;
+  await page.route("**/api/v1/admin/delivery-policy", async (route) => {
+    if (route.request().method() === "PUT")
+      policy = savedPolicy = route.request().postDataJSON();
+    await route.fulfill({ json: { data: { policy } } });
+  });
+  await page.route("**/api/v1/restaurant/location", (route) =>
+    route.fulfill({ json: { data: location } }),
+  );
+  await page.route("**/api/v1/admin/restaurant/location", async (route) => {
+    location = savedLocation = route.request().postDataJSON();
+    await route.fulfill({ json: { data: location } });
+  });
+  await login(page);
+  await page.goto("/admin/delivery");
+  await expect(
+    page.getByRole("heading", { name: "Delivery settings", exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Base fee (₱)", { exact: true }).fill("55");
+  const restaurant = page.getByRole("region", {
+    name: "Restaurant opening hours",
+    exact: true,
+  });
+  await restaurant
+    .getByLabel("Restaurant monday opens", { exact: true })
+    .fill("09:00");
+  await restaurant
+    .getByRole("button", { name: "Apply Monday’s hours to all days" })
+    .click();
+  await expect(
+    restaurant.getByLabel("Restaurant saturday closed", { exact: true }),
+  ).not.toBeChecked();
+  await expect(
+    page.getByLabel("Delivery saturday closed", { exact: true }),
+  ).toBeChecked();
+  await page
+    .getByRole("button", { name: "Save settings", exact: true })
+    .click();
+  await expect(
+    page.getByText("Delivery area and restaurant location saved.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(savedPolicy.base_fee).toBe(55);
+  expect(savedPolicy.operating_hours.saturday.closed).toBe(true);
+  expect(savedLocation.opening_hours.saturday.open).toBe("09:00");
+  await audit(page);
+  await page.screenshot({
+    path: info.outputPath("delivery-settings-light.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await audit(page);
+  await page.screenshot({
+    path: info.outputPath("delivery-settings-dark.png"),
+    fullPage: true,
+  });
+});
+
 async function login(page) {
   await page.goto("/login");
   await page
@@ -15,7 +193,7 @@ async function login(page) {
   await expect(
     page.getByRole("heading", { name: "Operations overview", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(/Updated .*refreshes every 5s/)).toBeVisible();
+  await expect(page.locator(".admin-freshness")).toContainText("Updated");
 }
 
 async function navigate(page, name) {
@@ -38,6 +216,16 @@ async function navigate(page, name) {
 
 async function audit(page, fullscreen = false) {
   await expect(page.locator(".admin-map-loading")).toHaveCount(0);
+  await page.evaluate(() =>
+    Promise.allSettled(
+      document
+        .getAnimations()
+        .filter(
+          (animation) => animation.effect?.getTiming().iterations !== Infinity,
+        )
+        .map((animation) => animation.finished),
+    ),
+  );
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
@@ -86,12 +274,21 @@ test("admin dashboard, dark mode, profile drawer and fleet work across screen si
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await login(page);
+  await expect(
+    page.getByRole("heading", { name: "Today’s priorities" }),
+  ).toBeVisible();
+  await expect(page.locator(".admin-map")).toHaveCount(0);
+  await expect(
+    page.getByRole("searchbox", { name: "Search active deliveries" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Open tracking", exact: true }),
+  ).toHaveAttribute("href", "/admin/tracking");
   for (const [name, path] of [
     ["Dashboard", "/admin/dashboard"],
     ["Live delivery tracking", "/admin/tracking"],
     ["Restaurant outlets", "/admin/outlets"],
     ["Order management", "/admin/orders"],
-    ["Rider fleet", "/admin/riders"],
     ["System settings", "/admin/system-settings"],
   ]) {
     await expect(
@@ -101,7 +298,7 @@ test("admin dashboard, dark mode, profile drawer and fleet work across screen si
     ).toHaveAttribute("href", path);
   }
   await expect(page.locator(".admin-sidebar .admin-navigation a")).toHaveCount(
-    6,
+    5,
   );
   const mobileMenu = page.getByRole("button", {
     name: "Open navigation",
@@ -154,11 +351,24 @@ test("admin dashboard, dark mode, profile drawer and fleet work across screen si
     page.getByRole("button", { name: "Your account", exact: true }),
   ).toBeFocused();
   await page.getByRole("button", { name: "Switch to light mode" }).click();
-  await navigate(page, "Rider fleet");
+  await navigate(page, "Live delivery tracking");
+  await page
+    .getByRole("navigation", { name: "Delivery workspace views" })
+    .getByRole("link", { name: "Rider fleet", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Rider fleet", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.locator(".admin-map")).toHaveCount(1);
+  await page
+    .getByRole("searchbox", { name: "Search riders", exact: true })
+    .fill("No matching rider");
+  await expect(
+    page.getByRole("heading", { name: "No riders in this view" }),
+  ).toBeVisible();
+  await page.goto("/admin/riders");
+  await expect(page).toHaveURL(/\/admin\/tracking\?view=riders$/);
   await audit(page);
   await page.screenshot({
     path: info.outputPath("admin-fleet.png"),
@@ -247,6 +457,7 @@ test("active fleet filtering, delivery search and refresh failures retain usable
       : route.fulfill({ json: payload }),
   );
   await login(page);
+  await navigate(page, "Live delivery tracking");
   await expect(page.locator(".admin-map-marker--available")).toHaveCount(1);
   await expect(page.locator(".admin-map-marker--on_delivery")).toHaveCount(1);
   await expect(
@@ -418,7 +629,19 @@ test("order management keeps preparation and payment controls inside responsive 
     },
   ];
   await page.route("**/api/v1/orders?*", (route) =>
-    route.fulfill({ json: { data: rows } }),
+    route.fulfill({
+      json: {
+        data: [
+          ...rows,
+          {
+            ...rows[0],
+            id: 611,
+            order_number: "DF-UI-CANCELLED",
+            status: "cancelled",
+          },
+        ],
+      },
+    }),
   );
   await login(page);
   await navigate(page, "Order management");
@@ -429,6 +652,15 @@ test("order management keeps preparation and payment controls inside responsive 
   await expect(
     card.getByRole("button", { name: /Record cash.*610\.00/ }),
   ).toBeVisible();
+  const cancelledCard = page.getByRole("article", {
+    name: "Order DF-UI-CANCELLED",
+    exact: true,
+  });
+  await expect(cancelledCard).toBeVisible();
+  await expect(
+    cancelledCard.getByRole("button", { name: /Record cash/ }),
+  ).toHaveCount(0);
+  await expect(cancelledCard.locator(".order-card-workbench")).toHaveCount(0);
   await card
     .getByRole("spinbutton", { name: "Prep time for DF-UI-610" })
     .fill("18");
@@ -455,15 +687,227 @@ test("order management keeps preparation and payment controls inside responsive 
       expect((await filter.boundingBox()).width).toBeLessThanOrEqual(200);
     }
   }
+  await card.getByRole("button", { name: /Record cash/ }).hover();
   await audit(page);
   await page.screenshot({
     path: info.outputPath("admin-order-management.png"),
     fullPage: true,
   });
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await card.getByRole("button", { name: /Record cash/ }).hover();
   await audit(page);
   await page.screenshot({
     path: info.outputPath("admin-order-management-dark.png"),
+    fullPage: true,
+  });
+});
+
+test("dispatch queues show selection, guide empty states and clear searches", async ({
+  page,
+}, info) => {
+  await page.route("**/api/v1/admin/deliveries?*", (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    const rows =
+      params.get("queue") === "road" && !params.get("q")
+        ? [
+            {
+              id: 701,
+              status: "in_transit",
+              rider: { name: "Alex Rivera" },
+              order: {
+                order_number: "DF-DISPATCH-701",
+                delivery_address: "Manila restaurant district",
+                total: "450.00",
+              },
+              estimated_arrival_at: new Date(Date.now() + 600000).toISOString(),
+            },
+          ]
+        : [];
+    return route.fulfill({
+      json: {
+        data: rows,
+        riders: [],
+        counts: { attention: 0, waiting: 0, pickup: 0, road: 1, finished: 2 },
+        meta: { current_page: 1, last_page: 1, total: rows.length },
+      },
+    });
+  });
+  await login(page);
+  await page.goto("/admin/deliveries");
+  const attention = page.getByRole("button", {
+    name: "Needs attention 0",
+    exact: true,
+  });
+  await expect(attention).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("heading", { name: "This queue is clear", exact: true }),
+  ).toBeVisible();
+  await audit(page);
+  await page.screenshot({
+    path: info.outputPath("admin-dispatch-empty.png"),
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "View on the road", exact: true })
+    .click();
+  await expect(
+    page.getByText("DF-DISPATCH-701", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "On the road 1", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("searchbox").fill("No match");
+  await expect(
+    page.getByRole("heading", { name: "No matching deliveries", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Clear search", exact: true }).click();
+  await expect(
+    page.getByText("DF-DISPATCH-701", { exact: true }),
+  ).toBeVisible();
+  await audit(page);
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await page
+    .getByRole("button", { name: "Needs attention 0", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "This queue is clear", exact: true }),
+  ).toBeVisible();
+  await audit(page);
+  await page.screenshot({
+    path: info.outputPath("admin-dispatch-dark.png"),
+    fullPage: true,
+  });
+});
+
+test("reservation picker fits the room and keeps table selection clear", async ({
+  page,
+}, info) => {
+  const tables = [1, 10, 2].map((id) => ({
+    id,
+    table_number: `Table ${id}`,
+    capacity: 2,
+    available: true,
+    status: "available",
+  }));
+  const objects = [
+    {
+      id: 100,
+      object_type: "flooring",
+      position: { x: 16, z: 12 },
+      dimensions: { width: 32, depth: 24 },
+    },
+    ...tables.map((table, index) => ({
+      id: table.id,
+      table_id: table.id,
+      object_type: "table",
+      label: table.table_number,
+      table,
+      position: { x: 3 + index * 12, z: 4 + index * 8 },
+      dimensions: { width: 1.45, depth: 1.45 },
+      properties: { table_shape: "short" },
+    })),
+  ];
+  await page.route("**/api/v1/floor-plan/floors", (route) =>
+    route.fulfill({ json: { data: [{ id: 1, name: "Main floor", objects }] } }),
+  );
+  await page.route("**/api/v1/reservations/availability?*", (route) =>
+    route.fulfill({ json: { data: tables } }),
+  );
+  await login(page);
+  await page.goto("/reserve");
+  const picker = page.getByRole("complementary", { name: "Choose a table" });
+  await expect(picker.getByRole("button")).toHaveCount(3);
+  await expect(picker.getByRole("button").first()).toContainText("Table 1");
+  await expect(picker.getByRole("button").nth(1)).toContainText("Table 2");
+  await expect
+    .poll(() =>
+      page.locator(".reservation-floor-board").evaluate((board) => {
+        const area = board.getBoundingClientRect();
+        return [...board.querySelectorAll("button.editor-object.table")].every(
+          (table) => {
+            const box = table.getBoundingClientRect();
+            return (
+              box.left >= area.left &&
+              box.right <= area.right &&
+              box.top >= area.top &&
+              box.bottom <= area.bottom
+            );
+          },
+        );
+      }),
+    )
+    .toBe(true);
+  await picker.getByRole("button", { name: /Table 1 .*Add/ }).click();
+  await picker.getByRole("button", { name: /Table 2 .*Add/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Confirm 2 tables", exact: true }),
+  ).toBeVisible();
+  await expect(picker.getByRole("status")).toContainText(
+    "4 seats for 2 guests",
+  );
+  await page.getByRole("button", { name: "Reset view", exact: true }).click();
+  await audit(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path: info.outputPath("admin-reservation-picker.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await audit(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path: info.outputPath("admin-reservation-picker-dark.png"),
+    fullPage: true,
+  });
+});
+
+test("profile and security keeps account fields clear in both themes", async ({
+  page,
+}, info) => {
+  await login(page);
+  await page.goto("/settings");
+  await page.locator(".workspace-security > summary").click();
+  const security = page.locator(".workspace-security");
+  await expect(
+    security.getByRole("heading", { name: "Personal details", exact: true }),
+  ).toBeVisible();
+  await expect(
+    security.getByText("Sign-in email", { exact: true }),
+  ).toBeVisible();
+  await expect(security.locator(".account-profile")).toHaveCount(0);
+  await security
+    .getByLabel("New password", { exact: true })
+    .fill("New-Password-123!");
+  await security
+    .getByLabel("Confirm new password", { exact: true })
+    .fill("New-Password-123!");
+  await expect(
+    security.getByText("Passwords match.", { exact: true }),
+  ).toBeVisible();
+  await security
+    .getByRole("button", { name: "Show new password and confirmation" })
+    .click();
+  await expect(
+    security.getByLabel("New password", { exact: true }),
+  ).toHaveAttribute("type", "text");
+  await security
+    .getByRole("button", { name: "Hide new password and confirmation" })
+    .click();
+  await security.getByLabel("New password", { exact: true }).clear();
+  await security.getByLabel("Confirm new password", { exact: true }).clear();
+  await audit(page);
+  await page.evaluate(() => {
+    document.activeElement?.blur();
+    window.scrollTo(0, 0);
+  });
+  await page.screenshot({
+    path: info.outputPath("admin-profile-security.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await audit(page);
+  await page.screenshot({
+    path: info.outputPath("admin-profile-security-dark.png"),
     fullPage: true,
   });
 });
@@ -508,6 +952,9 @@ test("system settings has readable disabled actions, contextual links and a pers
     fullPage: true,
   });
   await name.fill(`${originalName} · Draft`);
+  await expect(page.locator(".business-brand-preview strong")).toHaveText(
+    `${originalName} · Draft`,
+  );
   await expect(save).toBeEnabled();
   await expect(page.locator(".business-settings-actions")).toHaveAttribute(
     "data-pinned",
@@ -517,6 +964,9 @@ test("system settings has readable disabled actions, contextual links and a pers
     .getByRole("button", { name: "Discard changes", exact: true })
     .click();
   await expect(name).toHaveValue(originalName);
+  await expect(page.locator(".business-brand-preview strong")).toHaveText(
+    originalName,
+  );
   await readableDisabledButton(save);
   await name.fill(`${originalName} · Updated`);
   await save.click();
@@ -545,6 +995,7 @@ for (const fallback of [false, true]) {
       });
     }
     await login(page);
+    await navigate(page, "Live delivery tracking");
     const enter = page.getByRole("button", {
       name: "Enter fullscreen map",
       exact: true,

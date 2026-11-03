@@ -1,3 +1,5 @@
+import { useLiveSettings } from "./components/useLiveSettings";
+import { subscribeToLiveChanges } from "./liveUpdates";
 import { AutoTextarea } from "./components/AutoTextarea";
 import { EmptyState, Feedback, Skeleton } from "./components/ui";
 import { usePrompt } from "./components/ConfirmProvider";
@@ -5,10 +7,44 @@ import { useConfirm } from "./components/ConfirmProvider";
 import { bookingTime } from "./bookingTime";
 import { subscribeToFloorChanges } from "./realtime";
 import { chairPositions, defaultChairLayout } from "./floorPlanGeometry";
-import { LoaderCircle } from "lucide-react";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+  CalendarDays,
+  CalendarPlus,
+  Check,
+  Clock3,
+  LoaderCircle,
+  Table2,
+  UsersRound,
+  CreditCard,
+  Save,
+  Settings2,
+  RefreshCw,
+  Minus,
+  Plus,
+  X,
+  Search,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { useMediaQuery } from "./components/useMediaQuery";
+import { CustomerScreenSkeleton } from "./components/CustomerScreenSkeleton";
+import { playSound } from "./uiSound";
+import {
+  Fragment,
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { api } from "./api";
 import "./features/staffSage.css";
+import "./features/reservationWorkspace.css";
+import "./features/reservationSettings.css";
+import "./features/reservationAdmin.css";
+import "./features/floorEditorWorkspace.css";
+import "./features/serviceTablesPhone.css";
 const FloorScene = lazy(() =>
   import("./FloorScene").then((module) => ({ default: module.FloorScene })),
 );
@@ -64,6 +100,16 @@ function ReservationDatePicker({ value, min, onChange }) {
     year: "numeric",
   });
 
+  // Escape closes the calendar (phones show it as a sheet with a backdrop).
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
   function chooseDay(day) {
     const chosen = new Date(year, month, day, 12);
     const nextValue = `${chosen.getFullYear()}-${String(chosen.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -85,10 +131,27 @@ function ReservationDatePicker({ value, min, onChange }) {
       </button>
       {open && (
         <div
+          className="reservation-date-scrim"
+          aria-hidden="true"
+          onClick={() => setOpen(false)}
+        />
+      )}
+      {open && (
+        <div
           className="reservation-date-popover"
           role="dialog"
           aria-label="Choose reservation date"
         >
+          <div className="reservation-date-sheet-head">
+            <strong>Choose a date</strong>
+            <button
+              type="button"
+              aria-label="Close calendar"
+              onClick={() => setOpen(false)}
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
           <div className="reservation-calendar-heading">
             <button
               type="button"
@@ -146,6 +209,175 @@ function ReservationDatePicker({ value, min, onChange }) {
   );
 }
 
+const isoDay = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const timeGroup = (value) => {
+  const hour = Number(value.split(":")[0]);
+  return hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+};
+
+// Phones: a strip of days, time chips and a guest stepper instead of the
+// desktop dropdowns. The full calendar stays one tap away.
+function MobileBookingControls({
+  date,
+  onDate,
+  time,
+  onTime,
+  timeSlots,
+  guests,
+  onGuests,
+  floors,
+  floorId,
+  onFloor,
+}) {
+  const strip = useRef(null);
+  const first = parseCalendarDate(tomorrow());
+  const days = Array.from({ length: 14 }, (_, index) => {
+    const day = new Date(first);
+    day.setDate(first.getDate() + index);
+    return day;
+  });
+  const groups = ["Morning", "Afternoon", "Evening"]
+    .map((name) => [name, timeSlots.filter((slot) => timeGroup(slot) === name)])
+    .filter(([, slots]) => slots.length);
+  const count = Number(guests) || 1;
+  useEffect(() => {
+    strip.current
+      ?.querySelector('[aria-checked="true"]')
+      ?.scrollIntoView?.({ block: "nearest", inline: "center" });
+  }, [date]);
+  return (
+    <div className="booking-mobile">
+      <section className="booking-mobile-block" aria-label="Date">
+        <header>
+          <span>
+            <CalendarDays size={16} aria-hidden="true" />
+            Date
+          </span>
+          <strong>{formatBookingDate(date)}</strong>
+        </header>
+        <div
+          ref={strip}
+          className="booking-day-strip"
+          role="radiogroup"
+          aria-label="Choose a day"
+        >
+          {days.map((day) => {
+            const value = isoDay(day);
+            return (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={value === date}
+                aria-label={day.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+                onClick={() => onDate(value)}
+              >
+                <small>
+                  {day.toLocaleDateString("en-US", { weekday: "short" })}
+                </small>
+                <b>{day.getDate()}</b>
+                <small>
+                  {day.toLocaleDateString("en-US", { month: "short" })}
+                </small>
+              </button>
+            );
+          })}
+        </div>
+        <div className="booking-more-dates">
+          <span>Another date</span>
+          <ReservationDatePicker
+            value={date}
+            min={tomorrow()}
+            onChange={onDate}
+          />
+        </div>
+      </section>
+      <section className="booking-mobile-block" aria-label="Time">
+        <header>
+          <span>
+            <Clock3 size={16} aria-hidden="true" />
+            Time
+          </span>
+          <strong>{formatTime12(time)}</strong>
+        </header>
+        {groups.map(([name, slots]) => (
+          <div key={name} className="booking-time-group">
+            <small>{name}</small>
+            <div role="radiogroup" aria-label={`${name} times`}>
+              {slots.map((slot) => (
+                <button
+                  key={slot}
+                  type="button"
+                  role="radio"
+                  aria-checked={slot === time}
+                  onClick={() => onTime(slot)}
+                >
+                  {formatTime12(slot)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+      <section
+        className="booking-mobile-block booking-mobile-row"
+        aria-label="Party"
+      >
+        <span>
+          <UsersRound size={16} aria-hidden="true" />
+          Guests
+        </span>
+        <div className="booking-stepper">
+          <button
+            type="button"
+            aria-label="Fewer guests"
+            disabled={count <= 1}
+            onClick={() => onGuests(Math.max(1, count - 1))}
+          >
+            <Minus size={18} aria-hidden="true" />
+          </button>
+          <output aria-live="polite" aria-label="Guests">
+            {count}
+          </output>
+          <button
+            type="button"
+            aria-label="More guests"
+            disabled={count >= 50}
+            onClick={() => onGuests(Math.min(50, count + 1))}
+          >
+            <Plus size={18} aria-hidden="true" />
+          </button>
+        </div>
+      </section>
+      {floors.length > 1 && (
+        <label className="booking-mobile-block booking-mobile-row">
+          <span>
+            <Table2 size={16} aria-hidden="true" />
+            Floor
+          </span>
+          <select
+            aria-label="Floor"
+            value={floorId}
+            onChange={(event) => onFloor(event.target.value)}
+          >
+            {floors.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </div>
+  );
+}
+
 function ReservationFloorPlan2D({
   objects,
   availability,
@@ -153,9 +385,18 @@ function ReservationFloorPlan2D({
   onSelect,
 }) {
   const boardRef = useRef(null);
+  const layerRef = useRef(null);
   const panGesture = useRef(null);
   const suppressClick = useRef(false);
+  // Gestures move one layer with a GPU transform, at most once per frame,
+  // and only commit to React state when the finger lifts. Re-rendering every
+  // table (and laying them out again) on each pointer move made dragging
+  // stutter on phones.
+  const live = useRef({ x: 0, y: 0, scale: 1 });
+  const pointers = useRef(new Map());
+  const frame = useRef(0);
   const [boardSize, setBoardSize] = useState({ width: 0, height: 0 });
+  const touchPlan = useMediaQuery("(max-width: 850px), (pointer: coarse)");
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   useEffect(() => {
@@ -171,29 +412,101 @@ function ReservationFloorPlan2D({
     observer.observe(board);
     return () => observer.disconnect();
   }, []);
+  const extents = objects.map((object) => {
+    const x = Number(object.position?.x) || 0,
+      z = Number(object.position?.z) || 0;
+    const width = Number(object.dimensions?.width) || 1.45;
+    const depth = Number(object.dimensions?.depth) || 1.45;
+    const angle = Number(object.rotation?.y) || 0;
+    const halfX =
+      (Math.abs(Math.cos(angle)) * width + Math.abs(Math.sin(angle)) * depth) /
+      2;
+    const halfZ =
+      (Math.abs(Math.sin(angle)) * width + Math.abs(Math.cos(angle)) * depth) /
+      2;
+    return {
+      left: x - halfX,
+      right: x + halfX,
+      top: z - halfZ,
+      bottom: z + halfZ,
+    };
+  });
+  const left = extents.length
+    ? Math.min(...extents.map((item) => item.left))
+    : -10;
+  const right = extents.length
+    ? Math.max(...extents.map((item) => item.right))
+    : 10;
+  const top = extents.length
+    ? Math.min(...extents.map((item) => item.top))
+    : -8;
+  const bottom = extents.length
+    ? Math.max(...extents.map((item) => item.bottom))
+    : 8;
+  const centerX = (left + right) / 2,
+    centerZ = (top + bottom) / 2;
+  // Phones fit the plan to the tables themselves, so a small floor still
+  // shows tables large enough to read and tap.
+  const fitSpan = touchPlan ? 5 : 8,
+    fitMargin = touchPlan ? 56 : 120;
   const unitPx =
     Math.max(
       1,
-      Math.min((boardSize.width * 0.9) / 20, (boardSize.height * 0.9) / 16),
+      Math.min(
+        (boardSize.width - fitMargin) / Math.max(fitSpan, right - left + 2),
+        (boardSize.height - fitMargin) / Math.max(fitSpan, bottom - top + 2),
+      ),
     ) * zoom;
   const byId = new Map(availability.map((row) => [String(row.id), row]));
+  // Phones list only the statuses that are on the plan right now.
+  const shownStatuses = new Set(
+    objects
+      .filter((object) => object.object_type === "table")
+      .map(
+        (object) => byId.get(String(object.table_id))?.status || "unavailable",
+      ),
+  );
   const selectedIds = Array.isArray(selectedId)
     ? selectedId
     : selectedId == null
       ? []
       : [selectedId];
   const focusTableId = selectedIds.at(-1);
+  const panNow = useRef(pan);
+  panNow.current = pan;
   useEffect(() => {
     if (focusTableId == null) return;
     const selectedObject = objects.find(
       (object) => String(object.table_id) === String(focusTableId),
     );
-    if (selectedObject)
-      setPan({
-        x: -(Number(selectedObject.position?.x) || 0) * unitPx,
-        y: -(Number(selectedObject.position?.z) || 0) * unitPx,
-      });
-  }, [focusTableId, objects, unitPx]);
+    if (!selectedObject) return;
+    // Phones keep the overview when the picked table is already on screen.
+    const dx =
+      ((Number(selectedObject.position?.x) || 0) - centerX) * unitPx +
+      panNow.current.x;
+    const dy =
+      ((Number(selectedObject.position?.z) || 0) - centerZ) * unitPx +
+      panNow.current.y;
+    if (
+      touchPlan &&
+      Math.abs(dx) < boardSize.width / 2 - 48 &&
+      Math.abs(dy) < boardSize.height / 2 - 48
+    )
+      return;
+    setPan({
+      x: -((Number(selectedObject.position?.x) || 0) - centerX) * unitPx,
+      y: -((Number(selectedObject.position?.z) || 0) - centerZ) * unitPx,
+    });
+  }, [
+    focusTableId,
+    objects,
+    unitPx,
+    centerX,
+    centerZ,
+    touchPlan,
+    boardSize.width,
+    boardSize.height,
+  ]);
   useEffect(() => {
     const board = boardRef.current;
     if (!board) return undefined;
@@ -217,61 +530,11 @@ function ReservationFloorPlan2D({
     board.addEventListener("wheel", handleWheel, { passive: false });
     return () => board.removeEventListener("wheel", handleWheel);
   }, []);
-  function startPan(event) {
-    if (
-      event.button !== 0 ||
-      event.target.closest("button.editor-object.table, .editor-map-controls")
-    )
-      return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    panGesture.current = {
-      id: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      pan: { ...pan },
-    };
-  }
-  function movePan(event) {
-    const gesture = panGesture.current;
-    if (!gesture || gesture.id !== event.pointerId) return;
-    const dx = event.clientX - gesture.x;
-    const dy = event.clientY - gesture.y;
-    if (Math.abs(dx) + Math.abs(dy) > 3) suppressClick.current = true;
-    setPan({ x: gesture.pan.x + dx, y: gesture.pan.y + dy });
-  }
-  function endPan(event) {
-    if (panGesture.current?.id === event.pointerId) panGesture.current = null;
-  }
-  return (
-    <div
-      ref={boardRef}
-      className="editor-board reservation-floor-board"
-      onPointerDown={startPan}
-      onPointerMove={movePan}
-      onPointerUp={endPan}
-      onPointerCancel={endPan}
-      onClick={(event) => {
-        if (suppressClick.current) {
-          suppressClick.current = false;
-          return;
-        }
-        if (
-          !event.target.closest(
-            "button.editor-object.table, .editor-map-controls",
-          )
-        )
-          onSelect(null);
-      }}
-      style={{
-        "--floor-grid-x": `${unitPx}px`,
-        "--floor-grid-y": `${unitPx}px`,
-        "--floor-grid-major-x": `${unitPx * 5}px`,
-        "--floor-grid-major-y": `${unitPx * 5}px`,
-        "--floor-pan-x-px": `${pan.x}px`,
-        "--floor-pan-y-px": `${pan.y}px`,
-      }}
-    >
-      {objects.map((object) => {
+  // Built only when the plan, availability, selection or zoom changes, not
+  // while the board is being dragged.
+  const tables = useMemo(
+    () =>
+      objects.map((object) => {
         const isTable = object.object_type === "table";
         const info = isTable ? byId.get(String(object.table_id)) : null;
         const available = Boolean(info?.available);
@@ -286,8 +549,8 @@ function ReservationFloorPlan2D({
           object.dimensions?.depth ??
           (object.properties?.table_shape === "long" ? 1.15 : 1.45);
         const style = {
-          left: `calc(50% + ${(Number(object.position?.x) || 0) * unitPx}px + ${pan.x}px)`,
-          top: `calc(50% + ${(Number(object.position?.z) || 0) * unitPx}px + ${pan.y}px)`,
+          left: `calc(50% + ${((Number(object.position?.x) || 0) - centerX) * unitPx}px)`,
+          top: `calc(50% + ${((Number(object.position?.z) || 0) - centerZ) * unitPx}px)`,
           transform: `translate(-50%, -50%) rotate(${-(object.rotation?.y || 0)}rad)`,
           "--object-width": width,
           "--object-depth": depth,
@@ -344,7 +607,165 @@ function ReservationFloorPlan2D({
             {content}
           </div>
         );
-      })}
+      }),
+    [objects, availability, selectedId, unitPx, centerX, centerZ, onSelect],
+  );
+  function paint() {
+    frame.current = 0;
+    const { x, y, scale } = live.current;
+    if (layerRef.current)
+      layerRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+    boardRef.current?.style.setProperty("--floor-pan-x-px", `${x}px`);
+    boardRef.current?.style.setProperty("--floor-pan-y-px", `${y}px`);
+  }
+  function schedulePaint() {
+    if (!frame.current) frame.current = requestAnimationFrame(paint);
+  }
+  useLayoutEffect(() => {
+    live.current = { x: pan.x, y: pan.y, scale: 1 };
+    paint();
+  }, [pan, zoom]);
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  function pinchSpan() {
+    const [a, b] = [...pointers.current.values()];
+    return {
+      distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+      x: (a.x + b.x) / 2,
+      y: (a.y + b.y) / 2,
+    };
+  }
+  function beginGesture() {
+    const count = pointers.current.size;
+    if (count >= 2) {
+      const span = pinchSpan();
+      panGesture.current = {
+        pinch: true,
+        distance: span.distance,
+        x: span.x,
+        y: span.y,
+        base: { ...live.current },
+      };
+    } else if (count === 1) {
+      const [point] = pointers.current.values();
+      panGesture.current = {
+        pinch: false,
+        x: point.x,
+        y: point.y,
+        base: { ...live.current },
+      };
+    } else panGesture.current = null;
+  }
+  function startPan(event) {
+    if (
+      (event.pointerType === "mouse" && event.button !== 0) ||
+      event.target.closest("button.editor-object.table, .editor-map-controls")
+    )
+      return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    pointers.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+    beginGesture();
+  }
+  function movePan(event) {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+    const gesture = panGesture.current;
+    if (!gesture) return;
+    if (gesture.pinch && pointers.current.size >= 2) {
+      const span = pinchSpan();
+      const scale = Math.min(
+        2.2 / zoom,
+        Math.max(
+          0.55 / zoom,
+          gesture.base.scale * (span.distance / gesture.distance),
+        ),
+      );
+      live.current = {
+        x: gesture.base.x + (span.x - gesture.x),
+        y: gesture.base.y + (span.y - gesture.y),
+        scale,
+      };
+      suppressClick.current = true;
+    } else {
+      const dx = event.clientX - gesture.x;
+      const dy = event.clientY - gesture.y;
+      if (Math.abs(dx) + Math.abs(dy) > 3) suppressClick.current = true;
+      live.current = {
+        ...live.current,
+        x: gesture.base.x + dx,
+        y: gesture.base.y + dy,
+      };
+    }
+    schedulePaint();
+  }
+  function endPan(event) {
+    if (!pointers.current.delete(event.pointerId)) return;
+    if (pointers.current.size) {
+      // One finger left after a pinch: keep panning from here.
+      beginGesture();
+      return;
+    }
+    panGesture.current = null;
+    const { x, y, scale } = live.current;
+    if (scale !== 1)
+      setZoom((current) =>
+        Math.min(2.2, Math.max(0.55, Number((current * scale).toFixed(2)))),
+      );
+    setPan({ x, y });
+  }
+  return (
+    <div
+      ref={boardRef}
+      className="editor-board reservation-floor-board"
+      onPointerDown={startPan}
+      onPointerMove={movePan}
+      onPointerUp={endPan}
+      onPointerCancel={endPan}
+      onClick={(event) => {
+        if (suppressClick.current) {
+          suppressClick.current = false;
+          return;
+        }
+        if (
+          !event.target.closest(
+            "button.editor-object.table, .editor-map-controls",
+          )
+        )
+          onSelect(null);
+      }}
+      style={{
+        "--floor-grid-x": `${unitPx}px`,
+        "--floor-grid-y": `${unitPx}px`,
+        "--floor-grid-major-x": `${unitPx * 5}px`,
+        "--floor-grid-major-y": `${unitPx * 5}px`,
+        "--floor-pan-x-px": `${pan.x}px`,
+        "--floor-pan-y-px": `${pan.y}px`,
+      }}
+    >
+      <div
+        ref={layerRef}
+        className="reservation-floor-layer"
+        style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0)` }}
+      >
+        {touchPlan && extents.length > 0 && (
+          <div
+            className="reservation-floor-room"
+            aria-hidden="true"
+            style={{
+              left: `calc(50% + ${(left - 1 - centerX) * unitPx}px)`,
+              top: `calc(50% + ${(top - 1 - centerZ) * unitPx}px)`,
+              width: `${(right - left + 2) * unitPx}px`,
+              height: `${(bottom - top + 2) * unitPx}px`,
+            }}
+          />
+        )}
+        {tables}
+      </div>
       <div className="editor-status-legend" aria-label="Table availability">
         {[
           ["available", "Available"],
@@ -352,15 +773,22 @@ function ReservationFloorPlan2D({
           ["occupied", "Occupied"],
           ["cleaning", "Cleaning"],
           ["unavailable", "Unavailable"],
-        ].map(([key, label]) => (
-          <span key={key}>
-            <i className={`status-${key}`} />
-            {label}
-          </span>
-        ))}
+        ]
+          .filter(
+            ([key]) =>
+              !touchPlan || key === "available" || shownStatuses.has(key),
+          )
+          .map(([key, label]) => (
+            <span key={key}>
+              <i className={`status-${key}`} />
+              {label}
+            </span>
+          ))}
       </div>
       <span className="editor-board-hint">
-        Drag to pan · Scroll to zoom · Select an available table
+        {touchPlan
+          ? "Drag to move · Pinch to zoom · Tap a table with a green dot"
+          : "Drag to pan · Scroll to zoom · Select an available table"}
       </span>
       <div className="editor-map-controls" aria-label="Floor plan navigation">
         <button
@@ -417,6 +845,7 @@ function ReservationFloorPlan2D({
 }
 
 export function ReservationBooking({ user }) {
+  const compactScreen = useMediaQuery("(max-width: 850px)");
   const bookingDialog = useRef(null);
   const povControls = useRef(null);
   const [bookingModal, setBookingModal] = useState(false);
@@ -491,12 +920,6 @@ export function ReservationBooking({ user }) {
     return () => {
       availabilityRequest.current++;
     };
-  }, [date, time, guests, floorId, policy.timezone]);
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") loadAvailability();
-    }, 10000);
-    return () => clearInterval(id);
   }, [date, time, guests, floorId, policy.timezone]);
   useEffect(
     () =>
@@ -585,6 +1008,7 @@ export function ReservationBooking({ user }) {
           notes: fields.get("notes") || null,
         }),
       });
+      playSound("success");
       setResult({
         ...data.data,
         deposit_required: data.deposit_required,
@@ -614,26 +1038,29 @@ export function ReservationBooking({ user }) {
   }
   const reservationForm = floor && (
     <form className="reservation-form" onSubmit={book}>
-      <h2 id="reservation-booking-title">
-        {autoAssign
-          ? "Confirm your reservation"
-          : selectedTables.length === 1
-            ? `Confirm ${selectedTable.table_number}`
-            : `Confirm ${selectedTables.length} tables`}
-      </h2>
-      <p>
-        {guests} guests · {formatBookingDate(date)} at {formatTime12(time)} ·{" "}
-        {floor.name}
-        {autoAssign
-          ? " · table assigned when confirmed"
-          : ` · ${selectedCapacity} combined seats`}
-      </p>
-      {!autoAssign && (
-        <p className="reservation-confirm-tables">
-          <strong>Selected:</strong>{" "}
-          {selectedTables.map((table) => table.table_number).join(", ")}
+      <div className="reservation-form-heading">
+        <span className="reservation-step-caption">GUEST DETAILS</span>
+        <h2 id="reservation-booking-title">
+          {autoAssign
+            ? "Confirm your reservation"
+            : selectedTables.length === 1
+              ? `Confirm ${selectedTable.table_number}`
+              : `Confirm ${selectedTables.length} tables`}
+        </h2>
+        <p>
+          {guests} guests · {formatBookingDate(date)} at {formatTime12(time)} ·{" "}
+          {floor.name}
+          {autoAssign
+            ? " · table assigned when confirmed"
+            : ` · ${selectedCapacity} combined seats`}
         </p>
-      )}
+        {!autoAssign && (
+          <p className="reservation-confirm-tables">
+            <strong>Selected:</strong>{" "}
+            {selectedTables.map((table) => table.table_number).join(", ")}
+          </p>
+        )}
+      </div>
       <label>
         Name
         <input
@@ -679,11 +1106,17 @@ export function ReservationBooking({ user }) {
           Up to 1,500 characters. Requests are subject to availability.
         </small>
       </div>
-      <button
-        disabled={busy || (!autoAssign && selectedCapacity < Number(guests))}
-      >
-        {busy ? "Checking availability…" : "Confirm reservation"}
-      </button>
+      <div className="reservation-form-footer">
+        <p>
+          <Check size={16} aria-hidden="true" /> Availability is checked again
+          when you confirm.
+        </p>
+        <button
+          disabled={busy || (!autoAssign && selectedCapacity < Number(guests))}
+        >
+          {busy ? "Checking availability…" : "Confirm reservation"}
+        </button>
+      </div>
     </form>
   );
   const bookingOverlay = (
@@ -723,12 +1156,36 @@ export function ReservationBooking({ user }) {
   const objects = floor?.objects || [];
   return (
     <section className="welcome reservation-page">
-      <span className="eyebrow">YOUR TABLE, YOUR TIME</span>
-      <h1>Reserve a table</h1>
-      <p>
-        Availability is confirmed by the restaurant system when you book. Select
-        a date, time and party size to see eligible tables.
-      </p>
+      <header className="reservation-page-heading">
+        <span className="eyebrow">YOUR TABLE, YOUR TIME</span>
+        <h1>Reserve a table</h1>
+        <p>
+          Find a seat for your next visit. Choose when you’re coming, then pick
+          your tables.
+        </p>
+      </header>
+      <ol className="reservation-steps" aria-label="Booking steps">
+        <li>
+          <span>
+            <Check size={14} aria-hidden="true" />
+          </span>{" "}
+          Date & party
+        </li>
+        <li
+          aria-current={
+            !selectedTables.length && !autoAssign ? "step" : undefined
+          }
+        >
+          <span>2</span> Choose tables
+        </li>
+        <li
+          aria-current={
+            selectedTables.length || autoAssign ? "step" : undefined
+          }
+        >
+          <span>3</span> Guest details
+        </li>
+      </ol>
       {error && <Feedback>{error}</Feedback>}
       {result && (
         <div className="success reservation-confirmation" role="status">
@@ -750,61 +1207,104 @@ export function ReservationBooking({ user }) {
           )}
         </div>
       )}
-      <div className="reservation-controls">
-        <label>
-          Date
-          <ReservationDatePicker
-            value={date}
-            min={tomorrow()}
-            onChange={setDate}
-          />
-        </label>
-        <label>
-          Time
-          <select value={time} onChange={(e) => setTime(e.target.value)}>
-            {timeSlots.map((t) => (
-              <option key={t} value={t}>
-                {formatTime12(t)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Guests
-          <input
-            type="number"
-            min="1"
-            max="50"
-            value={guests}
-            onChange={(e) => setGuests(e.target.value)}
-          />
-        </label>
-        <label>
-          Floor
-          <select
-            aria-label="Floor"
-            value={floorId}
-            onChange={(e) => setFloorId(e.target.value)}
-          >
-            {floors.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      {compactScreen ? (
+        <MobileBookingControls
+          date={date}
+          onDate={setDate}
+          time={time}
+          onTime={setTime}
+          timeSlots={timeSlots}
+          guests={guests}
+          onGuests={setGuests}
+          floors={floors}
+          floorId={floorId}
+          onFloor={setFloorId}
+        />
+      ) : (
+        <div className="reservation-controls">
+          <label>
+            <span>
+              <CalendarDays size={15} aria-hidden="true" />
+              Date
+            </span>
+            <ReservationDatePicker
+              value={date}
+              min={tomorrow()}
+              onChange={setDate}
+            />
+          </label>
+          <label>
+            <span>
+              <Clock3 size={15} aria-hidden="true" />
+              Time
+            </span>
+            <select value={time} onChange={(e) => setTime(e.target.value)}>
+              {timeSlots.map((t) => (
+                <option key={t} value={t}>
+                  {formatTime12(t)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>
+              <UsersRound size={15} aria-hidden="true" />
+              Guests
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              value={guests}
+              onChange={(e) => setGuests(e.target.value)}
+            />
+          </label>
+          <label>
+            <span>
+              <Table2 size={15} aria-hidden="true" />
+              Floor
+            </span>
+            <select
+              aria-label="Floor"
+              value={floorId}
+              onChange={(e) => setFloorId(e.target.value)}
+            >
+              {floors.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
       {floorsLoading ? (
-        <Skeleton label="Loading floor plan" />
+        <CustomerScreenSkeleton variant="plan" label="Loading floor plan" />
       ) : floor ? (
         <>
-          <div className="floor-view-toggle">
-            <button onClick={() => setView("3d")} aria-pressed={view === "3d"}>
-              3D view
-            </button>
-            <button onClick={() => setView("2d")} aria-pressed={view === "2d"}>
-              Accessible 2D view
-            </button>
+          <div className="reservation-plan-toolbar">
+            <div>
+              <h2>Seating plan</h2>
+              <p>{floor.name} · Select tables on the plan or from the list.</p>
+            </div>
+            <div
+              className="floor-view-toggle"
+              role="group"
+              aria-label="Floor plan view"
+            >
+              <button
+                onClick={() => setView("3d")}
+                aria-pressed={view === "3d"}
+              >
+                3D view
+              </button>
+              <button
+                onClick={() => setView("2d")}
+                aria-pressed={view === "2d"}
+              >
+                Accessible 2D view
+              </button>
+            </div>
           </div>
           <div
             className={`reservation-floor-layout ${view === "2d" ? "is-2d" : "is-3d"}`}
@@ -855,31 +1355,51 @@ export function ReservationBooking({ user }) {
                 your party.
               </p>
               <div className="reservation-table-options">
-                {availability.map((table) => (
-                  <button
-                    type="button"
-                    key={table.id}
-                    disabled={!table.available}
-                    aria-pressed={selected.some(
-                      (id) => String(id) === String(table.id),
-                    )}
-                    className={`reservation-table-option status-${table.status || "unavailable"} ${selected.some((id) => String(id) === String(table.id)) ? "is-selected" : ""}`}
-                    onClick={() => {
-                      setAutoAssign(false);
-                      toggleTable(table.id);
-                    }}
-                  >
-                    <strong>{table.table_number}</strong>
-                    <span>
-                      {table.capacity} seats · {table.status || "Unavailable"}
-                    </span>
-                    <small>
-                      {selected.some((id) => String(id) === String(table.id))
-                        ? "Added"
-                        : "＋ Add"}
-                    </small>
-                  </button>
-                ))}
+                {availability
+                  .slice()
+                  .sort((a, b) =>
+                    String(a.table_number).localeCompare(
+                      String(b.table_number),
+                      undefined,
+                      { numeric: true },
+                    ),
+                  )
+                  .map((table) => (
+                    <button
+                      type="button"
+                      key={table.id}
+                      disabled={!table.available}
+                      aria-pressed={selected.some(
+                        (id) => String(id) === String(table.id),
+                      )}
+                      className={`reservation-table-option status-${table.status || "unavailable"} ${selected.some((id) => String(id) === String(table.id)) ? "is-selected" : ""}`}
+                      onClick={() => {
+                        setAutoAssign(false);
+                        toggleTable(table.id);
+                      }}
+                    >
+                      <strong>
+                        <Table2 size={18} aria-hidden="true" />
+                        {table.table_number}
+                      </strong>
+                      <span>
+                        {table.capacity} seats · {table.status || "Unavailable"}
+                      </span>
+                      <small>
+                        {selected.some(
+                          (id) => String(id) === String(table.id),
+                        ) ? (
+                          <>
+                            <Check size={14} aria-hidden="true" /> Added
+                          </>
+                        ) : table.available ? (
+                          "＋ Add"
+                        ) : (
+                          "Unavailable"
+                        )}
+                      </small>
+                    </button>
+                  ))}
                 {!availability.length && (
                   <small className="reservation-table-empty">
                     No tables are available for this party size and time.
@@ -911,10 +1431,8 @@ export function ReservationBooking({ user }) {
             </aside>
           </div>
           <p className="availability-note">
-            Occupied tables without a recorded expected departure are not
-            offered as available. Estimated departures and next schedulable
-            slots are not guarantees; the server checks availability again when
-            you confirm.
+            Availability is checked again when you confirm. Occupied tables
+            without an expected departure cannot be booked.
           </p>
           {policy.automatic_table_assignment && (
             <label className="auto-assign-option">
@@ -948,6 +1466,7 @@ export function ReservationBooking({ user }) {
 }
 
 export function MyReservations() {
+  const compactScreen = useMediaQuery("(max-width: 850px)");
   const [loading, setLoading] = useState(true);
   const ask = usePrompt();
   const [items, setItems] = useState([]);
@@ -965,8 +1484,7 @@ export function MyReservations() {
   }
   useEffect(() => {
     load();
-    const id = setInterval(load, 30000);
-    return () => clearInterval(id);
+    return subscribeToLiveChanges(load);
   }, []);
   async function cancel(item) {
     try {
@@ -1015,55 +1533,136 @@ export function MyReservations() {
       setError(e.message);
     }
   }
+  // Phones: upcoming visits first (soonest on top), then past ones.
+  const finished = ["cancelled", "completed", "no_show"];
+  const isUpcoming = (item) =>
+    !finished.includes(item.status) &&
+    new Date(item.ends_at || item.starts_at).getTime() >= Date.now();
+  const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at);
+  const groups = compactScreen
+    ? [
+        ["Upcoming", items.filter(isUpcoming).sort(byStart)],
+        [
+          "Past",
+          items
+            .filter((item) => !isUpcoming(item))
+            .sort((a, b) => byStart(b, a)),
+        ],
+      ].filter(([, list]) => list.length)
+    : [["", items]];
   return (
-    <section className="welcome">
+    <section className="welcome my-reservations-workspace">
       <span className="eyebrow">YOUR BOOKINGS</span>
       <h1>My reservations</h1>
-      {loading && <Skeleton label="Loading your content" />}
+      <p>
+        Your table bookings, visit details, and reservation updates in one
+        place.
+      </p>
+      {loading && (
+        <CustomerScreenSkeleton
+          variant="bookingList"
+          label="Loading your bookings"
+        />
+      )}
       {!loading && !error && items.length === 0 && (
         <EmptyState
           title="Your next visit is waiting"
           description="Choose your table and make a little time for something good."
+          action={compactScreen ? "Book a table" : undefined}
+          to={compactScreen ? "/reserve" : undefined}
         />
       )}
       {error && <Feedback onRetry={load}>{error}</Feedback>}
-      <div className="staff-list">
-        {items.map((item) => (
-          <article key={item.id}>
-            <div>
-              <strong>
-                {item.reference} · {item.status.replaceAll("_", " ")}
-              </strong>
-              <small>
-                {(item.tables?.length
-                  ? item.tables.map((table) => table.table_number).join(", ")
-                  : item.table?.table_number) || "Unassigned"}{" "}
-                · {item.guest_count} guests ·{" "}
-                {new Date(item.starts_at).toLocaleString()}
-              </small>
-              {item.deposit_required && (
-                <small>
-                  Deposit{" "}
-                  {item.deposit_paid
-                    ? "paid"
-                    : `due ₱${Number(item.deposit_amount).toFixed(2)}`}
-                </small>
-              )}
-            </div>
-            <div>
-              {item.deposit_required &&
-                !item.deposit_paid &&
-                item.status === "pending" && (
-                  <button onClick={() => payDeposit(item)}>Pay deposit</button>
-                )}
-              {["pending", "confirmed"].includes(item.status) && (
-                <>
-                  <button onClick={() => reschedule(item)}>Reschedule</button>
-                  <button onClick={() => cancel(item)}>Cancel booking</button>
-                </>
-              )}
-            </div>
-          </article>
+      {compactScreen && !loading && items.length > 0 && (
+        <div className="my-reservation-book">
+          <Link to="/reserve">
+            <CalendarPlus size={16} aria-hidden="true" />
+            Book a table
+          </Link>
+        </div>
+      )}
+      <div className="my-reservation-list">
+        {groups.map(([group, list]) => (
+          <Fragment key={group || "all"}>
+            {group && <h2 className="my-reservation-group">{group}</h2>}
+            {list.map((item) => (
+              <article
+                key={item.id}
+                aria-label={`Reservation ${item.reference}`}
+                data-status={item.status}
+              >
+                <div className="my-reservation-date">
+                  <CalendarDays size={20} aria-hidden="true" />
+                  <strong>
+                    {new Date(item.starts_at).toLocaleDateString([], {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </strong>
+                  <span>
+                    {new Date(item.starts_at).toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                <div>
+                  <strong>{item.reference}</strong>
+                  <small>
+                    <Table2 size={14} aria-hidden="true" />
+                    {(item.tables?.length
+                      ? item.tables
+                          .map((table) => table.table_number)
+                          .join(", ")
+                      : item.table?.table_number) || "Unassigned"}{" "}
+                    <span>·</span>
+                    <UsersRound size={14} aria-hidden="true" />
+                    {item.guest_count} guests
+                  </small>
+                  {item.deposit_required && (
+                    <small>
+                      Deposit{" "}
+                      {item.deposit_paid
+                        ? "paid"
+                        : `due ₱${Number(item.deposit_amount).toFixed(2)}`}
+                    </small>
+                  )}
+                </div>
+                <div className="my-reservation-actions">
+                  <span
+                    className={`reservation-list-status status-${item.status}`}
+                  >
+                    {item.status.replaceAll("_", " ")}
+                  </span>
+                  <div className="my-reservation-buttons">
+                    {item.deposit_required &&
+                      !item.deposit_paid &&
+                      item.status === "pending" && (
+                        <button
+                          className="is-primary"
+                          onClick={() => payDeposit(item)}
+                        >
+                          Pay deposit
+                        </button>
+                      )}
+                    {["pending", "confirmed"].includes(item.status) && (
+                      <>
+                        <button onClick={() => reschedule(item)}>
+                          Reschedule
+                        </button>
+                        <button
+                          className="is-danger"
+                          onClick={() => cancel(item)}
+                        >
+                          Cancel booking
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </Fragment>
         ))}
       </div>
     </section>
@@ -1088,8 +1687,7 @@ export function ReservationDesk({ user = { permissions: [] } }) {
   }
   useEffect(() => {
     load();
-    const id = setInterval(load, 30000);
-    return () => clearInterval(id);
+    return subscribeToLiveChanges(load);
   }, []);
   async function setStatus(item, status) {
     try {
@@ -1185,8 +1783,14 @@ export function TableOccupancy() {
   const [floor, setFloor] = useState("");
   const [status, setStatus] = useState("");
   const [query, setQuery] = useState("");
+  // Phones also filter by seats and by tables waiting on their bill.
+  const [seats, setSeats] = useState(0);
+  const [billOnly, setBillOnly] = useState(false);
   const [pending, setPending] = useState({});
   const [now, setNow] = useState(Date.now);
+  // Phones: one slim row per table; tapping a row shows its actions.
+  const phone = useMediaQuery("(max-width: 850px)");
+  const [openId, setOpenId] = useState(null);
   const locks = useRef(new Set());
   const mounted = useRef(true);
   const requestVersion = useRef(0);
@@ -1213,16 +1817,32 @@ export function TableOccupancy() {
   useEffect(() => {
     mounted.current = true;
     load();
-    const timer = setInterval(() => {
-      setNow(Date.now());
-      if (!document.hidden) load();
-    }, 30000);
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    const unsubscribe = subscribeToLiveChanges(load, [
+      "floor",
+      "reservations",
+      "orders",
+      "payments",
+    ]);
     return () => {
       mounted.current = false;
       requestVersion.current += 1;
       clearInterval(timer);
+      unsubscribe();
     };
   }, []);
+  // Tell the cashier this table is ready to pay.
+  async function requestBill(table, session) {
+    try {
+      await api(`/dining-sessions/${session.id}/request-bill`, {
+        method: "POST",
+      });
+      setNotice(`The cashier knows ${table.table_number} wants the bill.`);
+      await load();
+    } catch (failure) {
+      setError(failure.message);
+    }
+  }
   async function change(table, next) {
     if (
       locks.current.has(table.id) ||
@@ -1300,6 +1920,11 @@ export function TableOccupancy() {
       (!zone || table.zone === zone) &&
       (!floor || String(table.floor_id) === floor) &&
       (!status || table.operational_status === status) &&
+      (!seats || Number(table.capacity) >= seats) &&
+      (!billOnly ||
+        Boolean(
+          (table.current_session || table.currentSession)?.bill_requested_at,
+        )) &&
       (!query ||
         [table.table_number, table.zone]
           .filter(Boolean)
@@ -1307,6 +1932,22 @@ export function TableOccupancy() {
           .toLowerCase()
           .includes(query.toLowerCase())),
   );
+  const filtered = query || zone || floor || status || seats > 0 || billOnly;
+  const clearFilters = filtered ? (
+    <button
+      className="sage-button sage-button--secondary sage-clear-filters"
+      onClick={() => {
+        setQuery("");
+        setZone("");
+        setFloor("");
+        setStatus("");
+        setSeats(0);
+        setBillOnly(false);
+      }}
+    >
+      Clear filters
+    </button>
+  ) : null;
   return (
     <section className="welcome sage-staff sage-service">
       <header className="sage-page-heading">
@@ -1324,10 +1965,46 @@ export function TableOccupancy() {
           disabled={refreshing}
           aria-busy={refreshing}
         >
-          {refreshing ? "Refreshing…" : "Refresh tables"}
+          <RefreshCw size={18} aria-hidden="true" />
+          <span className="admin-refresh-label">
+            {refreshing ? "Refreshing…" : "Refresh tables"}
+          </span>
         </button>
       </header>
-      <div className="sage-stat-grid sage-stat-grid--four">
+      {phone && (
+        <div
+          className="service-phone-counts"
+          role="group"
+          aria-label="Show tables by status"
+        >
+          {statuses.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              data-status={value}
+              aria-pressed={status === value}
+              onClick={() =>
+                setStatus((current) => (current === value ? "" : value))
+              }
+            >
+              <b>
+                {loading || !hasLoaded
+                  ? "—"
+                  : tables.filter(
+                      (table) =>
+                        table.operational_status === value &&
+                        table.is_active !== false,
+                    ).length}
+              </b>
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <div
+        className="sage-stat-grid sage-stat-grid--four"
+        hidden={phone || undefined}
+      >
         {statuses.map(([value, label]) => (
           <article key={value}>
             <span>{label}</span>
@@ -1345,9 +2022,19 @@ export function TableOccupancy() {
         ))}
       </div>
       <div className="sage-toolbar">
-        <label className="sage-field sage-field--search">
-          Find a table
+        <label
+          className={`sage-field sage-field--search${phone ? " service-phone-search" : ""}`}
+        >
+          {phone ? (
+            <>
+              <Search size={17} aria-hidden="true" />
+              <span className="sr-only">Find a table</span>
+            </>
+          ) : (
+            "Find a table"
+          )}
           <input
+            type={phone ? "search" : undefined}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Table number or area"
@@ -1383,7 +2070,37 @@ export function TableOccupancy() {
             </select>
           </label>
         )}
-        <label className="sage-field">
+        {phone && (
+          <div
+            className="service-phone-filters"
+            role="group"
+            aria-label="More filters"
+          >
+            {[
+              [0, "Any seats"],
+              [2, "2+ seats"],
+              [4, "4+ seats"],
+              [6, "6+ seats"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={seats === value}
+                onClick={() => setSeats(value)}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              type="button"
+              aria-pressed={billOnly}
+              onClick={() => setBillOnly((on) => !on)}
+            >
+              Bill requested
+            </button>
+          </div>
+        )}
+        <label className="sage-field" hidden={phone || undefined}>
           Status
           <select
             value={status}
@@ -1397,21 +2114,19 @@ export function TableOccupancy() {
             ))}
           </select>
         </label>
-        {(query || zone || floor || status) && (
-          <button
-            className="sage-button sage-button--secondary"
-            onClick={() => {
-              setQuery("");
-              setZone("");
-              setFloor("");
-              setStatus("");
-            }}
-          >
-            Clear filters
-          </button>
-        )}
+        {!phone && clearFilters}
       </div>
-      <p className="sage-freshness">
+      {phone && (
+        <div className="service-phone-countrow">
+          <p className="sage-freshness">
+            {loading
+              ? "Connecting to table service…"
+              : `${visible.length} of ${tables.length} ${tables.length === 1 ? "table" : "tables"}`}
+          </p>
+          {clearFilters}
+        </div>
+      )}
+      <p className="sage-freshness" hidden={phone || undefined}>
         {loading
           ? "Connecting to table service…"
           : !hasLoaded
@@ -1420,7 +2135,7 @@ export function TableOccupancy() {
               " of " +
               tables.length +
               (tables.length === 1 ? " table" : " tables") +
-              " · checks every 30 seconds"}
+              ""}
       </p>
       {loading && <Skeleton label="Loading dining room tables" />}
       {error && (
@@ -1444,115 +2159,229 @@ export function TableOccupancy() {
           }
         />
       )}
-      <div className="sage-service-grid">
-        {visible.map((table) => {
-          const session = table.current_session || table.currentSession;
-          const opened = session?.opened_at
-            ? new Date(session.opened_at)
-            : null;
-          const elapsed =
-            opened && Number.isFinite(opened.getTime())
-              ? Math.max(0, Math.floor((now - opened.getTime()) / 60000))
+      {phone && (
+        <ul className="service-phone-list">
+          {visible.map((table) => {
+            const session = table.current_session || table.currentSession;
+            const opened = session?.opened_at
+              ? new Date(session.opened_at)
               : null;
-          const available = table.expected_available_at
-            ? new Date(table.expected_available_at)
-            : null;
-          const hasEstimate = available && Number.isFinite(available.getTime());
-          const busy = !!pending[table.id];
-          return (
-            <article
-              className="sage-table-card"
-              key={table.id}
-              data-status={table.operational_status}
-              aria-label={"Table " + table.table_number}
-              aria-busy={busy}
-            >
-              <header>
-                <span className="sage-table-symbol" aria-hidden="true">
-                  ▦
-                </span>
-                <span
-                  className="sage-table-state"
-                  data-status={table.operational_status}
-                >
-                  {table.is_active === false
-                    ? "Inactive"
-                    : table.operational_status}
-                </span>
-              </header>
-              <h2>{table.table_number}</h2>
-              <p>
-                {table.zone ||
-                  (table.floor_id != null
-                    ? table.floor?.name || "Floor " + table.floor_id
-                    : "Dining room")}{" "}
-                · {table.capacity} seats
-              </p>
-              <div className="sage-table-session">
-                {session ? (
-                  <>
-                    <strong>
-                      {session.guest_count || "—"} guests
-                      {elapsed === null ? "" : " · " + elapsed + " min seated"}
-                    </strong>
-                    <span>Open dining session</span>
-                  </>
-                ) : (
-                  <>
-                    <strong>
-                      {table.operational_status === "available"
-                        ? "Ready for your next guests"
-                        : table.operational_status === "cleaning"
-                          ? "Getting ready for the next party"
-                          : "No open dining session"}
-                    </strong>
-                    <span>
-                      {table.operational_status === "unavailable"
-                        ? "Temporarily out of service"
-                        : "Capacity " + table.capacity}
-                    </span>
-                  </>
-                )}
-              </div>
-              <p className="sage-table-estimate">
-                {hasEstimate
-                  ? "Estimated available " +
-                    available.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Availability time not estimated"}
-              </p>
-              <fieldset
-                className="sage-table-actions"
-                disabled={busy || table.is_active === false}
+            const elapsed =
+              opened && Number.isFinite(opened.getTime())
+                ? Math.max(0, Math.floor((now - opened.getTime()) / 60000))
+                : null;
+            const busy = !!pending[table.id];
+            const open = openId === table.id;
+            const state =
+              table.is_active === false ? "inactive" : table.operational_status;
+            const place =
+              table.zone ||
+              (table.floor_id != null
+                ? table.floor?.name || "Floor " + table.floor_id
+                : "Dining room");
+            const line = session
+              ? [
+                  `${session.guest_count || "—"} guests`,
+                  elapsed === null
+                    ? null
+                    : elapsed < 60
+                      ? `${elapsed} min`
+                      : elapsed < 1440
+                        ? `${Math.floor(elapsed / 60)} h ${elapsed % 60} min`
+                        : `${Math.floor(elapsed / 1440)} d ${Math.floor((elapsed % 1440) / 60)} h`,
+                  session.bill_requested_at ? "bill requested" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : `${table.capacity} seats · ${place}`;
+            return (
+              <li
+                key={table.id}
+                data-status={state}
+                data-open={open || undefined}
+                aria-busy={busy}
               >
-                <legend className="sr-only">
-                  Update table {table.table_number}
-                </legend>
-                {statuses.map(([value, label]) => (
-                  <button
-                    key={value}
-                    className={
-                      "sage-button " +
-                      (value === "occupied" &&
-                      table.operational_status === "available"
-                        ? ""
-                        : "sage-button--secondary")
-                    }
-                    disabled={table.operational_status === value}
-                    aria-label={
-                      "Mark table " + table.table_number + " " + value
-                    }
-                    onClick={() => change(table, value)}
+                <button
+                  type="button"
+                  className="service-phone-row"
+                  aria-expanded={open}
+                  onClick={() => setOpenId(open ? null : table.id)}
+                >
+                  <span className="service-phone-number" aria-hidden="true">
+                    {String(table.table_number).replace(/^table\s+/i, "")}
+                  </span>
+                  <span className="service-phone-main">
+                    <strong>{table.table_number}</strong>
+                    <small>{line}</small>
+                  </span>
+                  <span className="service-phone-state" data-status={state}>
+                    {state === "inactive"
+                      ? "Inactive"
+                      : statuses.find(([value]) => value === state)?.[1] ||
+                        state}
+                  </span>
+                </button>
+                {open && (
+                  <div className="service-phone-actions">
+                    {session && !session.bill_requested_at && (
+                      <button
+                        type="button"
+                        className="service-phone-bill"
+                        disabled={busy}
+                        onClick={() => requestBill(table, session)}
+                      >
+                        Request bill
+                      </button>
+                    )}
+                    {statuses
+                      .filter(([value]) => value !== table.operational_status)
+                      .map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          disabled={busy || table.is_active === false}
+                          aria-label={
+                            "Mark table " + table.table_number + " " + value
+                          }
+                          onClick={() => change(table, value)}
+                        >
+                          {busy ? "Updating…" : label}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="sage-service-grid" hidden={phone || undefined}>
+        {!phone &&
+          visible.map((table) => {
+            const session = table.current_session || table.currentSession;
+            const opened = session?.opened_at
+              ? new Date(session.opened_at)
+              : null;
+            const elapsed =
+              opened && Number.isFinite(opened.getTime())
+                ? Math.max(0, Math.floor((now - opened.getTime()) / 60000))
+                : null;
+            const available = table.expected_available_at
+              ? new Date(table.expected_available_at)
+              : null;
+            const hasEstimate =
+              available && Number.isFinite(available.getTime());
+            const busy = !!pending[table.id];
+            return (
+              <article
+                className="sage-table-card"
+                key={table.id}
+                data-status={table.operational_status}
+                aria-label={"Table " + table.table_number}
+                aria-busy={busy}
+              >
+                <header>
+                  <span className="sage-table-symbol" aria-hidden="true">
+                    ▦
+                  </span>
+                  <span
+                    className="sage-table-state"
+                    data-status={table.operational_status}
                   >
-                    {busy ? "Updating…" : label}
-                  </button>
-                ))}
-              </fieldset>
-            </article>
-          );
-        })}
+                    {table.is_active === false
+                      ? "Inactive"
+                      : table.operational_status}
+                  </span>
+                </header>
+                <h2>{table.table_number}</h2>
+                <p>
+                  {table.zone ||
+                    (table.floor_id != null
+                      ? table.floor?.name || "Floor " + table.floor_id
+                      : "Dining room")}{" "}
+                  · {table.capacity} seats
+                </p>
+                <div className="sage-table-session">
+                  {session ? (
+                    <>
+                      <strong>
+                        {session.guest_count || "—"} guests
+                        {elapsed === null
+                          ? ""
+                          : " · " + elapsed + " min seated"}
+                      </strong>
+                      <span>
+                        {session.bill_requested_at
+                          ? "Bill requested · cashier notified"
+                          : "Open dining session"}
+                      </span>
+                      {!session.bill_requested_at && (
+                        <button
+                          type="button"
+                          className="sage-button sage-button--secondary sage-request-bill"
+                          disabled={busy}
+                          onClick={() => requestBill(table, session)}
+                        >
+                          Request bill
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <strong>
+                        {table.operational_status === "available"
+                          ? "Ready for your next guests"
+                          : table.operational_status === "cleaning"
+                            ? "Getting ready for the next party"
+                            : "No open dining session"}
+                      </strong>
+                      <span>
+                        {table.operational_status === "unavailable"
+                          ? "Temporarily out of service"
+                          : "Capacity " + table.capacity}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <p className="sage-table-estimate">
+                  {hasEstimate
+                    ? "Estimated available " +
+                      available.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Availability time not estimated"}
+                </p>
+                <fieldset
+                  className="sage-table-actions"
+                  disabled={busy || table.is_active === false}
+                >
+                  <legend className="sr-only">
+                    Update table {table.table_number}
+                  </legend>
+                  {statuses.map(([value, label]) => (
+                    <button
+                      key={value}
+                      className={
+                        "sage-button " +
+                        (value === "occupied" &&
+                        table.operational_status === "available"
+                          ? ""
+                          : "sage-button--secondary")
+                      }
+                      disabled={table.operational_status === value}
+                      aria-label={
+                        "Mark table " + table.table_number + " " + value
+                      }
+                      onClick={() => change(table, value)}
+                    >
+                      {busy ? "Updating…" : label}
+                    </button>
+                  ))}
+                </fieldset>
+              </article>
+            );
+          })}
       </div>
       <p className="sage-service-note">
         Availability times are staff estimates. A table with an unpaid dining
@@ -1713,20 +2542,14 @@ export function FloorPlanEditor() {
     if (!floorId) return undefined;
     const refreshIfClean = () => {
       if (dirty.current) {
-        setNotice(
-          "A newer layout update is available. Save or discard your draft before refreshing.",
-        );
         return;
       }
       load(true);
     };
     const unsubscribe = subscribeToFloorChanges(refreshIfClean);
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") refreshIfClean();
-    }, 12000);
+
     return () => {
       unsubscribe();
-      window.clearInterval(timer);
     };
   }, [floorId]);
   async function addFloor() {
@@ -2448,21 +3271,25 @@ export function FloorPlanEditor() {
           : Math.round(position[axis]),
       };
     };
-    setObjects((rows) =>
-      rows.map((object) => {
-        const position = {
+    setObjects((rows) => {
+      const aligned = rows.map((object) => ({
+        ...object,
+        position: {
           x: Math.round(Number(object.position?.x) || 0),
           z: Math.round(Number(object.position?.z) || 0),
-        };
+        },
+      }));
+      return aligned.map((object) => {
+        const position = object.position;
         return {
           ...object,
           position:
             object.object_type === "wall"
-              ? snapWallToFloorSeam(object, position, rows)
+              ? snapWallToFloorSeam(object, position, aligned)
               : position,
         };
-      }),
-    );
+      });
+    });
     dirty.current = true;
     setNotice(
       "All objects are aligned to the grid. Save draft to keep the changes.",
@@ -2925,7 +3752,7 @@ export function FloorPlanEditor() {
   return (
     <section className="welcome floor-editor">
       <span className="eyebrow">RESTAURANT LAYOUT</span>
-      <h1>3D floor plan editor</h1>
+      <h1>Floor plan editor</h1>
       <p>
         Drag objects on the 2D editor to position. Rotate and resize selected
         objects, save the draft, preview, then publish.
@@ -3273,7 +4100,11 @@ export function FloorPlanEditor() {
                     }}
                   />
                 ))}
-              <span>{o.table?.table_number || o.label || o.object_type}</span>
+              <span>
+                {o.object_type === "flooring"
+                  ? ""
+                  : o.table?.table_number || o.label || o.object_type}
+              </span>
             </button>
           ))}
           <div
@@ -3386,11 +4217,15 @@ export function FloorPlanEditor() {
             objects={objects}
             selectedId={previewSelectedId}
             selectLayoutObjects
-            onSelect={setPreviewSelectedId}
+            onSelect={(id) => {
+              setPreviewSelectedId(id);
+              selectObject(id);
+              setInspectorCollapsed(false);
+            }}
           />
         </Suspense>
       )}
-      {floor && !preview && (
+      {floor && (
         <section
           className={`editor-selection ${inspectorCollapsed ? "is-collapsed" : ""}`}
           aria-label="Selected object settings"
@@ -3614,13 +4449,15 @@ export function FloorPlanEditor() {
                         Position X
                         <input
                           type="number"
-                          step="0.1"
+                          step={snapToGrid ? "1" : "0.1"}
                           value={Number((o.position?.x || 0).toFixed(2))}
                           onChange={(e) =>
                             update(o.id ?? o._key, {
                               position: {
                                 ...o.position,
-                                x: Number(e.target.value) || 0,
+                                x: snapToGrid
+                                  ? Math.round(Number(e.target.value) || 0)
+                                  : Number(e.target.value) || 0,
                               },
                             })
                           }
@@ -3630,13 +4467,15 @@ export function FloorPlanEditor() {
                         Position Z
                         <input
                           type="number"
-                          step="0.1"
+                          step={snapToGrid ? "1" : "0.1"}
                           value={Number((o.position?.z || 0).toFixed(2))}
                           onChange={(e) =>
                             update(o.id ?? o._key, {
                               position: {
                                 ...o.position,
-                                z: Number(e.target.value) || 0,
+                                z: snapToGrid
+                                  ? Math.round(Number(e.target.value) || 0)
+                                  : Number(e.target.value) || 0,
                               },
                             })
                           }
@@ -3780,14 +4619,21 @@ export function ReservationSettings() {
     deposit_required: false,
     deposit_amount: 0,
   });
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [receiveForm] = useLiveSettings(
+    () => api("/admin/reservation-policy").then((r) => r.data),
+    form,
+    setForm,
+  );
   useEffect(() => {
     setLoading(true);
     setInitialError("");
     setError("");
     api("/admin/reservation-policy")
-      .then((d) => setForm(d.data))
+      .then((d) => receiveForm(d.data))
       .catch((e) => {
         setError(e.message);
         setInitialError(e.message);
@@ -3796,9 +4642,11 @@ export function ReservationSettings() {
   }, [attempt]);
   async function save(e) {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     setError("");
     setNotice("");
-    const data = Object.fromEntries(new FormData(e.currentTarget));
+    const data = { ...form };
     for (const key of [
       "duration_minutes",
       "buffer_minutes",
@@ -3819,10 +4667,13 @@ export function ReservationSettings() {
         method: "PUT",
         body: JSON.stringify(data),
       });
-      setForm(d.data);
+      receiveForm(d.data);
+      setDirty(false);
       setNotice("Reservation policy saved.");
     } catch (ex) {
       setError(ex.message);
+    } finally {
+      setSaving(false);
     }
   }
   if (loading || initialError)
@@ -3838,131 +4689,239 @@ export function ReservationSettings() {
         )}
       </section>
     );
+  function change(key, value) {
+    setForm((current) => ({ ...current, [key]: value }));
+    setDirty(true);
+    setNotice("");
+  }
+  const field = (key, label, help, type = "number", min, max) => (
+    <label className="reservation-setting-field">
+      <span id={`reservation-policy-${key}-label`}>{label}</span>
+      <input
+        name={key}
+        aria-labelledby={`reservation-policy-${key}-label`}
+        aria-describedby={`reservation-policy-${key}-help`}
+        type={type}
+        min={min}
+        max={max}
+        required
+        step={key === "deposit_amount" ? "0.01" : undefined}
+        value={form[key] ?? ""}
+        onChange={(event) => change(key, event.target.value)}
+      />
+      <small id={`reservation-policy-${key}-help`}>{help}</small>
+    </label>
+  );
+  const toggle = (key, label, help) => (
+    <label className="reservation-setting-toggle">
+      <span>
+        <strong id={`reservation-policy-${key}-label`}>{label}</strong>
+        <small id={`reservation-policy-${key}-help`}>{help}</small>
+      </span>
+      <input
+        type="checkbox"
+        name={key}
+        aria-labelledby={`reservation-policy-${key}-label`}
+        aria-describedby={`reservation-policy-${key}-help`}
+        checked={!!form[key]}
+        onChange={(event) => change(key, event.target.checked)}
+      />
+    </label>
+  );
+  const heading = (Icon, title, description) => (
+    <header className="reservation-settings-card-heading">
+      <span className="reservation-settings-icon">
+        <Icon size={19} aria-hidden="true" />
+      </span>
+      <div>
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </div>
+    </header>
+  );
+  const cycleMinutes =
+    Number(form.duration_minutes || 0) + Number(form.buffer_minutes || 0);
   return (
-    <section className="welcome">
-      <span className="eyebrow">RESTAURANT POLICY</span>
-      <h1>Reservation settings</h1>
-      <p>
-        These settings are used by the server to validate booking times and
-        turnover.
-      </p>
+    <section className="welcome reservation-settings-page">
+      <div className="reservation-settings-intro">
+        <span className="eyebrow">RESTAURANT POLICY</span>
+        <h1>Reservation settings</h1>
+        <p>
+          Shape your booking experience, from the first reservation to the next
+          seating.
+        </p>
+      </div>
       {error && <Feedback>{error}</Feedback>}
       {notice && <Feedback tone="success">{notice}</Feedback>}
-      <form className="staff-form reservation-policy-form" onSubmit={save}>
-        <label>
-          Opens
-          <input
-            name="open_time"
-            type="time"
-            defaultValue={form.open_time}
-            key={`open-${form.open_time}`}
-            required
-          />
-        </label>
-        <label>
-          Closes
-          <input
-            name="close_time"
-            type="time"
-            defaultValue={form.close_time}
-            key={`close-${form.close_time}`}
-            required
-          />
-        </label>
-        <label>
-          Reservation duration (minutes)
-          <input
-            name="duration_minutes"
-            type="number"
-            min="30"
-            max="360"
-            defaultValue={form.duration_minutes}
-            key={`duration-${form.duration_minutes}`}
-          />
-        </label>
-        <label>
-          Turnaround buffer (minutes)
-          <input
-            name="buffer_minutes"
-            type="number"
-            min="0"
-            max="240"
-            defaultValue={form.buffer_minutes}
-            key={`buffer-${form.buffer_minutes}`}
-          />
-        </label>
-        <label>
-          Booking window (days)
-          <input
-            name="booking_window_days"
-            type="number"
-            min="1"
-            max="365"
-            defaultValue={form.booking_window_days}
-            key={`window-${form.booking_window_days}`}
-          />
-        </label>
-        <label>
-          Late arrival grace (minutes)
-          <input
-            name="grace_minutes"
-            type="number"
-            min="0"
-            max="120"
-            defaultValue={form.grace_minutes}
-            key={`grace-${form.grace_minutes}`}
-          />
-        </label>
-        <label>
-          Cancellation cutoff (hours)
-          <input
-            name="cancellation_cutoff_hours"
-            type="number"
-            min="0"
-            max="168"
-            defaultValue={form.cancellation_cutoff_hours}
-            key={`cancel-${form.cancellation_cutoff_hours}`}
-          />
-        </label>
-        <label className="checkline">
-          <input
-            name="automatic_confirmation"
-            type="checkbox"
-            defaultChecked={form.automatic_confirmation}
-            key={`confirm-${form.automatic_confirmation}`}
-          />
-          Automatically confirm bookings
-        </label>
-        <label className="checkline">
-          <input
-            name="automatic_table_assignment"
-            type="checkbox"
-            defaultChecked={form.automatic_table_assignment}
-            key={`assign-${form.automatic_table_assignment}`}
-          />
-          Allow automatic table assignment
-        </label>
-        <label className="checkline">
-          <input
-            name="deposit_required"
-            type="checkbox"
-            defaultChecked={form.deposit_required}
-            key={`deposit-${form.deposit_required}`}
-          />
-          Require a reservation deposit
-        </label>
-        <label>
-          Deposit per reservation (PHP)
-          <input
-            name="deposit_amount"
-            type="number"
-            min="0"
-            step="0.01"
-            defaultValue={form.deposit_amount}
-            key={`deposit-amount-${form.deposit_amount}`}
-          />
-        </label>
-        <button>Save reservation policy</button>
+      <form
+        className="reservation-settings-form"
+        onSubmit={save}
+        data-state={dirty ? "dirty" : "saved"}
+        aria-busy={saving}
+      >
+        <fieldset className="reservation-settings-controls" disabled={saving}>
+          <legend className="sr-only">Reservation policy</legend>
+          <div className="reservation-settings-grid">
+            <section
+              className="reservation-settings-card"
+              aria-label="Booking availability"
+            >
+              {heading(
+                CalendarDays,
+                "Booking availability",
+                "Choose when guests can book a table.",
+              )}
+              <div className="reservation-settings-fields">
+                {field(
+                  "open_time",
+                  "Opens",
+                  "First booking time of the day.",
+                  "time",
+                )}
+                {field(
+                  "close_time",
+                  "Closes",
+                  "Reservations must finish by this time.",
+                  "time",
+                )}
+                {field(
+                  "booking_window_days",
+                  "Booking window (days)",
+                  "How far ahead guests can reserve.",
+                  "number",
+                  1,
+                  365,
+                )}
+                {field(
+                  "cancellation_cutoff_hours",
+                  "Cancellation cutoff (hours)",
+                  "How long before arrival guests can cancel.",
+                  "number",
+                  0,
+                  168,
+                )}
+              </div>
+            </section>
+            <section
+              className="reservation-settings-card"
+              aria-label="Table timing"
+            >
+              {heading(
+                Clock3,
+                "Table timing",
+                "Give each party time to dine and your team time to reset.",
+              )}
+              <div className="reservation-settings-fields">
+                {field(
+                  "duration_minutes",
+                  "Reservation duration (minutes)",
+                  "Time allocated to each reservation.",
+                  "number",
+                  30,
+                  360,
+                )}
+                {field(
+                  "buffer_minutes",
+                  "Turnaround buffer (minutes)",
+                  "Reset time between reservations.",
+                  "number",
+                  0,
+                  240,
+                )}
+                {field(
+                  "grace_minutes",
+                  "Late arrival grace (minutes)",
+                  "Time allowed for guests arriving late.",
+                  "number",
+                  0,
+                  120,
+                )}
+              </div>
+              <div className="reservation-turnover-summary">
+                <Clock3 size={17} aria-hidden="true" />
+                <span>
+                  <strong>{cycleMinutes} minutes per table cycle</strong>
+                  <small>
+                    {form.duration_minutes || 0} minutes dining +{" "}
+                    {form.buffer_minutes || 0} minutes turnaround
+                  </small>
+                </span>
+              </div>
+            </section>
+            <section
+              className="reservation-settings-card"
+              aria-label="Booking handling"
+            >
+              {heading(
+                Settings2,
+                "Booking handling",
+                "Decide how reservations are confirmed and assigned.",
+              )}
+              <div className="reservation-settings-toggles">
+                {toggle(
+                  "automatic_confirmation",
+                  "Automatically confirm bookings",
+                  "Confirm eligible reservations as soon as guests book.",
+                )}
+                {toggle(
+                  "automatic_table_assignment",
+                  "Allow automatic table assignment",
+                  "Let guests ask the system to choose a suitable table.",
+                )}
+              </div>
+            </section>
+            <section
+              className="reservation-settings-card"
+              aria-label="Reservation deposits"
+            >
+              {heading(
+                CreditCard,
+                "Reservation deposits",
+                "Choose whether a deposit is required when booking.",
+              )}
+              <div className="reservation-settings-toggles">
+                {toggle(
+                  "deposit_required",
+                  "Require a reservation deposit",
+                  "Ask guests to pay a deposit for their reservation.",
+                )}
+              </div>
+              <div className="reservation-deposit-field">
+                {form.deposit_required ? (
+                  field(
+                    "deposit_amount",
+                    "Deposit per reservation (PHP)",
+                    "Charged once per reservation, not per guest.",
+                    "number",
+                    1,
+                    100000,
+                  )
+                ) : (
+                  <p>
+                    No deposit required. Guests can reserve without a deposit.
+                  </p>
+                )}
+              </div>
+            </section>
+          </div>
+        </fieldset>
+        <footer className="reservation-settings-save">
+          <div>
+            <Check size={18} aria-hidden="true" />
+            <span>
+              <strong>{dirty ? "Unsaved changes" : "All changes saved"}</strong>
+              <small>
+                {dirty
+                  ? "Save to apply your reservation policy."
+                  : "Your current booking rules are up to date."}
+              </small>
+            </span>
+          </div>
+          <button type="submit" disabled={saving || !dirty}>
+            <Save size={16} aria-hidden="true" />
+            {saving ? "Saving…" : "Save reservation policy"}
+          </button>
+        </footer>
       </form>
     </section>
   );

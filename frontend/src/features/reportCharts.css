@@ -1,0 +1,169 @@
+/* ---- Report charts ---------------------------------------------------------
+   Categorical slots 1–4 validated (CVD ΔE ≥ 8.4, normal ≥ 19.8) on the light
+   and dark card surfaces; the share bars are read with the list beside them,
+   which covers the light-mode contrast relief rule. */
+:root {
+  --report-series-1: #2a78d6;
+  --report-series-2: #eb6834;
+  --report-series-3: #1baf7a;
+  --report-series-4: #eda100;
+  --report-series-other: #a3aaa5;
+}
+:is(.app-shell, .admin-shell)[data-theme="dark"] {
+  --report-series-1: #3987e5;
+  --report-series-2: #d95926;
+  --report-series-3: #199e70;
+  --report-series-4: #c98500;
+  --report-series-other: #6d7570;
+}
+
+/* Share bar: 14px, fully rounded, 2px surface gaps between parts. */
+.report-share {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.report-share-bar {
+  display: flex;
+  gap: 3px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface);
+}
+.report-share-bar span {
+  min-width: 4px;
+  flex-basis: 0;
+}
+:is(.report-share-bar span, .report-share-key i)[data-slot="0"] {
+  background: var(--report-series-1);
+}
+:is(.report-share-bar span, .report-share-key i)[data-slot="1"] {
+  background: var(--report-series-2);
+}
+:is(.report-share-bar span, .report-share-key i)[data-slot="2"] {
+  background: var(--report-series-3);
+}
+:is(.report-share-bar span, .report-share-key i)[data-slot="3"] {
+  background: var(--report-series-4);
+}
+:is(.report-share-bar span, .report-share-key i)[data-slot="other"] {
+  background: var(--report-series-other);
+}
+.report-share-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.report-share-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.report-share-key i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.report-share-key b {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sales by day: thin columns, recessive grid and axis text. */
+.report-trend {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.report-trend figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.dineflow-app .report-trend figcaption h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.report-trend figcaption small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.report-trend-plot {
+  position: relative;
+  min-height: 190px;
+}
+.report-trend svg {
+  display: block;
+  overflow: visible;
+}
+.report-trend-grid line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.report-trend-grid text,
+.report-trend-x {
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.report-trend-base {
+  stroke: var(--muted);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+.report-trend-bar {
+  fill: var(--primary);
+  transition: opacity 0.15s ease;
+}
+.report-trend-bar[data-dim] {
+  opacity: 0.35;
+}
+.report-trend rect:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.report-trend-tip {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 1px;
+  min-width: 110px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 8px 20px rgb(16 34 24 / 16%);
+  color: var(--ink);
+  font-size: 12.5px;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+}
+.report-trend-tip span {
+  font-size: 14px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.report-trend-tip small {
+  color: var(--muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .report-trend-bar {
+    transition: none;
+  }
+}
+.report-trend-best {
+  fill: var(--ink);
+  font-size: 11.5px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}

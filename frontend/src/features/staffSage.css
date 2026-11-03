@@ -124,7 +124,7 @@
   min-width: 48px;
 }
 .dineflow-app .app-content .sage-staff .sage-kds-ticket > footer .sage-button {
-  min-height: 56px;
+  min-height: var(--ui-control-height, 56px);
 }
 .sage-stat-grid {
   display: grid;
@@ -305,6 +305,39 @@
 .sage-kds-ticket[data-attention="true"] {
   border-top-color: var(--staff-warning);
 }
+/* Priority: border colour plus a written label, never colour alone. */
+.sage-kds-ticket[data-priority="soon"] {
+  border-top-color: var(--staff-warning);
+}
+.sage-kds-ticket[data-priority="late"] {
+  border-top-width: 6px;
+  border-top-color: var(--df-status-danger-border);
+}
+.sage-staff .sage-priority-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  background: var(--df-status-pending-bg);
+  color: var(--df-status-pending-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.sage-kds-ticket[data-priority="late"] .sage-priority-label {
+  background: var(--df-status-danger-bg);
+  color: var(--df-status-danger-text);
+}
+.sage-staff .sage-ticket-countdown {
+  margin-inline-start: auto;
+  color: var(--staff-ink);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sage-kds-ticket[data-priority="late"] .sage-ticket-countdown {
+  color: var(--df-status-danger-text);
+}
 .sage-kds-ticket > header {
   display: flex;
   align-items: flex-start;
@@ -450,8 +483,8 @@
 }
 .sage-kds-ticket > footer .sage-button {
   width: 100%;
-  min-height: 56px;
-  font-size: 16px;
+  min-height: var(--ui-control-height, 56px);
+  font-size: 18px;
 }
 .sage-kds-ticket > .ui-feedback {
   margin: 8px 16px;

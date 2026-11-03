@@ -9,7 +9,8 @@ import {
   Phone,
   MessageSquare,
 } from "lucide-react";
-import { EmptyState, StatusBadge } from "./ui";
+import { EmptyState } from "./ui";
+import { DeliveryStatusPill } from "./OrderStatusPill";
 import "./riderNextDelivery.css";
 
 const nextStep = {
@@ -71,7 +72,7 @@ export function RiderNextDelivery({ delivery, activeCount }) {
               <h3>{delivery.order.order_number}</h3>
             </div>
             <span className="rider-next-status" data-status={delivery.status}>
-              <StatusBadge status={delivery.status} />
+              <DeliveryStatusPill status={delivery.status} />
             </span>
           </div>
           <ol className="rider-next-progress" aria-label="Delivery progress">

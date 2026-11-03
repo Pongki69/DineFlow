@@ -1,10 +1,21 @@
+import { subscribeToLiveChanges } from "../liveUpdates";
 import { AutoTextarea } from "../components/AutoTextarea";
 import { DishPortion } from "../components/DishPortion";
 import { ImagePicker } from "../components/ImagePicker";
 import { loadMenuItems } from "../menuCatalog";
 import { useConfirm } from "../components/ConfirmProvider";
 import { useEffect, useState } from "react";
-import { Pencil, Plus, Search, Trash2, UtensilsCrossed } from "lucide-react";
+import {
+  Ellipsis,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  UtensilsCrossed,
+} from "lucide-react";
+import { useMediaQuery } from "../components/useMediaQuery";
+import { Pagination } from "../components/Pagination";
+import "./catalogAdminPhone.css";
 import { api } from "../api";
 import { Modal } from "../components/Modal";
 import {
@@ -331,6 +342,7 @@ export function MenuAdmin() {
   }
   useEffect(() => {
     load();
+    return subscribeToLiveChanges(load);
   }, []);
   async function saveCategory(event) {
     event.preventDefault();
@@ -490,36 +502,86 @@ export function MenuAdmin() {
       return compareNames(a.name, b.name);
     });
   const hasFilters = Boolean(query.trim() || categoryFilter);
+  // Phones: categories as a chip row that filters, slim dish rows with the
+  // less common actions behind a "more" button.
+  const phone = useMediaQuery("(max-width: 850px)");
+  const [moreId, setMoreId] = useState(null);
+  const pickedCategory = sortedCategories.find(
+    (category) => String(category.id) === String(categoryFilter),
+  );
+  // Phones page the dishes; a new search, category or sort starts at page 1.
+  const PER_PAGE = 12;
+  const [page, setPage] = useState(1);
+  useEffect(() => setPage(1), [query, categoryFilter, sortBy]);
+  const lastPage = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const currentPage = Math.min(page, lastPage);
+  const shown = phone
+    ? filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE)
+    : filtered;
+  const openNewCategory = () => {
+    setCategoryError("");
+    setCategoryEditor({});
+  };
+  const canAddDish = categories.some((category) => category.is_active);
+  const clearFilters = () => {
+    setQuery("");
+    setCategoryFilter("");
+  };
   return (
     <section className="catalog-admin">
       <PageHeader
         title="Menu management"
         description="A menu worth coming back for. Manage dishes, categories and the little extras."
         actions={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setCategoryError("");
-                setCategoryEditor({});
-              }}
-            >
-              <Plus size={17} aria-hidden="true" />
-              Add category
-            </Button>
-            <Button
-              disabled={!categories.some((category) => category.is_active)}
-              onClick={() => setEditing({})}
-            >
-              <Plus size={17} aria-hidden="true" />
-              Add dish
-            </Button>
-          </>
+          phone ? undefined : (
+            <>
+              <Button variant="secondary" onClick={openNewCategory}>
+                <Plus size={17} aria-hidden="true" />
+                Add category
+              </Button>
+              <Button disabled={!canAddDish} onClick={() => setEditing({})}>
+                <Plus size={17} aria-hidden="true" />
+                Add dish
+              </Button>
+            </>
+          )
         }
       />
       {notice && <Feedback tone="success">{notice}</Feedback>}
       {error && <Feedback onRetry={load}>{error}</Feedback>}
-      <div className="catalog-categories">
+      {phone && (
+        <div
+          className="catalog-phone-chips"
+          role="group"
+          aria-label="Show dishes from"
+        >
+          <button
+            type="button"
+            aria-pressed={!categoryFilter}
+            onClick={() => setCategoryFilter("")}
+          >
+            All
+          </button>
+          {sortedCategories.map((category) => (
+            <button
+              key={category.id}
+              type="button"
+              aria-pressed={String(categoryFilter) === String(category.id)}
+              data-inactive={category.is_active ? undefined : true}
+              onClick={() =>
+                setCategoryFilter((current) =>
+                  String(current) === String(category.id)
+                    ? ""
+                    : String(category.id),
+                )
+              }
+            >
+              {category.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="catalog-categories" hidden={phone || undefined}>
         {categories.map((category) => (
           <button
             key={category.id}
@@ -544,7 +606,7 @@ export function MenuAdmin() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <label className="catalog-filter-field">
+        <label className="catalog-filter-field" hidden={phone || undefined}>
           Category
           <select
             value={categoryFilter}
@@ -571,22 +633,61 @@ export function MenuAdmin() {
             <option value="price-desc">Price: high to low</option>
           </select>
         </label>
-        {hasFilters && (
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setQuery("");
-              setCategoryFilter("");
-            }}
-          >
+        {phone && (
+          <div className="catalog-phone-add">
+            <button type="button" onClick={openNewCategory}>
+              <Plus size={15} aria-hidden="true" />
+              Category
+            </button>
+            <button
+              type="button"
+              className="catalog-phone-add-dish"
+              disabled={!canAddDish}
+              onClick={() => setEditing({})}
+            >
+              <Plus size={15} aria-hidden="true" />
+              Dish
+            </button>
+          </div>
+        )}
+        {hasFilters && !phone && (
+          <Button variant="secondary" onClick={clearFilters}>
             Clear filters
           </Button>
         )}
       </div>
       {!loading && (
-        <p className="catalog-result-count" role="status">
-          Showing {filtered.length} of {items.length} dishes
-        </p>
+        <div className="catalog-result-row">
+          <p className="catalog-result-count" role="status">
+            Showing {filtered.length} of {items.length} dishes
+          </p>
+          {phone && (pickedCategory || hasFilters) && (
+            <span className="catalog-phone-result-actions">
+              {pickedCategory && (
+                <button
+                  type="button"
+                  className="catalog-phone-edit-category"
+                  onClick={() => {
+                    setCategoryError("");
+                    setCategoryEditor(pickedCategory);
+                  }}
+                >
+                  <Pencil size={14} aria-hidden="true" />
+                  Edit
+                </button>
+              )}
+              {hasFilters && (
+                <button
+                  type="button"
+                  className="catalog-phone-edit-category"
+                  onClick={clearFilters}
+                >
+                  Clear filters
+                </button>
+              )}
+            </span>
+          )}
+        </div>
       )}
       {loading ? (
         <Skeleton label="Loading your menu" />
@@ -610,69 +711,170 @@ export function MenuAdmin() {
           }}
         />
       ) : (
-        <div className="catalog-list">
-          {filtered.map((item) => (
-            <article key={item.id}>
-              <div className="catalog-dish-icon">
-                {item.image_url ? (
-                  <img
-                    src={item.image_url}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <UtensilsCrossed size={25} aria-hidden="true" />
+        <div className="catalog-list" data-phone={phone || undefined}>
+          {shown.map((item) =>
+            phone ? (
+              <article
+                key={item.id}
+                className="catalog-phone-dish"
+                data-open={moreId === item.id || undefined}
+              >
+                <div className="catalog-phone-dish-row">
+                  <div className="catalog-dish-icon">
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <UtensilsCrossed size={20} aria-hidden="true" />
+                    )}
+                  </div>
+                  <div className="catalog-phone-dish-info">
+                    <h2>{item.name}</h2>
+                    <small>
+                      <b>₱{Number(item.base_price).toFixed(2)}</b>
+                      {Number(item.discount_percent) > 0 &&
+                        ` · ${item.discount_percent}% off`}
+                      {` · ${item.category?.name || ""}`}
+                    </small>
+                    <StatusBadge
+                      status={
+                        !item.is_active
+                          ? "inactive"
+                          : item.is_sold_out
+                            ? "sold_out"
+                            : "available"
+                      }
+                    />
+                  </div>
+                  <div className="catalog-phone-dish-buttons">
+                    <button
+                      type="button"
+                      className="catalog-phone-edit"
+                      onClick={() => setEditing(item)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="catalog-phone-more"
+                      aria-expanded={moreId === item.id}
+                      aria-label={`More actions for ${item.name}`}
+                      onClick={() =>
+                        setMoreId((current) =>
+                          current === item.id ? null : item.id,
+                        )
+                      }
+                    >
+                      <Ellipsis size={18} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+                {moreId === item.id && (
+                  <div className="catalog-phone-dish-more">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => toggle(item, true)}
+                    >
+                      {item.is_sold_out ? "Mark available" : "Mark sold out"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => toggle(item)}
+                    >
+                      {item.is_active ? "Deactivate" : "Activate"}
+                    </button>
+                    <button
+                      type="button"
+                      className="catalog-phone-delete"
+                      disabled={busy}
+                      onClick={() => deleteDish(item)}
+                    >
+                      <Trash2 size={14} aria-hidden="true" /> Delete
+                    </button>
+                  </div>
                 )}
-              </div>
-              <div className="catalog-dish-info">
-                <span className="eyebrow">{item.category?.name}</span>
-                <h2>{item.name}</h2>
-                <DishPortion item={item} />
-                <p>
-                  ₱{Number(item.base_price).toFixed(2)}
-                  {Number(item.discount_percent) > 0 &&
-                    ` · ${item.discount_percent}% off`}
-                </p>
-              </div>
-              <StatusBadge
-                status={
-                  !item.is_active
-                    ? "inactive"
-                    : item.is_sold_out
-                      ? "sold_out"
-                      : "available"
-                }
-              />
-              <div className="catalog-dish-actions">
-                <Button variant="secondary" onClick={() => setEditing(item)}>
-                  Edit dish
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={() => toggle(item, true)}
-                >
-                  {item.is_sold_out ? "Mark available" : "Mark sold out"}
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={() => toggle(item)}
-                >
-                  {item.is_active ? "Deactivate" : "Activate"}
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="dish-delete"
-                  disabled={busy}
-                  onClick={() => deleteDish(item)}
-                >
-                  <Trash2 size={15} aria-hidden="true" /> Delete dish
-                </Button>
-              </div>
-            </article>
-          ))}
+              </article>
+            ) : (
+              <article key={item.id}>
+                <div className="catalog-dish-icon">
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <UtensilsCrossed size={25} aria-hidden="true" />
+                  )}
+                </div>
+                <div className="catalog-dish-info">
+                  <span className="eyebrow">{item.category?.name}</span>
+                  <h2>{item.name}</h2>
+                  <DishPortion item={item} />
+                  <p>
+                    ₱{Number(item.base_price).toFixed(2)}
+                    {Number(item.discount_percent) > 0 &&
+                      ` · ${item.discount_percent}% off`}
+                  </p>
+                </div>
+                <StatusBadge
+                  status={
+                    !item.is_active
+                      ? "inactive"
+                      : item.is_sold_out
+                        ? "sold_out"
+                        : "available"
+                  }
+                />
+                <div className="catalog-dish-actions">
+                  <Button variant="secondary" onClick={() => setEditing(item)}>
+                    Edit dish
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => toggle(item, true)}
+                  >
+                    {item.is_sold_out ? "Mark available" : "Mark sold out"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => toggle(item)}
+                  >
+                    {item.is_active ? "Deactivate" : "Activate"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="dish-delete"
+                    disabled={busy}
+                    onClick={() => deleteDish(item)}
+                  >
+                    <Trash2 size={15} aria-hidden="true" /> Delete dish
+                  </Button>
+                </div>
+              </article>
+            ),
+          )}
         </div>
+      )}
+      {phone && !loading && filtered.length > PER_PAGE && (
+        <Pagination
+          page={currentPage}
+          lastPage={lastPage}
+          total={filtered.length}
+          from={(currentPage - 1) * PER_PAGE + 1}
+          to={Math.min(filtered.length, currentPage * PER_PAGE)}
+          onChange={(value) => {
+            setPage(value);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
       )}
       <Modal
         open={editing !== null}

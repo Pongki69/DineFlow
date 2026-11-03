@@ -1,0 +1,49 @@
+.live-updates-bar {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px 16px;
+  min-height: 44px;
+  padding: 6px 12px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+}
+.live-updates-bar > span,
+.live-updates-bar > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.live-updates-bar > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.live-updates-bar > span > svg {
+  flex-shrink: 0;
+}
+.live-updates-bar > button {
+  flex-shrink: 0;
+  min-width: 126px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--control-border, #7f9387);
+  border-radius: 6px;
+  background: var(--primary-soft);
+  color: var(--ink);
+  font-size: 12px;
+}
+.live-updates-bar > button:disabled {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  opacity: 1;
+  cursor: default;
+}

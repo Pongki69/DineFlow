@@ -10,11 +10,13 @@ import {
 } from "react";
 import {
   CanvasTexture,
+  Euler,
   Raycaster,
   SRGBColorSpace,
   Vector2,
   Vector3,
 } from "three";
+import { useMediaQuery } from "./components/useMediaQuery";
 import { chairPositions } from "./floorPlanGeometry";
 import { PovJump, TableHold, tableInSight, walkInput } from "./walkNavigation";
 
@@ -574,8 +576,86 @@ export function FloorScene(props) {
   );
 }
 
-function WalkNavigation({ mode, locked }) {
+// Phones walk with an on-screen stick (left) and look with a drag pad
+// (right); both write into this shared input the frame loop reads.
+function TouchControls({ input }) {
+  const stick = useRef(null);
+  const [thumb, setThumb] = useState({ x: 0, y: 0, active: false });
+  const look = useRef({ last: null });
+  const [looking, setLooking] = useState(false);
+  const RADIUS = 44;
+  function moveStick(event) {
+    const box = stick.current.getBoundingClientRect();
+    let x = event.clientX - (box.left + box.width / 2);
+    let y = event.clientY - (box.top + box.height / 2);
+    const length = Math.hypot(x, y);
+    if (length > RADIUS) {
+      x = (x / length) * RADIUS;
+      y = (y / length) * RADIUS;
+    }
+    input.current.side = x / RADIUS;
+    input.current.forward = -y / RADIUS;
+    setThumb({ x, y, active: true });
+  }
+  function releaseStick() {
+    input.current.side = 0;
+    input.current.forward = 0;
+    setThumb({ x: 0, y: 0, active: false });
+  }
+  function releaseLook() {
+    look.current.last = null;
+    setLooking(false);
+  }
+  return (
+    <div className="pov-touch-controls">
+      <div
+        ref={stick}
+        className="pov-touch-stick"
+        data-active={thumb.active || undefined}
+        role="img"
+        aria-label="Move: drag the stick to walk"
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+          moveStick(event);
+        }}
+        onPointerMove={(event) => thumb.active && moveStick(event)}
+        onPointerUp={releaseStick}
+        onPointerCancel={releaseStick}
+      >
+        <span
+          className="pov-touch-thumb"
+          style={{ transform: `translate(${thumb.x}px, ${thumb.y}px)` }}
+        />
+      </div>
+      <div
+        className="pov-touch-look"
+        data-active={looking || undefined}
+        role="img"
+        aria-label="Look: drag to turn the camera"
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+          look.current.last = { x: event.clientX, y: event.clientY };
+          setLooking(true);
+        }}
+        onPointerMove={(event) => {
+          const last = look.current.last;
+          if (!last) return;
+          input.current.lookX += event.clientX - last.x;
+          input.current.lookY += event.clientY - last.y;
+          look.current.last = { x: event.clientX, y: event.clientY };
+        }}
+        onPointerUp={releaseLook}
+        onPointerCancel={releaseLook}
+      >
+        <span aria-hidden="true" />
+      </div>
+    </div>
+  );
+}
+
+function WalkNavigation({ mode, locked, touch }) {
   const { camera } = useThree();
+  const euler = useMemo(() => new Euler(0, 0, 0, "YXZ"), []);
   const keys = useRef(new Set());
   const jump = useMemo(() => new PovJump(), []);
   const forward = useMemo(() => new Vector3(), []);
@@ -637,8 +717,19 @@ function WalkNavigation({ mode, locked }) {
   }, [mode, locked, jump]);
   useFrame((_, delta) => {
     if (mode === "orbit" || !locked) return;
+    const pad = touch?.current;
+    if (pad && (pad.lookX || pad.lookY)) {
+      euler.setFromQuaternion(camera.quaternion);
+      euler.y -= pad.lookX * 0.005;
+      euler.x = Math.max(-1.3, Math.min(1.3, euler.x - pad.lookY * 0.005));
+      camera.quaternion.setFromEuler(euler);
+      pad.lookX = 0;
+      pad.lookY = 0;
+    }
     const keysDown = keys.current;
-    const { forward: forwardAmount, side: sideAmount } = walkInput(keysDown);
+    const keyed = walkInput(keysDown);
+    const forwardAmount = keyed.forward || pad?.forward || 0;
+    const sideAmount = keyed.side || pad?.side || 0;
     const verticalAmount =
       Number(keysDown.has("Space")) -
       Number(keysDown.has("ShiftLeft") || keysDown.has("ShiftRight"));
@@ -675,6 +766,7 @@ function WalkNavigation({ mode, locked }) {
 
 function TableInteraction({
   enabled,
+  lenient = false,
   world,
   availability,
   onInteract,
@@ -687,11 +779,26 @@ function TableInteraction({
   const target = useRef(null);
   const elapsed = useRef(0);
   const hold = useMemo(() => new TableHold(), []);
+  // Phones also look a little below centre: at eye level a table you walk
+  // up to sits low in the view, and there is no mouse to aim precisely.
+  const aims = useMemo(
+    () => [
+      center,
+      ...[-0.2, -0.35, -0.5, -0.65, -0.8].map((y) => new Vector2(0, y)),
+    ],
+    [center],
+  );
   function findTarget() {
     if (!world.current) return null;
-    ray.setFromCamera(center, camera);
-    ray.far = 3.5;
-    return tableInSight(ray.intersectObjects(world.current.children, true));
+    for (const aim of lenient ? aims : [center]) {
+      ray.setFromCamera(aim, camera);
+      ray.far = 3.5;
+      const id = tableInSight(
+        ray.intersectObjects(world.current.children, true),
+      );
+      if (id != null) return id;
+    }
+    return null;
   }
   useFrame((_, delta) => {
     if (!enabled) return;
@@ -793,6 +900,10 @@ function FloorCanvas({
   const [holdProgress, setHoldProgress] = useState(0);
   const [navigationMode, setNavigationMode] = useState("orbit");
   const [mouseLocked, setMouseLocked] = useState(false);
+  // Phones and tablets (portrait or landscape): on-screen stick and look
+  // pad instead of keyboard and mouse.
+  const touchControls = useMediaQuery("(max-width: 850px), (pointer: coarse)");
+  const touchInput = useRef({ forward: 0, side: 0, lookX: 0, lookY: 0 });
   const byId = new Map(availability.map((item) => [item.id, item]));
   const targetTable = availability.find(
     (table) => String(table.id) === String(targetId),
@@ -870,9 +981,13 @@ function FloorCanvas({
               ? mouseLocked
                 ? "WASD move · mouse look · Space up · Shift down · Ctrl sprint · Esc exit"
                 : "Click the scene · WASD move · Space up · Shift down · Ctrl sprint · Esc exit"
-              : navigationMode === "pov"
-                ? `${mouseLocked ? "" : "Click the scene · "}W forward · S backward · A/D strafe · Space jump · mouse look${reservationMode ? " · Hold E to book" : ""} · Esc exit`
-                : "Drag to orbit · scroll to zoom · right-drag to pan"}
+              : navigationMode === "pov" && touchControls
+                ? `Left stick to walk · drag the right pad to look${reservationMode ? " · tap Book at a free table" : ""}`
+                : navigationMode === "pov"
+                  ? `${mouseLocked ? "" : "Click the scene · "}W forward · S backward · A/D strafe · Space jump · mouse look${reservationMode ? " · Hold E to book" : ""} · Esc exit`
+                  : touchControls
+                    ? "Drag to look around · pinch to zoom"
+                    : "Drag to orbit · scroll to zoom · right-drag to pan"}
           </span>
         </div>
         <div className="scene-toolbar-actions">
@@ -1000,6 +1115,7 @@ function FloorCanvas({
         {reservationMode && onInteract && (
           <TableInteraction
             enabled={navigationMode === "pov" && !bookingOpen}
+            lenient={touchControls}
             world={world}
             availability={availability}
             onInteract={onInteract}
@@ -1009,16 +1125,19 @@ function FloorCanvas({
         )}
         {navigationMode !== "orbit" ? (
           <>
-            <PointerLockControls
-              ref={pointerControlsRef}
-              selector="#dineflow-walk-canvas"
-              makeDefault
-              onLock={() => setMouseLocked(true)}
-              onUnlock={() => setMouseLocked(false)}
-            />
+            {!(touchControls && navigationMode === "pov") && (
+              <PointerLockControls
+                ref={pointerControlsRef}
+                selector="#dineflow-walk-canvas"
+                makeDefault
+                onLock={() => setMouseLocked(true)}
+                onUnlock={() => setMouseLocked(false)}
+              />
+            )}
             <WalkNavigation
               mode={navigationMode}
               locked={!bookingOpen && (mouseLocked || navigationMode === "pov")}
+              touch={touchControls ? touchInput : null}
             />
           </>
         ) : (
@@ -1034,21 +1153,49 @@ function FloorCanvas({
           />
         )}
       </Canvas>
-      {navigationMode === "pov" && !mouseLocked && !bookingOpen && (
-        <div className="pov-resume-overlay">
+      {navigationMode === "pov" && touchControls && !bookingOpen && (
+        <TouchControls input={touchInput} />
+      )}
+      {navigationMode === "pov" &&
+        touchControls &&
+        !bookingOpen &&
+        reservationMode &&
+        targetTable?.available && (
           <button
             type="button"
-            className="pov-resume-button"
-            onClick={resumeWalking}
+            key={targetTable.id}
+            className="pov-book-prompt"
+            onClick={() => onInteract?.(targetTable.id)}
           >
-            Enable mouse look
-            <span>WASD and Space are ready · Click to capture the mouse</span>
+            <span className="pov-book-prompt-key" aria-hidden="true">
+              Book
+            </span>
+            <span className="pov-book-prompt-label">
+              <strong>{targetTable.table_number}</strong>
+              <small>Tap to book this table</small>
+            </span>
           </button>
-        </div>
-      )}
+        )}
+      {navigationMode === "pov" &&
+        !touchControls &&
+        !mouseLocked &&
+        !bookingOpen && (
+          <div className="pov-resume-overlay">
+            <button
+              type="button"
+              className="pov-resume-button"
+              onClick={resumeWalking}
+            >
+              Enable mouse look
+              <span>WASD and Space are ready · Click to capture the mouse</span>
+            </button>
+          </div>
+        )}
       {navigationMode === "pov" && !bookingOpen && reservationMode && (
         <div className="pov-interaction" aria-live="polite">
-          {targetTable?.available ? (
+          {targetTable?.available && touchControls ? (
+            <span className="pov-crosshair is-on-table" aria-hidden="true" />
+          ) : targetTable?.available ? (
             <div className="pov-table-prompt">
               <span
                 className="pov-interaction-key"

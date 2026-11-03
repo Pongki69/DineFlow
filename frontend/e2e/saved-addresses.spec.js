@@ -99,6 +99,9 @@ test("customers manage presets before ordering and checkout loads their default"
   await page.screenshot({ path: testInfo.outputPath("saved-addresses.png") });
   await page.goto("/menu");
   await page.getByRole("button", { name: "Add to order", exact: true }).click();
+  // Phones keep the order in a sheet opened from the cart bubble.
+  const cartBubble = page.locator(".cart-bubble");
+  if (await cartBubble.isVisible()) await cartBubble.click();
   await page.getByLabel("Order type", { exact: true }).selectOption("delivery");
   await expect(page.locator(".delivery-destination-card")).toContainText(
     "123 Entrance Street, Manila",

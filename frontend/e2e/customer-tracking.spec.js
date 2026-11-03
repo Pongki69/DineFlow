@@ -51,15 +51,25 @@ test("completed orders stay compact with keyboard-accessible progress, map and t
   const rider = page.getByRole("region", { name: "Your rider", exact: true });
   await expect(rider.getByRole("status")).toHaveText("Delivered");
   await expect(rider).toContainText("Delivered by Alex Rider.");
-  await expect(
-    page.locator(".customer-progress-steps").first(),
-  ).not.toBeVisible();
-  await expect(page.locator(".customer-order-timeline ol")).not.toBeVisible();
-  await expect(page.locator(".leaflet-container")).toHaveCount(0);
-  for (const card of await page
-    .locator(".customer-progress-grid .customer-progress-card")
-    .all()) {
-    expect((await card.boundingBox()).height).toBeLessThan(230);
+  // Phones show progress, map and updates open; larger screens stay compact.
+  const phone = testInfo.project.name === "mobile";
+  if (phone) {
+    await expect(page.locator(".customer-progress-steps").first()).toBeVisible();
+    await expect(page.locator(".customer-order-timeline ol")).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Completed delivery map" }),
+    ).toBeVisible();
+  } else {
+    await expect(
+      page.locator(".customer-progress-steps").first(),
+    ).not.toBeVisible();
+    await expect(page.locator(".customer-order-timeline ol")).not.toBeVisible();
+    await expect(page.locator(".leaflet-container")).toHaveCount(0);
+    for (const card of await page
+      .locator(".customer-progress-grid .customer-progress-card")
+      .all()) {
+      expect((await card.boundingBox()).height).toBeLessThan(230);
+    }
   }
   expect(
     (
@@ -77,16 +87,18 @@ test("completed orders stay compact with keyboard-accessible progress, map and t
     path: testInfo.outputPath("compact-order.png"),
     fullPage: true,
   });
-  const progress = rider.locator("summary");
-  await progress.focus();
-  await page.keyboard.press("Enter");
-  await expect(rider.locator(".customer-progress-steps")).toBeVisible();
-  await page.locator(".customer-completed-map summary").click();
-  await expect(
-    page.getByRole("region", { name: "Completed delivery map" }),
-  ).toBeVisible();
-  await page.locator(".customer-order-timeline summary").click();
-  await expect(page.locator(".customer-order-timeline ol")).toBeVisible();
+  if (!phone) {
+    const progress = rider.locator("summary");
+    await progress.focus();
+    await page.keyboard.press("Enter");
+    await expect(rider.locator(".customer-progress-steps")).toBeVisible();
+    await page.locator(".customer-completed-map summary").click();
+    await expect(
+      page.getByRole("region", { name: "Completed delivery map" }),
+    ).toBeVisible();
+    await page.locator(".customer-order-timeline summary").click();
+    await expect(page.locator(".customer-order-timeline ol")).toBeVisible();
+  }
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -175,8 +187,45 @@ test("customers follow kitchen and rider progress without refreshing", async ({
   await expect(
     page.getByRole("img", { name: "Your delivery destination", exact: true }),
   ).toBeVisible();
+  const map = page.locator(".leaflet-container");
+  await map.scrollIntoViewIfNeeded();
+  const marker = map.locator('[title="Your rider"]');
+  // Let the first zoom-to-fit animation finish before recording the view.
+  await page.waitForTimeout(700);
+  const oldPosition = await marker.getAttribute("style");
+  const viewport = await map.locator(".leaflet-map-pane").getAttribute("style");
+  const scroll = await page.evaluate(() => window.scrollY);
+  data.location.latitude += 0.002;
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent("workspace:changed", {
+        detail: { topics: ["locations"] },
+      }),
+    ),
+  );
+  await expect(marker).not.toHaveAttribute("style", oldPosition);
+  await expect(map.locator(".leaflet-map-pane")).toHaveAttribute(
+    "style",
+    viewport,
+  );
+  expect(await page.evaluate(() => window.scrollY)).toBe(scroll);
+  async function applyStatus() {
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent("workspace:changed", {
+          detail: { topics: ["deliveries"] },
+        }),
+      ),
+    );
+    // Phones apply live updates by themselves once the page is still.
+    if (page.viewportSize().width > 850)
+      await page
+        .getByRole("button", { name: "Apply updates", exact: true })
+        .click();
+  }
   data.status = "arrived_at_restaurant";
   data.history.push({ id: 2, status: data.status, at: now });
+  await applyStatus();
   await expect(rider.getByRole("status")).toHaveText(
     "Rider arrived at the restaurant",
     { timeout: 8000 },
@@ -186,6 +235,7 @@ test("customers follow kitchen and rider progress without refreshing", async ({
   );
   data.order_status = "ready_to_serve";
   data.order_history.push({ id: 2, status: data.order_status, at: now });
+  await applyStatus();
   await expect(food.getByRole("status")).toHaveText(
     "Food ready for rider pickup",
     { timeout: 8000 },
@@ -219,6 +269,7 @@ test("customers follow kitchen and rider progress without refreshing", async ({
       data.order_status = "completed";
       data.location = null;
     }
+    await applyStatus();
     await expect(rider.getByRole("status")).toHaveText(label, {
       timeout: 8000,
     });

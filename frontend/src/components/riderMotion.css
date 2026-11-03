@@ -1,0 +1,3576 @@
+/* Rider app motion and touch feedback.
+   Durations come from the --df-motion-* tokens, which drop to 0ms for
+   prefers-reduced-motion and the saved reduced-motion preference. Entrance
+   animations use `backwards` fill only, so no transform lingers on a page
+   that contains fixed or sticky children (fullscreen map, action bar). */
+
+.dineflow-app .app-shell[data-workspace="delivery"] {
+  --rider-stagger: 45ms;
+  --rider-ease-out: var(--df-motion-easing-enter, cubic-bezier(0, 0, 0.2, 1));
+  --rider-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dineflow-app .app-shell[data-workspace="delivery"] {
+    --rider-stagger: 0ms;
+  }
+}
+.dineflow-app .app-shell[data-workspace="delivery"][data-motion="reduced"] {
+  --rider-stagger: 0ms;
+}
+
+@keyframes rider-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes rider-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rider-pop {
+  0% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+}
+@keyframes rider-nav-hop {
+  40% {
+    transform: translateY(-3px) scale(1.1);
+  }
+}
+@keyframes rider-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(46 112 75 / 45%);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgb(46 112 75 / 0%);
+  }
+}
+@keyframes rider-attention {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+/* Page entrance: each route's content rises in when it mounts. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .app-content
+  > :not(.live-updates-bar):not(.rider-availability) {
+  animation: rider-rise var(--df-motion-duration-slow, 320ms)
+    var(--rider-ease-out) backwards;
+}
+
+/* Lists and cards cascade in instead of appearing all at once. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  :is(
+    .rider-metrics > article,
+    .rider-delivery-queue-list > .rider-delivery-queue-row,
+    .rider-history-row,
+    .rider-route-switcher-chips > button,
+    .dispatch-offer
+  ) {
+  animation: rider-rise var(--df-motion-duration-slow, 320ms)
+    var(--rider-ease-out) backwards;
+  animation-delay: calc(var(--rider-i, 0) * var(--rider-stagger, 45ms));
+}
+.dineflow-app .app-shell[data-workspace="delivery"] :first-child {
+  --rider-i: 0;
+}
+.dineflow-app .app-shell[data-workspace="delivery"] :nth-child(2) {
+  --rider-i: 1;
+}
+.dineflow-app .app-shell[data-workspace="delivery"] :nth-child(3) {
+  --rider-i: 2;
+}
+.dineflow-app .app-shell[data-workspace="delivery"] :nth-child(4) {
+  --rider-i: 3;
+}
+.dineflow-app .app-shell[data-workspace="delivery"] :nth-child(5) {
+  --rider-i: 4;
+}
+.dineflow-app .app-shell[data-workspace="delivery"] :nth-child(n + 6) {
+  --rider-i: 5;
+}
+
+/* Panels animate each time they are revealed (display:none -> shown
+   restarts the animation): map dock panels, fullscreen panels, feedback. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  :is(
+    .rider-selected-workbench,
+    .rider-route-itinerary > div:not(.rider-selected-workbench),
+    .rider-fullscreen-tools,
+    .rider-delivery-lower-grid,
+    .rider-route-itinerary
+  ) {
+  animation: rider-rise var(--df-motion-duration, 200ms) var(--rider-ease-out)
+    backwards;
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  :is(.ui-feedback, .df-alert, .rider-route-draft-toast) {
+  animation: rider-rise var(--df-motion-duration, 200ms) var(--rider-ease-out)
+    backwards;
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-route-planner.is-expanded {
+  animation: rider-fade var(--df-motion-duration, 200ms) var(--rider-ease-out)
+    backwards;
+}
+
+/* A delivery status that changes pops so the rider notices. */
+.dineflow-app .app-shell[data-workspace="delivery"] .delivery-state {
+  animation: rider-pop var(--df-motion-duration-slow, 320ms)
+    var(--rider-ease-spring) backwards;
+}
+
+/* Touch feedback: everything tappable gives a little under the finger. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  :is(
+    .ui-button,
+    .rider-page-link,
+    .rider-delivery-queue-row,
+    .rider-route-switcher-chips > button,
+    .rider-map-dock button,
+    .rider-history-outcome-chips > button,
+    .rider-mobile-profile-actions > *,
+    .rider-header-presence,
+    .rider-mobile-reorder
+  ) {
+  transition:
+    transform var(--df-motion-duration-fast, 120ms) var(--df-motion-easing),
+    background-color var(--df-motion-duration, 200ms) var(--df-motion-easing),
+    border-color var(--df-motion-duration, 200ms) var(--df-motion-easing),
+    color var(--df-motion-duration, 200ms) var(--df-motion-easing),
+    box-shadow var(--df-motion-duration, 200ms) var(--df-motion-easing);
+  -webkit-tap-highlight-color: transparent;
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  :is(
+    .ui-button,
+    .rider-page-link,
+    .rider-delivery-queue-row,
+    .rider-route-switcher-chips > button,
+    .rider-map-dock button,
+    .rider-history-outcome-chips > button,
+    .rider-mobile-profile-actions > *,
+    .rider-header-presence,
+    .rider-mobile-reorder
+  ):active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* The selected dock tab and delivery chip settle in with a small pop. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-map-dock
+  button[aria-pressed="true"]
+  svg,
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-route-switcher-chips
+  > button[aria-pressed="true"]
+  > span {
+  animation: rider-pop var(--df-motion-duration-slow, 320ms)
+    var(--rider-ease-spring);
+}
+
+/* Bottom navigation: the active pill fades in and its icon hops. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-mobile-bottom-nav
+  > a
+  > span {
+  transition:
+    background-color var(--df-motion-duration, 200ms) var(--df-motion-easing),
+    transform var(--df-motion-duration-fast, 120ms) var(--df-motion-easing);
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-mobile-bottom-nav
+  > a:active
+  > span {
+  transform: scale(0.9);
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-mobile-bottom-nav
+  > a.is-current
+  > span
+  svg {
+  animation: rider-nav-hop var(--df-motion-duration-slow, 320ms)
+    var(--rider-ease-spring);
+}
+
+/* Online status breathes so the rider can see they are receiving offers. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .online
+  .rider-presence-dot {
+  animation: rider-pulse-ring 1.8s var(--df-motion-easing) infinite;
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"][data-motion="reduced"]
+  .online
+  .rider-presence-dot {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .online
+    .rider-presence-dot {
+    animation: none;
+  }
+}
+
+/* Pending live updates nudge once so they are not missed. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .live-updates-bar[data-pending]
+  button {
+  animation: rider-attention var(--df-motion-duration-slow, 320ms)
+    var(--rider-ease-spring) 2;
+}
+
+@media (max-width: 850px) {
+  /* Live updates only take space when there is something to act on. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .live-updates-bar[data-connection="live"]:not([data-pending]) {
+    display: none;
+  }
+
+  /* Deliveries: the Stops badge carries the count and the live-updates bar
+     carries refresh, so the extra heading row goes. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-workspace
+    > .page-heading {
+    display: none;
+  }
+
+  /* Home: four metric tiles as a 2 x 2 grid instead of a tall stack. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .rider-home
+    .rider-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .rider-home
+    .rider-metrics
+    article {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20px;
+    grid-template-areas:
+      "label icon"
+      "value value"
+      "context context";
+    align-content: start;
+    gap: 4px 8px;
+    padding: 14px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .rider-home
+    .rider-metrics
+    article
+    > span {
+    min-height: 0;
+    font-size: 13px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .rider-home
+    .rider-metrics
+    article
+    > strong {
+    grid-area: value;
+    justify-self: start;
+    font-size: 26px;
+    line-height: 1.15;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .rider-home
+    .rider-metrics
+    .rider-metric-context {
+    grid-area: context;
+    font-size: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .rider-home
+    .rider-metrics
+    .rider-unrated {
+    font-size: 15px;
+  }
+
+  /* Activity: outcome chips replace the native dropdown on phones. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-history-filter {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-history-outcome-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-history-outcome-chips
+    > button {
+    flex: none;
+    min-height: 40px;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-history-outcome-chips
+    > button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+}
+.rider-history-outcome-chips {
+  display: none;
+}
+
+/* Offer countdown: a bar drains as the response window runs out. */
+.dispatch-countdown-bar {
+  position: relative;
+  display: block;
+  height: 4px;
+  margin: 0 0 12px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--df-color-border, #d8e2d1);
+}
+.dispatch-countdown-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--df-color-brand, #1e4d3a);
+  transform-origin: left center;
+  transform: scaleX(var(--offer-left, 1));
+  transition:
+    transform 1s linear,
+    background-color var(--df-motion-duration, 200ms) var(--df-motion-easing);
+}
+.dispatch-countdown-bar[data-urgent]::after {
+  background: var(--df-status-danger-border, #dda58b);
+}
+.dispatch-offer-card:has(.dispatch-countdown-bar[data-urgent])
+  .dispatch-countdown {
+  color: var(--df-status-danger-text, #87320c);
+  animation: rider-attention 1s var(--df-motion-easing) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dispatch-offer-card:has(.dispatch-countdown-bar[data-urgent])
+    .dispatch-countdown {
+    animation: none;
+  }
+}
+
+/* Pull to refresh (phones only). */
+.rider-pull-refresh {
+  display: none;
+}
+@media (max-width: 850px) {
+  /* Replace the browser's reload-on-pull with the in-app refresh. */
+  html:has(.app-shell[data-workspace="delivery"]),
+  body:has(.app-shell[data-workspace="delivery"]) {
+    overscroll-behavior-y: contain;
+  }
+  .dineflow-app .rider-pull-refresh {
+    position: fixed;
+    z-index: 60;
+    /* Drops in below the title bar, not over the title. */
+    top: calc(env(safe-area-inset-top, 0px) + 58px);
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-left: -20px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: 0 6px 18px rgb(16 34 24 / 16%);
+    opacity: 0;
+    transform: translateY(calc(var(--rider-pull, 0px) - 48px)) scale(0.8);
+    pointer-events: none;
+    transition:
+      transform var(--df-motion-duration, 200ms) var(--rider-ease-out),
+      opacity var(--df-motion-duration, 200ms) var(--rider-ease-out);
+  }
+  .dineflow-app .rider-pull-refresh[data-pulling] {
+    opacity: 1;
+    transition: none;
+  }
+  .dineflow-app .rider-pull-refresh[data-ready],
+  .dineflow-app .rider-pull-refresh[data-refreshing] {
+    opacity: 1;
+    transform: translateY(calc(var(--rider-pull, 0px) - 48px)) scale(1);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app .rider-pull-refresh[data-refreshing] svg {
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Deliveries: with a panel open, the map steps back so the order and its
+     next action are on the first screen. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-map {
+    transition: height var(--df-motion-duration-slow, 320ms)
+      var(--rider-ease-out);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded):not([data-mobile-panel="map"])
+    .rider-route-map {
+    height: clamp(190px, 30dvh, 300px);
+    min-height: 190px;
+  }
+
+  /* Offers: lead with the offers, not the explanations. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .offers-subtitle,
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .offers-update-bar:not([data-has-updates]) {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-dispatch-panel
+    > .rider-dispatch-heading {
+    align-items: center;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-dispatch-panel
+    .offers-help {
+    margin-block: 4px 8px;
+  }
+
+  /* Clip instead of hide: same rounded corners, but no scroll container, so
+     the delivery's action bar can stick above the bottom navigation. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded) {
+    overflow: clip;
+  }
+
+  /* The open panel already names the stop; keep the summary for the map. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded):not([data-mobile-panel="map"])
+    .rider-route-progress-copy {
+    display: none;
+  }
+
+  /* Delivery record: back link and title share less space. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .rider-order-details {
+    gap: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-order-details
+    > .rider-history-back {
+    min-height: 44px;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-order-details
+    > .page-heading {
+    margin-block: 0 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-order-details
+    > .page-heading
+    h1 {
+    font-size: 26px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-order-details
+    > .page-heading
+    p {
+    display: none;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Header status: a slim chip, not a warning block. The dot carries the
+     state; the hit area stays 48px tall. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .rider-header-presence {
+    position: relative;
+    min-height: 34px;
+    height: 34px;
+    padding: 4px 12px;
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .rider-header-presence::after {
+    content: "";
+    position: absolute;
+    inset: -7px -4px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .rider-header-presence.online {
+    border-color: var(--primary-border, var(--border));
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+
+  /* Home: the three-step tracker becomes a slim segmented progress line. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-next-progress {
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-next-progress li {
+    display: grid;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-next-progress
+    li::before {
+    content: "";
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background-color var(--df-motion-duration, 200ms)
+      var(--df-motion-easing);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-next-progress
+    li:is([aria-current="step"], [data-complete])::before {
+    background: var(--primary);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-next-progress
+    .rider-step-number {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-next-progress
+    small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-next-progress
+    strong {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-next-progress
+    li[aria-current="step"]
+    strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+}
+
+/* Status pills keep their own wording and size wherever they sit. */
+.dineflow-app .app-shell[data-workspace="delivery"] .df-status {
+  justify-self: start;
+  align-self: start;
+  width: fit-content;
+  text-transform: none;
+}
+
+@media (max-width: 850px) {
+  /* Home: the next-stop action spans the card like every primary action.
+     (A tablet rule leaves justify-content: space-between on this grid,
+     which keeps its single column at content width.) */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-next-actions {
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-next-actions
+    > :is(.rider-next-primary-action, .ui-button) {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+}
+
+.dineflow-app .app-shell[data-workspace="delivery"] .review-empty-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* Dark theme: rider surfaces on pages that load before the Deliveries
+   stylesheet (Offers, Activity) and were hard-coded light. */
+.dineflow-app
+  .app-shell[data-theme="dark"][data-workspace="delivery"]
+  .rider-content
+  .rider-history-order-icon {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.dineflow-app
+  .app-shell[data-theme="dark"][data-workspace="delivery"]
+  .rider-content
+  .rider-offers-status.is-paused {
+  border-color: var(--df-status-pending-border);
+  background: var(--df-status-pending-bg);
+  color: var(--df-status-pending-text);
+}
+
+@media (max-width: 850px) {
+  /* Offer: full-width Accept, Decline as the quieter option beneath it. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .dispatch-offer-card
+    .rider-offer-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .dispatch-offer-card
+    .rider-offer-actions
+    > * {
+    width: 100%;
+    min-height: 52px;
+    justify-content: center;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Phone app frame: one title, slim status, sheet-style panels, errors.
+   Buttons that sit beside text in a row align to the right.
+   ------------------------------------------------------------------ */
+@media (max-width: 850px) {
+  /* App bar: the only page title; sticks with a hairline like a native bar. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--canvas) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(12px);
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-mobile-app-title {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  /* Page titles that repeat the app bar leave the layout but stay in the
+     accessibility tree, so each page keeps its h1 for screen readers. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .page-heading:not(.rider-home *):not(.rider-order-details *):not(
+      :has(.page-actions)
+    ) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .page-heading:has(.page-actions):not(.rider-order-details *):not(
+      .rider-home *
+    )
+    > div:first-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .page-heading
+    .page-actions {
+    margin-left: auto;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .page-heading {
+    margin: 4px 0 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .page-heading
+    h1 {
+    font-size: 24px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .page-heading
+    p {
+    margin-top: 2px;
+    font-size: 14px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-dispatch-panel
+    > .rider-dispatch-heading
+    h2 {
+    font-size: 18px;
+  }
+
+  /* Live updates: a slim strip, text left and its action on the right. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .live-updates-bar {
+    min-height: 0;
+    margin: 0 0 12px;
+    padding: 4px 4px 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .live-updates-bar
+    > button {
+    position: relative;
+    min-width: 0;
+    min-height: 32px;
+    margin-left: auto;
+    padding: 4px 12px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .live-updates-bar
+    > button::after {
+    content: "";
+    position: absolute;
+    inset: -6px -4px;
+  }
+
+  /* Header rows: text on the left, its button on the right. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-queue
+    > header {
+    flex-wrap: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-queue
+    > header
+    > .rider-mobile-reorder {
+    margin-left: auto;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-queue
+    > header
+    h2 {
+    font-size: 18px;
+  }
+
+  /* Stops / Delivery / Tools: a segmented control whose highlight slides
+     to the chosen panel, on a sheet that rises over the map's edge. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-map-dock {
+    position: relative;
+    z-index: 1000;
+    isolation: isolate;
+    gap: 0;
+    margin-top: -20px;
+    padding: 22px 12px 10px;
+    border: 0;
+    border-radius: 20px 20px 0 0;
+    background:
+      linear-gradient(var(--neutral-soft), var(--neutral-soft)) content-box,
+      var(--surface);
+    box-shadow: 0 -6px 18px rgb(16 34 24 / 10%);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-map-dock::after {
+    /* Sheet handle. */
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    margin-left: -18px;
+    border-radius: 2px;
+    background: var(--border);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .leaflet-bottom {
+    bottom: 20px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-map-dock::before {
+    /* Sliding thumb, drawn behind the buttons. */
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 22px;
+    left: 12px;
+    width: calc((100% - 24px) / 3);
+    height: calc(100% - 32px);
+    opacity: 0;
+    border-radius: 11px;
+    background: var(--surface);
+    box-shadow: 0 1px 4px rgb(16 34 24 / 18%);
+    transition:
+      transform var(--df-motion-duration-slow, 320ms) var(--rider-ease-out),
+      opacity var(--df-motion-duration, 200ms) var(--df-motion-easing);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-map-dock:has(button[aria-pressed="true"])::before {
+    opacity: 1;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-map-dock
+    button,
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-map-dock
+    button[aria-pressed="true"] {
+    min-height: 44px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    font-size: 14px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-map-dock
+    button[aria-pressed="true"] {
+    color: var(--ink);
+    font-weight: 650;
+  }
+  /* Fullscreen: the same control floating over the map. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner.is-expanded
+    .rider-map-dock {
+    isolation: isolate;
+    gap: 0;
+    background: var(--neutral-soft);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-route-planner.is-expanded
+    .rider-map-dock::before {
+    top: 6px;
+    left: 6px;
+    width: calc((100% - 12px) / 3);
+    height: calc(100% - 12px);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-itinerary {
+    padding-top: 8px;
+  }
+
+  /* Fullscreen header: compact title row with a 40px exit on the right. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner.is-expanded
+    .rider-route-heading {
+    min-height: 52px;
+    padding: 6px 12px 6px 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner.is-expanded
+    .rider-route-heading
+    h2 {
+    font-size: 17px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner.is-expanded
+    .rider-route-heading-actions
+    > button:last-child {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    margin-left: auto;
+    padding: 0;
+  }
+
+  /* Errors: one banner style, icon left and its action on the right. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    :is(
+      .ui-feedback,
+      .rider-content .error[role="alert"],
+      .rider-route-warning
+    ) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px 10px;
+    margin: 0 0 12px;
+    padding: 12px 12px 12px 14px;
+    border: 1px solid var(--df-status-danger-border);
+    border-left-width: 4px;
+    border-radius: 12px;
+    background: var(--df-status-danger-bg);
+    color: var(--df-status-danger-text);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .ui-feedback--success {
+    border-color: var(--df-status-success-border);
+    background: var(--df-status-success-bg);
+    color: var(--df-status-success-text);
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-route-warning {
+    border-color: var(--df-status-pending-border);
+    background: var(--df-status-pending-bg);
+    color: var(--df-status-pending-text);
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .ui-feedback > svg {
+    align-self: start;
+    margin: 1px 0 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    :is(.ui-feedback, .rider-route-warning)
+    > :is(.ui-button, button) {
+    grid-column: 3;
+    justify-self: end;
+    min-height: 40px;
+    margin: 0;
+    padding: 6px 12px;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    :is(.rider-content .error[role="alert"], .rider-route-warning):not(
+      :has(> svg)
+    ) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    :is(.rider-content .error[role="alert"], .rider-route-warning):not(
+      :has(> svg)
+    )
+    > :is(.ui-button, button) {
+    grid-column: 2;
+  }
+  /* Page-level failures stay in view below the app bar while scrolling. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    > *
+    > .ui-feedback--error {
+    position: sticky;
+    top: 64px;
+    z-index: 30;
+    box-shadow: 0 6px 16px rgb(16 34 24 / 12%);
+  }
+  /* Field errors: under the field, with a marker so they are not missed. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .field-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 6px;
+    color: var(--df-status-danger-text);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .field-error::before {
+    content: "!";
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: var(--df-status-danger-text);
+    color: var(--df-status-danger-bg);
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    :is(input, select, textarea)[aria-invalid="true"] {
+    border-color: var(--df-status-danger-border);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--df-status-danger-border) 30%, transparent);
+  }
+}
+
+@media (max-width: 850px) {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .live-updates-bar
+    > :is(span, button) {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 850px) {
+  /* App bar: status on the left, centered title, balanced right column. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .app-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .topbar-actions {
+    display: contents;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .app-topbar
+    #rider-presence-slot {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    order: 0;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .topbar-location {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: center;
+    min-width: 0;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-mobile-app-title {
+    max-width: 52vw;
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: 0;
+    text-align: center;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .topbar-actions
+    > .notification-center {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  /* Alerts tab in the bottom navigation, matching the other tabs. */
+  .dineflow-app
+    :is(.rider-mobile-bottom-nav, .workspace-mobile-nav)
+    > .notification-center--tab {
+    position: static;
+    display: flex;
+    min-width: 0;
+  }
+  .dineflow-app
+    :is(.rider-mobile-bottom-nav, .workspace-mobile-nav)
+    > .notification-center--tab
+    > .notification-trigger {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 54px;
+    padding: 0;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+  }
+  .dineflow-app
+    :is(.rider-mobile-bottom-nav, .workspace-mobile-nav)
+    .notification-center--tab
+    .notification-trigger-icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 52px;
+    min-height: 28px;
+    border-radius: 18px;
+    transition: background-color var(--df-motion-duration, 200ms)
+      var(--df-motion-easing);
+  }
+  .dineflow-app
+    :is(.rider-mobile-bottom-nav, .workspace-mobile-nav)
+    .notification-center--tab
+    .notification-trigger[aria-expanded="true"] {
+    color: var(--ink);
+  }
+  .dineflow-app
+    :is(.rider-mobile-bottom-nav, .workspace-mobile-nav)
+    .notification-center--tab
+    .notification-trigger[aria-expanded="true"]
+    .notification-trigger-icon {
+    background: var(--primary-soft);
+  }
+  .dineflow-app
+    :is(.rider-mobile-bottom-nav, .workspace-mobile-nav)
+    .notification-center--tab
+    .notification-trigger
+    small {
+    font-size: 10.5px;
+    font-weight: 500;
+  }
+  .dineflow-app
+    :is(.rider-mobile-bottom-nav, .workspace-mobile-nav)
+    .notification-center--tab
+    .notification-count {
+    position: absolute;
+    top: -4px;
+    right: 8px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border: 2px solid var(--surface);
+    border-radius: 9px;
+    background: var(--df-status-danger-text, #87320c);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+  }
+  /* The list opens as a sheet above the bottom navigation. */
+  .dineflow-app
+    .notification-center--tab
+    .notification-popover {
+    position: fixed;
+    z-index: 60;
+    top: auto;
+    right: 8px;
+    bottom: calc(
+      var(--rider-mobile-nav-height, var(--mobile-nav-height, 70px)) + 8px
+    );
+    left: 8px;
+    width: auto;
+    max-height: min(70dvh, 560px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+    box-shadow: 0 -10px 40px rgb(16 34 24 / 22%);
+    animation: rider-rise var(--df-motion-duration, 200ms)
+      var(--rider-ease-out, ease-out) backwards;
+  }
+
+  /* Profile: identity, list rows, and a sign-out that is easy to reach. */
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-card {
+    display: grid;
+    gap: 12px;
+    margin: 0 0 16px;
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-avatar {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-identity
+    > div {
+    display: grid;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-identity
+    strong {
+    font-size: 17px;
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-identity
+    small {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-card
+    .rider-mobile-profile-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-card
+    .rider-mobile-profile-actions
+    > * {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    min-height: 54px;
+    padding: 0 16px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-card
+    .rider-mobile-profile-actions
+    > *:last-child {
+    border-bottom: 0;
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-card
+    .rider-mobile-profile-actions
+    > *
+    > span {
+    flex: 1;
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-card
+    .rider-mobile-profile-actions
+    > *
+    > svg:first-child {
+    color: var(--primary);
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-switch {
+    position: relative;
+    flex: none;
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--df-color-control-border, #778b7a);
+    transition: background-color var(--df-motion-duration, 200ms)
+      var(--df-motion-easing);
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform var(--df-motion-duration, 200ms)
+      var(--rider-ease-spring, ease-out);
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-switch[data-on] {
+    background: var(--primary);
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-switch[data-on]::after {
+    transform: translateX(18px);
+  }
+  .dineflow-app
+    .app-shell:is(
+      [data-workspace="delivery"],
+      [data-workspace="customer"],
+      [data-workspace="restaurant"]
+    )
+    .rider-profile-signout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 52px;
+    border: 1px solid var(--df-status-danger-border);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--df-status-danger-text);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 650;
+  }
+
+  /* Delivery "More actions": a tidy action list instead of scattered
+     buttons. Order total leads; the destructive action sits last. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions
+    > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    list-style: none;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions
+    > summary::-webkit-details-marker {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions
+    > summary::after {
+    content: "";
+    width: 9px;
+    height: 9px;
+    margin-right: 6px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform var(--df-motion-duration, 200ms)
+      var(--df-motion-easing);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions[open]
+    > summary::after {
+    transform: rotate(225deg);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 4px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions-content
+    > :is(.ui-button, a, span, strong) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
+    margin: 0;
+    padding: 0 16px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 500;
+    text-align: left;
+    text-decoration: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions-content
+    > .rider-secondary-total {
+    order: -1;
+    justify-content: space-between;
+    background: var(--neutral-soft);
+    font-weight: 650;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions-content
+    > .danger-button {
+    order: 98;
+    color: var(--df-status-danger-text);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions-content
+    > .rider-card-activity {
+    order: 99;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions-content
+    > :is(.ui-button, a)
+    > svg {
+    flex: none;
+  }
+
+  /* Map fit buttons go everywhere on phones; drag and the locate control
+     cover them, and they crowded the zoom buttons. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-map-tools {
+    display: none;
+  }
+
+  /* Offers: the paused note reads as a status chip, not a second banner. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-content
+    .rider-offers-status.is-paused {
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Status chip in the app bar stays on one line. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .rider-header-presence {
+    white-space: nowrap;
+  }
+
+  /* Home: one clear column, most useful first. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-home {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .rider-dashboard-priority {
+    display: contents;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-home > * {
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .page-heading {
+    order: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .page-heading
+    p {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .ui-feedback {
+    order: 1;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    .rider-next-delivery {
+    order: 2;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .rider-dashboard-summary {
+    order: 3;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    .rider-status-card {
+    order: 4;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .rider-day-overview {
+    order: 5;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    > .rider-dashboard-links {
+    order: 6;
+  }
+
+  /* Section headers: title left, its link on the right, no extra copy. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    :is(.rider-dashboard-summary, .rider-day-overview, .rider-status-card)
+    > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 12px;
+    margin: 0 0 12px;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    :is(.rider-dashboard-summary, .rider-day-overview, .rider-status-card)
+    > header
+    h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    :is(.rider-dashboard-summary, .rider-day-overview)
+    > header
+    p {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    :is(.rider-dashboard-summary, .rider-day-overview)
+    > header
+    a {
+    flex: none;
+    margin: 0 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* Availability: the essentials only (status, action, support). */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    .rider-status-details
+    > p {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    .rider-gps-explanation {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    .rider-status-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: none;
+    gap: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    .rider-status-card
+    > * {
+    grid-column: 1;
+    grid-row: auto;
+    grid-area: auto;
+    width: auto;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-home
+    .rider-status-details {
+    margin: 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Deliveries: labelled sections inside the order card. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-delivery-details {
+    display: grid;
+    gap: 12px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-card-section {
+    display: grid;
+    gap: 12px;
+    padding: 14px 16px 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-card-section
+    > .rider-card-section-title,
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions
+    > summary {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-card-section
+    :is(.rider-card-recipient, .rider-card-items, .rider-card-instructions) {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-card-section
+    .rider-primary-actions {
+    margin: 0;
+    padding: 0;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-actions {
+    margin: 12px 0 0;
+    padding: 0;
+    border: 0;
+  }
+}
+
+@media (max-width: 850px) {
+  /* App bar status: a mini switch plus label, so it reads as a toggle. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .rider-header-presence {
+    gap: 8px;
+    height: 36px;
+    min-height: 36px;
+    padding: 4px 12px 4px 6px;
+    border: 0;
+    border-radius: 9999px;
+    background: var(--neutral-soft);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .rider-header-presence.online {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .rider-presence-dot {
+    position: relative;
+    width: 30px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--df-color-control-border, #778b7a);
+    box-shadow: none;
+    animation: none;
+    transition: background-color var(--df-motion-duration, 200ms)
+      var(--df-motion-easing);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .rider-presence-dot::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform var(--df-motion-duration, 200ms)
+      var(--rider-ease-spring, ease-out);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .online
+    .rider-presence-dot {
+    background: var(--primary);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    #rider-presence-slot
+    .online
+    .rider-presence-dot::after {
+    transform: translateX(12px);
+  }
+  /* Title: calmer weight and size, like a native navigation title. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-mobile-app-title {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+
+  /* Deliveries: a taller map with a panel open, and no dead space below. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded):not([data-mobile-panel="map"])
+    .rider-route-map {
+    height: clamp(230px, 38dvh, 360px);
+    min-height: 230px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-itinerary {
+    padding-bottom: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-delivery-card {
+    padding-bottom: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-delivery-card
+    > .rider-actions {
+    margin-bottom: 0;
+  }
+
+  /* Order header: number tile, then title with one tidy meta line. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-card
+    .rider-delivery-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 12px;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-card
+    .rider-delivery-head
+    .rider-card-sequence {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-head-copy {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-head-copy
+    .rider-card-order-title {
+    font-size: 19px;
+    line-height: 1.2;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-head-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-head-meta
+    .rider-card-priority-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-head-meta
+    .rider-card-priority-label.is-current::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+
+  /* Activity: a small always-open timeline. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-card-timeline {
+    margin-top: 12px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-card-timeline ol {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-card-timeline li {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0 6px 18px;
+    font-size: 14px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-card-timeline
+    li::before {
+    content: "";
+    position: absolute;
+    top: 13px;
+    left: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-card-timeline
+    li:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 22px;
+    bottom: -6px;
+    left: 5px;
+    width: 2px;
+    background: var(--border);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-card-timeline
+    li
+    > span {
+    text-transform: capitalize;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-card-timeline
+    time {
+    flex: none;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* Tools: grouped cards, list-style rows, actions on the right. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-route-heading-actions
+    > button {
+    justify-content: flex-start;
+    gap: 12px;
+    width: auto;
+    min-height: 52px;
+    margin: 0 12px 8px;
+    padding: 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 500;
+    text-align: left;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-route-heading-actions
+    > button
+    svg {
+    color: var(--primary);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-route-legend {
+    margin: 4px 12px 8px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-route-location-note {
+    margin: 0 12px 12px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-before-pickup {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-before-pickup
+    > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-before-pickup
+    > header
+    h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-before-pickup
+    > .ui-button {
+    justify-self: end;
+    min-width: 140px;
+    min-height: 48px;
+    margin: 0;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-before-pickup h3 {
+    margin: 4px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 15px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-current-outlet {
+    border-radius: 16px;
+  }
+
+  /* Alerts sheet: above every panel, with a dimmed backdrop. */
+  .dineflow-app .notification-scrim {
+    position: fixed;
+    z-index: 1190;
+    inset: 0;
+    background: var(--df-color-overlay, rgb(17 44 34 / 40%));
+    animation: rider-fade var(--df-motion-duration, 200ms)
+      var(--df-motion-easing) backwards;
+  }
+  .dineflow-app
+    .notification-center--tab
+    .notification-popover {
+    z-index: 1200;
+    padding: 0 0 8px;
+  }
+  .dineflow-app
+    .notification-center--tab
+    .popover-heading {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding: 16px 12px 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .dineflow-app
+    .notification-center--tab
+    .popover-heading
+    h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 17px;
+  }
+  .dineflow-app .notification-unread-label {
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .dineflow-app
+    .notification-center--tab
+    .notification-item {
+    position: relative;
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    margin: 0;
+    padding: 12px 20px 12px 36px;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    text-align: left;
+  }
+  .dineflow-app
+    .notification-center--tab
+    .notification-item:last-child {
+    border-bottom: 0;
+  }
+  .dineflow-app
+    .notification-center--tab
+    .notification-item.unread::before {
+    content: "";
+    position: absolute;
+    top: 19px;
+    left: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+  .dineflow-app
+    .notification-center--tab
+    .notification-item
+    b {
+    font-size: 15px;
+  }
+  .dineflow-app
+    .notification-center--tab
+    .notification-item
+    span {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .dineflow-app
+    .notification-center--tab
+    .notification-item
+    small {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .dineflow-app
+    .notification-center--tab
+    .empty-state {
+    margin: 12px;
+    padding: 24px 16px;
+    border-radius: 14px;
+  }
+
+  /* Account: compact identity header, then cards with the save on the right. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .account-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .account-profile {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "avatar name"
+      "avatar email"
+      "note note";
+    align-items: center;
+    gap: 2px 12px;
+    margin: 0;
+    padding: 16px;
+    border-radius: 16px;
+    text-align: left;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .account-profile .avatar {
+    grid-area: avatar;
+    width: 48px;
+    height: 48px;
+    margin: 0;
+    font-size: 20px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .account-profile h2 {
+    grid-area: name;
+    margin: 0;
+    font-size: 17px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .account-profile
+    > p:not(.profile-note) {
+    grid-area: email;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .account-profile
+    .status-badge {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .account-profile
+    .profile-note {
+    grid-area: note;
+    margin: 10px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .account-form,
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .account-page
+    > .workspace-card {
+    display: grid;
+    gap: 16px;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .account-page
+    > .workspace-card {
+    margin-top: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .account-page
+    :is(
+      .account-personal-details h2,
+      .account-password-settings legend,
+      .workspace-card > h2
+    ) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 17px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .account-personal-details
+    p {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .account-password-settings {
+    margin: 0;
+    padding: 16px 0 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .account-form-actions,
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .account-page
+    .workspace-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    :is(.account-form-actions, .account-page .workspace-form-actions)
+    .ui-button {
+    min-width: 150px;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Keep map panes in their own layer so the panel sheet needs no huge
+     z-index, and app-level sheets (Alerts) can sit above it. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-map {
+    isolation: isolate;
+    z-index: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-map-dock {
+    z-index: 2;
+  }
+
+  /* Sticky action bar: names its order; instruction-only bars don't stick. */
+  .dineflow-app .rider-bar-context {
+    margin: 0 0 2px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-selected-primary-action.df-bottom-bar:not(
+      :has(.ui-button, .df-swipe)
+    ) {
+    position: static;
+    box-shadow: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-selected-primary-action.df-bottom-bar:not(
+      :has(.ui-button, .df-swipe)
+    )
+    .rider-bar-context {
+    display: none;
+  }
+
+  /* Timeline rows are plain lines, not boxes. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-card-timeline li {
+    min-height: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+}
+@media (min-width: 851px) {
+  .rider-bar-context {
+    display: none;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Dock: any number of tabs; the thumb follows the chosen one. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-map-dock::before {
+    width: calc((100% - 24px) / var(--dock-count, 3));
+    transform: translateX(calc(var(--dock-index, 0) * 100%));
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-route-planner.is-expanded
+    .rider-map-dock::before {
+    width: calc((100% - 12px) / var(--dock-count, 3));
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-map-dock
+    button {
+    position: relative;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 52px;
+    padding: 4px 2px;
+    font-size: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-map-dock
+    button
+    small {
+    position: absolute;
+    top: 3px;
+    left: calc(50% + 6px);
+    min-width: 16px;
+    min-height: 16px;
+    font-size: 10px;
+  }
+
+  /* Map: my-location control lights up while live location is on. */
+  .dineflow-app .dineflow-map-actions .dineflow-map-locate[data-active] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+
+  /* Things the tabs and map controls now cover. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    :is(
+      .rider-mobile-stop-list,
+      .rider-mobile-reorder,
+      .rider-queue-hint,
+      .rider-route-footnote,
+      .rider-selected-route-progress
+    ) {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-route-heading-actions
+    > button:not(:first-child) {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-route-itinerary
+    > div:not(.rider-selected-workbench)
+    > p {
+    display: none;
+  }
+
+  /* Tools: live location as a switch row. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-route-heading-actions
+    > button:first-child::after {
+    content: "";
+    width: 44px;
+    height: 26px;
+    margin-left: auto;
+    border-radius: 13px;
+    background:
+      radial-gradient(circle at 13px 13px, #fff 10px, transparent 10.5px),
+      var(--df-color-control-border, #778b7a);
+    transition: background var(--df-motion-duration, 200ms)
+      var(--df-motion-easing);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-route-heading-actions
+    > button[aria-label="Stop live location"]:first-child::after {
+    background:
+      radial-gradient(circle at 31px 13px, #fff 10px, transparent 10.5px),
+      var(--primary);
+  }
+
+  /* Stops: a clean list, tap a row to open that delivery. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-delivery-queue {
+    padding: 16px;
+    border-radius: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-queue-list {
+    display: grid;
+    gap: 8px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-queue-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    text-align: left;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-queue-row[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-queue-order {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-queue-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-queue-title
+    .df-status {
+    padding: 2px 8px;
+    font-size: 12px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-queue-order small {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-queue-order
+    small
+    b {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-queue-row
+    .rider-queue-action {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+  }
+}
+
+/* Route list status reads like the pills elsewhere (sentence case). */
+.dineflow-app .app-shell[data-workspace="delivery"] .rider-route-stop-state {
+  text-transform: none;
+}
+/* Active "my location" control: filled so it reads as on. */
+.dineflow-app
+  .leaflet-container
+  .dineflow-map-actions
+  button.dineflow-map-locate[data-active] {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+@media (max-width: 850px) {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-before-pickup
+    > :is(header, .rider-before-pickup-message) {
+    margin: 0;
+  }
+}
+
+/* Power icon belongs to the bottom-nav availability button only. */
+.rider-presence-power {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  /* Order header: the title column takes the room (an older rule laid the
+     wrapper out as a row and squeezed the title to one letter per line). */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-card
+    .rider-delivery-head
+    > .rider-delivery-head-copy {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 6px;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-head-copy
+    .rider-card-order-title {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Quick actions under the order header. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-quick-actions
+    > :is(.rider-card-navigation, .rider-quick-action) {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--primary);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-quick-actions
+    > .rider-card-navigation {
+    flex-grow: 1.4;
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-quick-actions
+    > .rider-quick-action.is-on {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+
+  /* Stops: drag handle, suggest on the right, apply bar when changed. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-queue-suggest {
+    margin-left: auto;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--primary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-queue-drag-hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-queue-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: stretch;
+    gap: 6px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-queue-item[data-dragging] {
+    position: relative;
+    z-index: 5;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-queue-item[data-dragging]
+    .rider-delivery-queue-row {
+    border-color: var(--primary);
+    box-shadow: 0 10px 24px rgb(16 34 24 / 18%);
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-queue-handle {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    cursor: grab;
+    touch-action: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-queue-item[data-dragging]
+    .rider-queue-handle {
+    color: var(--primary);
+    cursor: grabbing;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-queue-apply {
+    position: sticky;
+    bottom: var(--rider-mobile-nav-height, 0px);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--primary);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: 0 -6px 18px rgb(16 34 24 / 10%);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-queue-apply
+    > span {
+    flex: 1;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-queue-reset {
+    min-height: 40px;
+    padding: 0 10px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 600;
+  }
+
+  /* Bottom nav: availability as a raised power button in the middle. */
+  .dineflow-app .rider-mobile-bottom-nav > .rider-nav-presence {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-bottom-nav
+    #rider-presence-slot
+    .rider-presence-controls {
+    display: grid;
+    place-items: center;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-bottom-nav
+    #rider-presence-slot
+    .rider-presence-controls
+    > .ui-button {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-bottom-nav
+    #rider-presence-slot
+    .rider-header-presence {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    max-width: none;
+    margin-top: -26px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--muted);
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-bottom-nav
+    #rider-presence-slot
+    .rider-presence-power {
+    display: grid;
+    box-sizing: content-box;
+    width: 26px;
+    height: 26px;
+    padding: 13px;
+    border: 3px solid var(--surface);
+    border-radius: 50%;
+    background: var(--neutral-soft);
+    color: var(--muted);
+    box-shadow: 0 6px 16px rgb(16 34 24 / 18%);
+    transition:
+      background-color var(--df-motion-duration, 200ms) var(--df-motion-easing),
+      color var(--df-motion-duration, 200ms) var(--df-motion-easing),
+      transform var(--df-motion-duration-fast, 120ms) var(--df-motion-easing);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-bottom-nav
+    #rider-presence-slot
+    .rider-header-presence:active
+    .rider-presence-power {
+    transform: scale(0.94);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-bottom-nav
+    #rider-presence-slot
+    .rider-header-presence.online {
+    color: var(--primary);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-bottom-nav
+    #rider-presence-slot
+    .rider-header-presence.online
+    .rider-presence-power {
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+    animation: rider-pulse-ring 2s var(--df-motion-easing) infinite;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-bottom-nav
+    #rider-presence-slot
+    .rider-presence-dot {
+    display: none;
+  }
+
+  /* New-alert toast, just under the app bar. */
+  .dineflow-app .notification-toast {
+    position: fixed;
+    z-index: 1210;
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    right: 12px;
+    left: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--primary);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 12px 30px rgb(16 34 24 / 20%);
+    font: inherit;
+    text-align: left;
+    animation: rider-rise var(--df-motion-duration-slow, 320ms)
+      var(--rider-ease-spring, ease-out) backwards;
+  }
+  .dineflow-app .notification-toast > svg {
+    flex: none;
+    margin-top: 2px;
+    color: var(--primary);
+  }
+  .dineflow-app .notification-toast > span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .dineflow-app .notification-toast small {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dineflow-app .notification-group {
+    margin: 0;
+    padding: 12px 20px 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}
+@media (min-width: 851px) {
+  .notification-toast {
+    display: none;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Order header, beating the older workbench grid rules. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner
+    .rider-selected-workbench
+    .rider-delivery-head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner
+    .rider-selected-workbench
+    .rider-delivery-head
+    > .rider-delivery-head-copy {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    gap: 6px;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner
+    .rider-selected-workbench
+    .rider-delivery-head-copy
+    > * {
+    grid-column: auto;
+    grid-row: auto;
+    width: auto;
+  }
+
+  /* Availability button sits in its nav slot, in the middle. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-mobile-bottom-nav
+    > #rider-presence-slot {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: center;
+    order: 0;
+  }
+
+  /* The Stops tab has its own apply bar; the planner's draft note and the
+     queue's count (already on the tab) are redundant on phones. */
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-route-draft-toast,
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-delivery-queue
+    > header
+    > div
+    > span {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-queue-apply
+    > span {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 850px) {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-queue-apply
+    .ui-button {
+    min-height: 44px;
+    white-space: nowrap;
+  }
+}
+
+/* Stops: the whole row is the drag target (RiderStopsList). */
+.dineflow-app .rider-delivery-queue-list {
+  position: relative;
+}
+.dineflow-app .rider-queue-item {
+  position: relative;
+  -webkit-touch-callout: none;
+  user-select: none;
+  scale: 1;
+  transition:
+    scale var(--df-motion-duration, 200ms) var(--rider-ease-spring, ease-out),
+    opacity var(--df-motion-duration, 200ms) var(--df-motion-easing, ease);
+}
+.dineflow-app .rider-queue-item .rider-delivery-queue-row {
+  transition:
+    border-color var(--df-motion-duration-fast, 120ms) var(--df-motion-easing),
+    background-color var(--df-motion-duration-fast, 120ms)
+      var(--df-motion-easing),
+    box-shadow var(--df-motion-duration, 200ms) var(--df-motion-easing);
+}
+.dineflow-app .rider-queue-item .rider-queue-handle {
+  cursor: grab;
+  touch-action: none;
+  transition:
+    color var(--df-motion-duration-fast, 120ms) var(--df-motion-easing),
+    background-color var(--df-motion-duration-fast, 120ms)
+      var(--df-motion-easing);
+}
+.dineflow-app .rider-queue-item .rider-queue-action svg {
+  transition: transform var(--df-motion-duration-fast, 120ms)
+    var(--df-motion-easing);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dineflow-app .rider-queue-item {
+    cursor: grab;
+  }
+  .dineflow-app
+    .rider-queue-item:not([data-dragging]):hover
+    .rider-delivery-queue-row {
+    border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+    box-shadow: 0 4px 14px rgb(16 34 24 / 10%);
+  }
+  .dineflow-app .rider-queue-item:hover .rider-queue-handle {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .dineflow-app .rider-queue-item:hover .rider-queue-action svg {
+    transform: translateX(2px);
+  }
+}
+
+/* Pressing a row (the hold before a touch drag) gives it a soft press. */
+.dineflow-app .rider-queue-item:active:not([data-dragging]) {
+  scale: 0.985;
+}
+
+/* Lifted: follows the finger above the other rows. */
+.dineflow-app .rider-delivery-queue-list .rider-queue-item[data-dragging] {
+  z-index: 5;
+  cursor: grabbing;
+  scale: 1.03;
+}
+.dineflow-app
+  .rider-delivery-queue-list
+  .rider-queue-item[data-dragging]
+  .rider-delivery-queue-row {
+  border-color: var(--primary);
+  box-shadow: 0 14px 32px rgb(16 34 24 / 22%);
+}
+.dineflow-app
+  .rider-delivery-queue-list
+  .rider-queue-item[data-dragging]
+  .rider-queue-handle {
+  background: var(--primary-soft);
+  color: var(--primary);
+  cursor: grabbing;
+}
+.dineflow-app
+  .rider-delivery-queue-list:has([data-dragging])
+  .rider-queue-item:not([data-dragging]) {
+  opacity: 0.78;
+}
+.dineflow-app .rider-delivery-queue-list:has([data-dragging]) {
+  cursor: grabbing;
+}
+
+/* Fullscreen Stops: the same list, on the panel over the map. */
+.dineflow-app .rider-fullscreen-stops .rider-delivery-queue {
+  margin: 0;
+  padding: 4px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.dineflow-app .rider-fullscreen-stops .rider-desktop-route-link {
+  display: none;
+}
+/* The fullscreen panel is short: a sticky bar would cover the stops. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-fullscreen-stops
+  .rider-queue-apply {
+  position: static;
+  box-shadow: none;
+}
+
+/* Phones: Offers and Profile scroll the page like every other rider page.
+   The desktop layout scrolls an inner panel under a fixed header; on phones
+   that inner scroller fights the browser bar, the bottom nav and pull to
+   refresh, so swipes often did nothing. */
+@media (max-width: 850px) {
+  :root:has(
+    .app-shell[data-workspace="delivery"]:is(
+        [data-page="rider-settings"],
+        [data-page="rider-offers"]
+      )
+  ),
+  :root:has(
+      .app-shell[data-workspace="delivery"]:is(
+          [data-page="rider-settings"],
+          [data-page="rider-offers"]
+        )
+    )
+    body {
+    overflow: visible;
+  }
+  .app-shell[data-workspace="delivery"]:is(
+      [data-page="rider-settings"],
+      [data-page="rider-offers"]
+    ),
+  .app-shell[data-workspace="delivery"]:is(
+      [data-page="rider-settings"],
+      [data-page="rider-offers"]
+    )
+    .app-body {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .app-shell[data-workspace="delivery"]:is(
+      [data-page="rider-settings"],
+      [data-page="rider-offers"]
+    )
+    .app-content {
+    flex: 1 0 auto;
+    overflow: visible;
+    overscroll-behavior-y: auto;
+    scrollbar-gutter: auto;
+  }
+}
+
+/* Home greeting: a small hero card with the rider's avatar and status. */
+.dineflow-app .rider-greeting {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 16px;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background:
+    radial-gradient(
+      120% 140% at 100% 0%,
+      var(--primary-soft) 0%,
+      transparent 60%
+    ),
+    var(--surface);
+  animation: rider-rise var(--df-motion-duration-slow, 320ms)
+    var(--rider-ease-spring, ease-out) backwards;
+}
+.dineflow-app .rider-greeting-avatar {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font-size: 22px;
+  font-weight: 700;
+}
+/* Status dot on the avatar: green online, amber paused, grey otherwise. */
+.dineflow-app .rider-greeting-avatar > i {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--muted);
+}
+.dineflow-app
+  .rider-greeting[data-presence="online"]
+  .rider-greeting-avatar
+  > i {
+  background: var(--primary);
+}
+.dineflow-app
+  .rider-greeting[data-presence="paused"]
+  .rider-greeting-avatar
+  > i {
+  background: var(--warning);
+}
+.dineflow-app .rider-greeting-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+}
+.dineflow-app .rider-greeting h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.dineflow-app .rider-greeting h1 > span {
+  color: var(--muted);
+  font-weight: 600;
+}
+.dineflow-app .rider-greeting h1:focus {
+  outline: none;
+}
+.dineflow-app .rider-greeting p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+/* Date, availability and workload as small chips. */
+.dineflow-app .rider-greeting p > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--canvas);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dineflow-app .rider-greeting[data-presence="online"] .rider-greeting-status {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+@media (min-width: 851px) {
+  .dineflow-app .rider-greeting {
+    margin-bottom: 20px;
+    padding: 20px 22px;
+  }
+  .dineflow-app .rider-greeting-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 25px;
+  }
+  .dineflow-app .rider-greeting h1 {
+    font-size: 26px;
+  }
+}
+
+/* Quick actions: "Navigate to customer" is the solid primary button. An older
+   planner rule painted its background white under white text, so it showed
+   as an empty box above Share tracking. */
+@media (max-width: 850px) {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner
+    .rider-selected-workbench
+    .rider-primary-actions.rider-quick-actions
+    > .rider-card-navigation {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner
+    .rider-selected-workbench
+    .rider-primary-actions.rider-quick-actions
+    > .rider-card-navigation
+    svg {
+    color: inherit;
+  }
+}
+
+/* Delivery "More actions": the total as a summary row, then each action as a
+   card row with an icon tile, a hint and a chevron. Risky actions are red. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-secondary-actions
+  .rider-secondary-actions-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-secondary-actions
+  .rider-secondary-actions-content
+  > .rider-more-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 0;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--neutral-soft);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-secondary-actions
+  .rider-more-total
+  > strong {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-secondary-actions
+  .rider-secondary-actions-content
+  > .rider-more-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color var(--df-motion-duration-fast, 120ms) var(--df-motion-easing),
+    background-color var(--df-motion-duration-fast, 120ms)
+      var(--df-motion-easing),
+    scale var(--df-motion-duration-fast, 120ms) var(--df-motion-easing);
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-secondary-actions
+  .rider-more-row:active {
+  scale: 0.985;
+}
+.dineflow-app .rider-secondary-actions .rider-more-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.dineflow-app .rider-secondary-actions .rider-more-text {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+.dineflow-app .rider-secondary-actions .rider-more-text b {
+  font-size: 15px;
+  font-weight: 650;
+}
+.dineflow-app .rider-secondary-actions .rider-more-text small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.dineflow-app .rider-secondary-actions .rider-more-chevron {
+  flex: none;
+  color: var(--muted);
+  transition: transform var(--df-motion-duration-fast, 120ms)
+    var(--df-motion-easing);
+}
+/* Risky actions: red tile and title, kept apart from the safe ones. */
+.dineflow-app
+  .app-shell[data-workspace="delivery"]
+  .rider-secondary-actions
+  .rider-secondary-actions-content
+  > .rider-more-row.is-danger {
+  margin-top: 6px;
+  border-color: color-mix(
+    in srgb,
+    var(--df-status-danger-text) 25%,
+    var(--border)
+  );
+}
+.dineflow-app
+  .rider-secondary-actions
+  .rider-more-row.is-danger
+  .rider-more-icon {
+  background: color-mix(in srgb, var(--df-status-danger-text) 10%, transparent);
+  color: var(--df-status-danger-text);
+}
+.dineflow-app .rider-secondary-actions .rider-more-row.is-danger b {
+  color: var(--df-status-danger-text);
+}
+.dineflow-app .rider-more-row.is-danger + .rider-more-row.is-danger {
+  margin-top: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions
+    .rider-secondary-actions-content
+    > .rider-more-row:hover {
+    border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-secondary-actions
+    .rider-secondary-actions-content
+    > .rider-more-row.is-danger:hover {
+    border-color: var(--df-status-danger-text);
+  }
+  .dineflow-app .rider-more-row:hover .rider-more-chevron {
+    transform: translateX(2px);
+  }
+}
+
+/* The action bar's status note (e.g. "Upload a delivery photo…"): a clear
+   message rather than a flat grey box. */
+@media (max-width: 850px) {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .rider-selected-primary-action
+    > .rider-action-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    margin: 0;
+    padding: 10px 14px;
+    border: 1px dashed color-mix(in srgb, var(--primary) 40%, var(--border));
+    border-radius: 12px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    hyphens: none;
+    text-wrap: balance;
+  }
+}
+
+/* The alerts sheet's own top-level layer: above bars, maps and the cart. */
+.dineflow-app > .notification-portal {
+  position: relative;
+  z-index: 2100;
+}
+
+/* Profile card: the roles this account has, as small badges. */
+.rider-profile-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.rider-profile-roles li {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+}

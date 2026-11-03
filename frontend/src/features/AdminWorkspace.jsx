@@ -18,9 +18,13 @@ import {
   UsersRound,
 } from "lucide-react";
 import { api } from "../api";
-import { subscribeToOperations } from "../realtime";
 import { OutletAddressSearch } from "../components/OutletAddressSearch";
 import { usePollingResource } from "../components/usePollingResource";
+import { useMediaQuery } from "../components/useMediaQuery";
+import {
+  useLiveMapSnapshot,
+  mergeFleetLocations,
+} from "../components/useLiveMapSnapshot";
 import { useSaveDock } from "../components/useSaveDock";
 import { Button, EmptyState, Feedback, Skeleton } from "../components/ui";
 import {
@@ -53,9 +57,11 @@ function useOverview() {
       api("/admin/operations-overview", { signal }).then(
         (result) => result.data,
       ),
-    { resourceKey: "admin-overview", intervalMs: 5000 },
+    {
+      resourceKey: "admin-overview",
+      topics: ["orders", "deliveries", "locations", "settings", "accounts"],
+    },
   );
-  useEffect(() => subscribeToOperations(resource.refresh), [resource.refresh]);
   return resource;
 }
 export function AdminBadge({ status, children }) {
@@ -92,7 +98,7 @@ function RefreshButton({ resource }) {
       onClick={resource.refresh}
     >
       <RefreshCw size={16} aria-hidden="true" />
-      Refresh
+      <span className="admin-refresh-label">Refresh</span>
     </Button>
   );
 }
@@ -105,7 +111,7 @@ function Freshness({ resource }) {
       {resource.error
         ? "Updates interrupted · showing last loaded data"
         : resource.updatedAt
-          ? `Updated ${time(resource.updatedAt)} · refreshes every 5s`
+          ? `Updated ${time(resource.updatedAt)}`
           : "Connecting to operations…"}
     </span>
   );
@@ -128,7 +134,7 @@ function Metrics({ data, loading, user }) {
       Bike,
       "Online with a fresh GPS location",
       "blue",
-      has("deliveries.manage") ? "/admin/riders" : null,
+      has("deliveries.manage") ? "/admin/tracking?view=riders" : null,
     ],
     [
       "Avg. delivery time",
@@ -193,19 +199,24 @@ function Metrics({ data, loading, user }) {
 }
 
 function FleetMapPanel({ resource, large = false }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const viewingFleet = new URLSearchParams(search).get("view") === "riders";
   const [filter, setFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
   const [focusVersion, setFocusVersion] = useState(0);
   const [follow, setFollow] = useState(false);
-  const fleet = resource.data?.fleet || [];
+  const liveMap = useLiveMapSnapshot("/admin/operations-overview", [
+    "locations",
+    "settings",
+  ]);
+  const fleet = mergeFleetLocations(resource.data?.fleet || [], liveMap?.fleet);
   const visible = fleet.filter(
     (rider) => filter === "all" || rider.status === filter,
   );
   const mapped = visible.filter(
     (rider) => rider.latitude != null && rider.longitude != null,
   );
-  const store = resource.data?.location;
+  const store = liveMap?.location || resource.data?.location;
   const selected = visible.find((rider) => rider.id === selectedId);
   function selectRider(id) {
     setSelectedId(id);
@@ -235,8 +246,8 @@ function FleetMapPanel({ resource, large = false }) {
               : "Recent rider locations and outlet coverage."}
           </p>
         </div>
-        {pathname !== "/admin/riders" && (
-          <Link to="/admin/riders" className="admin-text-link">
+        {!viewingFleet && (
+          <Link to="/admin/tracking?view=riders" className="admin-text-link">
             View fleet <ArrowUpRight size={15} aria-hidden="true" />
           </Link>
         )}
@@ -302,8 +313,12 @@ function FleetMapPanel({ resource, large = false }) {
           <i className="admin-legend-dot admin-legend-dot--busy" />
           On delivery
         </span>
+        <span>
+          <i className="admin-legend-dot admin-legend-dot--selected" />
+          Selected rider
+        </span>
         <span className="admin-coverage-label">
-          {resource.data?.radius_km ?? "—"} km coverage
+          Restaurant delivery radius · {resource.data?.radius_km ?? "—"} km
         </span>
       </div>
       <div className="admin-map-rider-strip">
@@ -379,7 +394,7 @@ function DeliveryTable({ deliveries, total, loading, unavailable }) {
         aria-label="Active deliveries table"
         tabIndex={0}
       >
-        <table className="admin-table">
+        <table className="admin-table admin-table--pinned">
           <thead>
             <tr>
               <th scope="col">Order</th>
@@ -463,13 +478,103 @@ function DeliveryTable({ deliveries, total, loading, unavailable }) {
   );
 }
 
+function DashboardPriorities({ resource, user }) {
+  const metrics = resource.data?.metrics;
+  const actions = [
+    {
+      title: "Manage orders",
+      description: "Review incoming orders and keep preparation moving.",
+      value: metrics?.active_orders,
+      label: "active orders",
+      icon: ShoppingBag,
+      to: "/admin/orders",
+      permission: "orders.manage",
+    },
+    {
+      title: "Assign riders",
+      description: "Match waiting deliveries with an available rider.",
+      value: metrics?.awaiting_rider,
+      label: "awaiting a rider",
+      icon: Bike,
+      to: "/admin/deliveries#dispatch-queue",
+      permission: "deliveries.manage",
+    },
+    {
+      title: "Review delays",
+      description: "Follow up on deliveries past their estimated arrival.",
+      value: metrics?.delayed_deliveries,
+      label: "delayed deliveries",
+      icon: TriangleAlert,
+      to: "/admin/tracking",
+      permission: "deliveries.manage",
+    },
+  ].filter((action) => user?.permissions?.includes(action.permission));
+  return (
+    <article className="admin-panel admin-priorities-panel">
+      <div className="admin-panel-heading">
+        <div>
+          <h2>Today’s priorities</h2>
+          <p>A clear next step for your restaurant team.</p>
+        </div>
+        <ShoppingBag size={19} aria-hidden="true" />
+      </div>
+      <div className="admin-priority-actions">
+        {actions.map(({ title, description, value, label, icon: Icon, to }) => (
+          <Link className="admin-priority-action" to={to} key={title}>
+            <span className="admin-outlet-icon">
+              <Icon size={21} aria-hidden="true" />
+            </span>
+            <span className="admin-priority-copy">
+              <strong>{title}</strong>
+              <span>{description}</span>
+              <small>
+                {resource.loading ? "Loading…" : `${value ?? "—"} ${label}`}
+              </small>
+            </span>
+            <ArrowUpRight size={18} aria-hidden="true" />
+          </Link>
+        ))}
+      </div>
+      {user?.permissions?.includes("deliveries.manage") && (
+        <div className="admin-tracking-shortcut">
+          <div>
+            <strong>Live delivery tracking</strong>
+            <p>
+              Open the map for rider locations, coverage, and delivery details.
+            </p>
+          </div>
+          <Link
+            to="/admin/tracking"
+            className="admin-button admin-button--secondary"
+          >
+            Open tracking <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
+      )}
+    </article>
+  );
+}
+
 export function AdminDashboard({ user, tracking = false }) {
+  const { search } = useLocation();
+  const viewingFleet = new URLSearchParams(search).get("view") === "riders";
   const resource = useOverview();
   const data = resource.data;
   const metrics = data?.metrics;
   const fleet = data?.fleet || [];
   const active = metrics?.active_deliveries || 0;
   const assigned = Math.max(0, active - (metrics?.awaiting_rider || 0));
+  // Phones: Open dispatch sits on the date row instead of a row of its own.
+  const phone = useMediaQuery("(max-width: 850px)");
+  const openDispatch = (
+    <Link
+      to="/admin/deliveries"
+      className={`admin-button${phone ? " admin-open-dispatch" : ""}`}
+    >
+      <Truck size={17} aria-hidden="true" />
+      Open dispatch <ArrowUpRight size={15} aria-hidden="true" />
+    </Link>
+  );
   return (
     <section
       className={`admin-page${tracking ? " admin-page--tracking" : " admin-page--overview"}`}
@@ -486,25 +591,39 @@ export function AdminDashboard({ user, tracking = false }) {
         description={
           tracking
             ? "Monitor rider locations, delivery coverage, and orders that need attention."
-            : `Welcome back, ${user?.name?.split(" ")[0] || "there"}. Monitor today’s orders and delivery workload.`
+            : `Welcome back, ${user?.name?.split(" ")[0] || "there"}. Review today’s workload and keep your restaurant running smoothly.`
         }
       >
         <RefreshButton resource={resource} />
-        <Link to="/admin/deliveries" className="admin-button">
-          <Truck size={17} aria-hidden="true" />
-          Open dispatch <ArrowUpRight size={15} aria-hidden="true" />
-        </Link>
+        {!phone && openDispatch}
       </AdminHeading>
-      <div className="admin-overview-bar">
-        <span className="admin-section-context">
-          <Clock3 size={14} aria-hidden="true" />
-          Today ·{" "}
-          {new Date(data?.server_time || Date.now()).toLocaleDateString(
-            "en-PH",
-            { weekday: "short", month: "short", day: "numeric" },
-          )}
-        </span>
-        <Freshness resource={resource} />
+      <div className="admin-overview-bar" data-with-action={phone || undefined}>
+        {phone ? (
+          <span className="admin-overview-when">
+            <span className="admin-section-context">
+              <Clock3 size={14} aria-hidden="true" />
+              Today ·{" "}
+              {new Date(data?.server_time || Date.now()).toLocaleDateString(
+                "en-PH",
+                { weekday: "short", month: "short", day: "numeric" },
+              )}
+            </span>
+            <Freshness resource={resource} />
+          </span>
+        ) : (
+          <>
+            <span className="admin-section-context">
+              <Clock3 size={14} aria-hidden="true" />
+              Today ·{" "}
+              {new Date(data?.server_time || Date.now()).toLocaleDateString(
+                "en-PH",
+                { weekday: "short", month: "short", day: "numeric" },
+              )}
+            </span>
+            <Freshness resource={resource} />
+          </>
+        )}
+        {phone && openDispatch}
       </div>
       {resource.error && (
         <Feedback onRetry={resource.refresh}>{resource.error}</Feedback>
@@ -537,7 +656,11 @@ export function AdminDashboard({ user, tracking = false }) {
         <Metrics data={data} loading={resource.loading} user={user} />
       )}
       <div className="admin-overview-grid">
-        <FleetMapPanel resource={resource} large={tracking} />
+        {tracking ? (
+          <FleetMapPanel resource={resource} large />
+        ) : (
+          <DashboardPriorities resource={resource} user={user} />
+        )}
         {!tracking && (
           <div className="admin-insight-column">
             <article className="admin-panel admin-dispatch-summary">
@@ -646,22 +769,48 @@ export function AdminDashboard({ user, tracking = false }) {
       {tracking && (
         <Metrics data={data} loading={resource.loading} user={user} />
       )}
-      <DeliveryTable
-        deliveries={data?.deliveries || []}
-        total={metrics?.active_deliveries}
-        loading={resource.loading}
-        unavailable={!data && !!resource.error}
-      />
+      {tracking && (
+        <nav
+          className="admin-tracking-views"
+          aria-label="Delivery workspace views"
+        >
+          <Link
+            to="/admin/tracking"
+            aria-current={!viewingFleet ? "page" : undefined}
+          >
+            <Truck size={17} aria-hidden="true" /> Active deliveries
+          </Link>
+          <Link
+            to="/admin/tracking?view=riders"
+            aria-current={viewingFleet ? "page" : undefined}
+          >
+            <UsersRound size={17} aria-hidden="true" /> Rider fleet
+          </Link>
+        </nav>
+      )}
+      {tracking &&
+        (viewingFleet ? (
+          <RiderTeamPanel user={user} resource={resource} />
+        ) : (
+          <DeliveryTable
+            deliveries={data?.deliveries || []}
+            total={metrics?.active_deliveries}
+            loading={resource.loading}
+            unavailable={!data && !!resource.error}
+          />
+        ))}
       <div className="admin-bottom-note">
-        <span>
-          <UsersRound size={15} aria-hidden="true" />{" "}
-          {
-            fleet.filter((rider) =>
-              ["available", "on_delivery"].includes(rider.status),
-            ).length
-          }{" "}
-          riders with fresh locations
-        </span>
+        {tracking && (
+          <span>
+            <UsersRound size={15} aria-hidden="true" />{" "}
+            {
+              fleet.filter((rider) =>
+                ["available", "on_delivery"].includes(rider.status),
+              ).length
+            }{" "}
+            riders with fresh locations
+          </span>
+        )}
         {user?.permissions?.includes("dashboard.view") && (
           <Link to="/dashboard" className="admin-text-link">
             Restaurant overview <ArrowUpRight size={14} aria-hidden="true" />
@@ -673,13 +822,15 @@ export function AdminDashboard({ user, tracking = false }) {
   );
 }
 
-export function RiderFleet({ user }) {
-  const resource = useOverview();
+function RiderTeamPanel({ user, resource }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [pending, setPending] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const lock = useRef(false);
+  // Phones: one card per rider, the account button on the right.
+  const phone = useMediaQuery("(max-width: 850px)");
+  const canManage = user?.permissions?.includes("users.manage");
   const fleet = resource.data?.fleet || [];
   const visible = fleet.filter(
     (rider) =>
@@ -709,77 +860,41 @@ export function RiderFleet({ user }) {
     }
   }
   return (
-    <section className="admin-page">
-      <AdminHeading
-        eyebrow="THE PEOPLE BEHIND EVERY DELIVERY"
-        title="Rider fleet"
-        description="A connected team. A smoother delivery experience."
-      >
-        <RefreshButton resource={resource} />
-        {user.permissions.includes("users.manage") && (
-          <Link className="admin-button" to="/admin/users">
-            <UsersRound size={17} />
-            Manage team <ArrowUpRight size={15} />
-          </Link>
-        )}
-      </AdminHeading>
-      {resource.error && (
-        <Feedback onRetry={resource.refresh}>{resource.error}</Feedback>
-      )}
+    <>
       {feedback && <Feedback tone={feedback.tone}>{feedback.message}</Feedback>}
-      <div className="admin-metrics">
-        {[
-          ["Total riders", fleet.length, UsersRound],
-          [
-            "Available now",
-            fleet.filter((rider) => rider.status === "available").length,
-            Bike,
-          ],
-          [
-            "On delivery",
-            fleet.filter((rider) => rider.status === "on_delivery").length,
-            Truck,
-          ],
-          [
-            "Offline / GPS stale",
-            fleet.filter((rider) =>
-              ["offline", "location_stale"].includes(rider.status),
-            ).length,
-            Radio,
-          ],
-        ].map(([label, value, Icon]) => (
-          <article className="admin-metric" key={label}>
-            <div className="admin-metric-top">
-              <span>{label}</span>
-              <Icon size={19} aria-hidden="true" />
-            </div>
-            <strong>{resource.data ? value : "—"}</strong>
-            <small>Across your restaurant fleet</small>
-          </article>
-        ))}
-      </div>
-      <FleetMapPanel resource={resource} />
       <article className="admin-panel">
         <div className="admin-panel-heading">
           <div>
-            <h2>Your delivery team</h2>
+            <h2>Rider fleet</h2>
             <p>Online status is controlled by each rider’s GPS session.</p>
           </div>
-          <Freshness resource={resource} />
+          {canManage && (
+            <Link
+              className={
+                phone
+                  ? "admin-text-link"
+                  : "admin-button admin-button--secondary"
+              }
+              to="/admin/users"
+            >
+              {!phone && <UsersRound size={17} aria-hidden="true" />}
+              Manage team <ArrowUpRight size={15} aria-hidden="true" />
+            </Link>
+          )}
         </div>
-        <div className="admin-table-toolbar">
+        <div className="admin-table-toolbar admin-fleet-toolbar">
           <label className="admin-search">
             <Search size={17} />
             <input
               type="search"
               aria-label="Search riders"
-              placeholder="Search riders by name…"
+              placeholder={phone ? "Search riders…" : "Search riders by name…"}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
           <label className="admin-filter-label">
-            Status
+            <span className="admin-filter-text">Status</span>
             <select
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
@@ -795,6 +910,64 @@ export function RiderFleet({ user }) {
             </select>
           </label>
         </div>
+        {phone ? (
+          <ul className="admin-fleet-list" aria-label="Rider fleet">
+            {visible.map((rider) => (
+              <li key={rider.id} className="admin-fleet-card">
+                <span className="admin-small-avatar" aria-hidden="true">
+                  {rider.name.slice(0, 1)}
+                </span>
+                <div className="admin-fleet-main">
+                  <strong>{rider.name}</strong>
+                  <span className="admin-fleet-meta">
+                    <span className="admin-capitalize">
+                      {rider.vehicle_type || "No vehicle"}
+                    </span>
+                    {" · "}
+                    {rider.active_deliveries}{" "}
+                    {Number(rider.active_deliveries) === 1
+                      ? "delivery"
+                      : "deliveries"}
+                  </span>
+                  <span className="admin-fleet-badges">
+                    <AdminBadge status={rider.status} />
+                    {!rider.is_active && (
+                      <AdminBadge status="offline">Deactivated</AdminBadge>
+                    )}
+                  </span>
+                  <small>
+                    {rider.located_at
+                      ? `GPS ${new Date(rider.located_at).toLocaleString([], {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}`
+                      : "No location yet"}
+                  </small>
+                </div>
+                {canManage && (
+                  <Button
+                    className="admin-fleet-toggle"
+                    variant="secondary"
+                    data-tone={rider.is_active ? "danger" : undefined}
+                    busy={pending === rider.id}
+                    disabled={
+                      pending != null ||
+                      (rider.is_active && rider.active_deliveries > 0)
+                    }
+                    title={
+                      rider.is_active && rider.active_deliveries > 0
+                        ? "Finish or reassign this rider’s deliveries first"
+                        : undefined
+                    }
+                    onClick={() => toggle(rider)}
+                  >
+                    {rider.is_active ? "Deactivate" : "Activate"}
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
         <div
           className="admin-table-scroll"
           role="region"
@@ -873,6 +1046,7 @@ export function RiderFleet({ user }) {
             </tbody>
           </table>
         </div>
+        )}
         {resource.loading ? (
           <Skeleton cards={1} label="Loading rider fleet" />
         ) : (
@@ -885,7 +1059,7 @@ export function RiderFleet({ user }) {
           )
         )}
       </article>
-    </section>
+    </>
   );
 }
 
@@ -931,7 +1105,7 @@ export function OutletManager() {
         radius: result.data.policy?.radius_km ?? 8,
       };
     },
-    { resourceKey: "outlet-config", intervalMs: 0 },
+    { resourceKey: "outlet-config", topics: ["settings"] },
   );
   const location = draft || resource.data?.location;
   const savedLocation = (saved || resource.data)?.location;
@@ -1101,7 +1275,7 @@ export function OutletManager() {
       <AdminHeading
         eyebrow="GREAT DELIVERY STARTS HERE"
         title="Restaurant outlets"
-        description="Fine-tune your location, set your reach, and keep customers in the loop."
+        description="Manage your pickup location, delivery area, and weekly availability."
       >
         {location && (
           <span className="admin-form-status" data-state={saveState}>
@@ -1288,7 +1462,7 @@ export function OutletManager() {
                     <Truck size={23} />
                   </span>
                   <div>
-                    <h3>A clear boundary. A better experience.</h3>
+                    <h3>How delivery coverage works</h3>
                     <p>
                       Coverage is measured as a straight-line radius from your
                       outlet. Delivery fees use road distance. New delivery
@@ -1310,7 +1484,7 @@ export function OutletManager() {
                     <div className="admin-panel-heading">
                       <div>
                         <h2>Outlet details</h2>
-                        <p>The essentials for a seamless pickup.</p>
+                        <p>Pickup information and delivery availability.</p>
                       </div>
                       <Store size={18} />
                     </div>
@@ -1458,8 +1632,13 @@ export function OutletManager() {
                       <div>
                         <h2>Operating hours</h2>
                         <p>
-                          Choose availability for each day in your restaurant’s
-                          local time.
+                          {
+                            days.filter(
+                              (day) => !location.opening_hours[day].closed,
+                            ).length
+                          }{" "}
+                          days open each week · Times use your restaurant’s
+                          timezone.
                         </p>
                       </div>
                       <Clock3 size={19} />

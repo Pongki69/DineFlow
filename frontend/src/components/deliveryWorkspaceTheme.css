@@ -9,7 +9,7 @@
   --rider-space-3: 12px;
   --rider-space-4: 16px;
   --rider-space-5: 24px;
-  --rider-control-height: 44px;
+  --rider-control-height: var(--ui-control-height, 48px);
   --rider-control-radius: 10px;
   --rider-card-radius: 14px;
   --rider-card-border: #d2ddd2;
@@ -46,7 +46,7 @@
   margin: 0;
 }
 .app-shell[data-workspace="delivery"] .app-content.rider-content .page-heading {
-  width: calc(100% + var(--rider-content-gutter));
+  width: 100%;
   min-height: 92px;
   margin: 0 0 24px;
   padding: 0 var(--rider-content-gutter) 20px 0;
@@ -71,9 +71,9 @@
   h1 {
   margin: 0 0 8px;
   color: var(--ink);
-  font-size: clamp(1.85rem, 1.45rem + 1vw, 2.35rem);
-  line-height: 1.16;
-  letter-spacing: -0.035em;
+  font-size: var(--text-title);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
 }
 .app-shell[data-workspace="delivery"]
   .app-content.rider-content

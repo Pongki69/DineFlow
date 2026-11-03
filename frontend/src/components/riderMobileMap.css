@@ -1,0 +1,794 @@
+.rider-map-dock {
+  display: none;
+}
+.rider-mobile-reorder,
+.rider-mobile-stop-list {
+  display: none;
+}
+@media (max-width: 850px) {
+  .rider-desktop-route-link {
+    display: none;
+  }
+  .rider-mobile-reorder,
+  .rider-mobile-stop-list {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--ink);
+    background: var(--surface);
+    font: inherit;
+    font-size: 12px;
+  }
+  .rider-mobile-stop-list {
+    margin-bottom: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-page="rider-deliveries"]
+    .app-content.rider-content
+    .rider-workspace
+    > .page-heading
+    h1 {
+    font-size: 22px;
+    line-height: 1.3;
+  }
+  .dineflow-app
+    .app-shell[data-page="rider-deliveries"]
+    .app-content.rider-content
+    .rider-workspace
+    > .page-heading
+    .page-actions {
+    flex: 0 0 44px;
+    width: 44px;
+    max-width: 44px;
+    margin-left: auto;
+  }
+  .dineflow-app
+    .app-shell[data-page="rider-deliveries"]
+    .app-content.rider-content
+    .rider-workspace
+    > .page-heading
+    .page-actions
+    > button {
+    width: 44px;
+    max-width: 44px;
+    min-width: 44px;
+    padding: 0;
+  }
+  .dineflow-app
+    .app-shell[data-page="rider-deliveries"]
+    .rider-workspace
+    > .page-heading {
+    padding: 0;
+    border: 0;
+    min-height: 44px;
+  }
+  .rider-workspace .rider-refresh-label {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-page="rider-deliveries"] .rider-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-page="rider-deliveries"]
+    .app-content.rider-content {
+    padding: 12px 12px 24px;
+  }
+  .dineflow-app .app-shell[data-page="rider-deliveries"] .live-updates-bar {
+    min-height: 40px;
+    margin-bottom: 12px;
+    padding: 4px 8px;
+  }
+  .dineflow-app
+    .app-shell[data-page="rider-deliveries"]
+    .live-updates-bar
+    button {
+    min-height: 34px;
+  }
+  .dineflow-app .rider-workspace > .page-heading {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+  }
+  .dineflow-app .rider-workspace > .page-heading h1 {
+    font-size: 22px;
+    margin: 0;
+  }
+  .dineflow-app .rider-workspace > .page-heading p {
+    display: none;
+  }
+  .dineflow-app .rider-workspace > .page-heading .page-actions {
+    width: auto;
+    margin: 0;
+  }
+  .dineflow-app .rider-workspace > .page-heading .page-actions > button {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: 0;
+    gap: 0;
+  }
+  .dineflow-app .rider-workspace > .page-heading .page-actions > button svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  .dineflow-app .rider-workspace > .rider-route-planner {
+    display: flex;
+    flex-direction: column;
+    order: 1;
+    margin: 0;
+    width: 100%;
+    min-width: 0;
+  }
+  .dineflow-app .rider-workspace > .rider-delivery-lower-grid {
+    order: 3;
+    margin: 0;
+  }
+  .dineflow-app .rider-workspace > .rider-current-outlet {
+    order: 4;
+    margin: 0;
+  }
+  .dineflow-app .rider-workspace > .rider-data-freshness {
+    order: 5;
+    margin: 0;
+    font-size: 11px;
+  }
+  .dineflow-app
+    .rider-workspace:not([data-mobile-view="tools"])
+    > :is(.rider-current-outlet, .rider-data-freshness) {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace:not([data-mobile-view="queue"]):not(
+      [data-mobile-view="tools"]
+    )
+    > .rider-delivery-lower-grid {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace[data-mobile-view="tools"]
+    > .rider-delivery-lower-grid {
+    display: grid;
+  }
+  .dineflow-app
+    .rider-workspace[data-mobile-view="tools"]
+    .rider-delivery-queue {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace[data-mobile-view="queue"]
+    .rider-before-pickup {
+    display: none;
+  }
+  .dineflow-app .rider-workspace .rider-route-planner:not(.is-expanded) {
+    position: relative;
+    overflow: hidden;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-heading,
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-heading-actions {
+    display: contents;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-heading
+    > div:first-child {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-heading-actions
+    > button:not(:last-child) {
+    display: none;
+    order: 2;
+    margin: 0 12px 12px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-route-heading-actions
+    > button:not(:last-child) {
+    display: flex;
+    justify-content: center;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-heading-actions
+    > button:last-child {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-fullscreen-label {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded):not(:has(.rider-active-switcher))
+    .rider-route-heading-actions
+    > button:last-child {
+    position: static;
+    order: 2;
+    margin: 12px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-route-heading-actions
+    > button:last-child {
+    display: flex;
+    position: static;
+    order: 2;
+    margin: 0 12px 12px;
+    min-height: 44px;
+    justify-content: center;
+    gap: 8px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner[data-mobile-panel="tools"]:not(.is-expanded)
+    .rider-fullscreen-label {
+    display: inline;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-progress-copy {
+    padding: 12px;
+    font-size: 12px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-progress-copy
+    strong {
+    font-size: 13px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded):not([data-mobile-panel="tools"])
+    .rider-route-progress-copy
+    p
+    + p {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-active-switcher {
+    order: 0;
+    margin: 0;
+    padding: 8px 10px;
+    border: 0;
+    background: var(--surface);
+    min-height: 60px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-switcher-label {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-switcher-control {
+    width: 100%;
+    max-width: none;
+    flex: 1;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-switcher-select {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-layout {
+    order: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-map-area {
+    padding: 0;
+    gap: 0;
+    border: 0;
+    background: var(--surface);
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-map {
+    flex: none;
+    height: clamp(320px, 58dvh, 620px);
+    min-height: 320px;
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-map-dock {
+    display: grid;
+    flex: none;
+    gap: 4px;
+    padding: 8px;
+    margin: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .dineflow-app .rider-workspace .rider-map-dock button {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    min-width: 0;
+    min-height: 46px;
+    padding: 8px 2px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .dineflow-app .rider-workspace .rider-map-dock button[aria-pressed="true"] {
+    color: var(--ink);
+    background: var(--primary-soft);
+    border-color: var(--primary-border, var(--border));
+  }
+  .rider-map-dock button small {
+    position: static;
+    display: grid;
+    place-items: center;
+    min-width: 16px;
+    min-height: 16px;
+    padding: 1px 3px;
+    border-radius: 12px;
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+    font-size: 10px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded):not([data-mobile-panel="tools"])
+    :is(
+      .rider-route-legend,
+      .rider-route-map-tools,
+      .rider-route-location-note,
+      .rider-location-help
+    ) {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)[data-mobile-panel="tools"]
+    :is(
+      .rider-route-legend,
+      .rider-route-map-tools,
+      .rider-route-location-note,
+      .rider-location-help,
+      .rider-route-warning
+    ) {
+    margin: 12px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-fallback-notice {
+    margin: 10px;
+    padding: 10px;
+    font-size: 12px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-itinerary {
+    padding: 16px;
+    background: var(--surface);
+    max-height: none;
+    overflow: visible;
+    border: 0;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded):not([data-mobile-panel="route"]):not(
+      [data-mobile-panel="delivery"]
+    )
+    .rider-route-itinerary {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner:not(.is-expanded)
+    .rider-workbench-tabs {
+    display: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner.is-expanded
+    .rider-map-dock {
+    display: none;
+  }
+}
+
+/* Active delivery: the next step rides in a sticky bar above the rider nav. */
+@media (max-width: 850px) {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-delivery-card {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-selected-primary-action.df-bottom-bar {
+    order: 99;
+    position: sticky;
+    bottom: var(--rider-mobile-nav-height, 0px);
+    z-index: 5;
+    display: grid;
+    margin: 0;
+    padding: 12px;
+    padding-block-end: 12px;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 24px rgb(16 34 24 / 10%);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-selected-primary-action.df-bottom-bar
+    > :is(.ui-button, .df-swipe) {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--ui-control-height);
+  }
+}
+
+/* Fullscreen: Stops / Delivery / Tools stay reachable from a floating dock
+   that switches the panel over the map. */
+.dineflow-app .rider-workspace .rider-route-planner.is-expanded {
+  --rider-fs-gap: 14px;
+  --rider-fs-dock: 62px;
+}
+.dineflow-app
+  .rider-workspace
+  .rider-route-planner.is-expanded
+  .rider-map-dock {
+  position: absolute;
+  z-index: 950;
+  right: var(--rider-fs-gap);
+  bottom: calc(var(--rider-fs-gap) + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 4px;
+  width: min(350px, calc(100vw - 2 * var(--rider-fs-gap)));
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 12px 32px rgb(16 34 24 / 22%);
+  backdrop-filter: blur(14px);
+}
+.dineflow-app
+  .rider-workspace
+  .rider-route-planner.is-expanded
+  .rider-map-dock
+  button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.dineflow-app
+  .rider-workspace
+  .rider-route-planner.is-expanded
+  .rider-map-dock
+  button[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--primary-soft);
+  border-color: var(--primary-border, var(--border));
+}
+.dineflow-app
+  .rider-workspace
+  .rider-route-planner.is-expanded
+  .rider-map-dock
+  button
+  small {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  min-height: 18px;
+  padding: 1px 4px;
+  border-radius: 12px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font-size: 11px;
+}
+.dineflow-app
+  .rider-workspace
+  .rider-route-planner.is-expanded
+  .rider-route-itinerary {
+  bottom: calc(
+    var(--rider-fs-gap) + var(--rider-fs-dock) + 8px +
+      env(safe-area-inset-bottom, 0px)
+  );
+}
+.dineflow-app
+  .rider-workspace
+  .rider-route-planner.is-expanded[data-fullscreen-panel="none"]
+  .rider-route-itinerary {
+  display: none;
+}
+.rider-fullscreen-tools {
+  display: grid;
+  gap: 12px;
+}
+.rider-fullscreen-tools h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.rider-fullscreen-tools :is(.rider-route-location-note, .rider-location-help) {
+  display: block;
+  margin: 0;
+  font-size: 13px;
+}
+.rider-fullscreen-tools > :is(.rider-current-outlet, .rider-before-pickup) {
+  margin: 0;
+}
+.rider-fullscreen-empty {
+  margin: 0;
+  color: var(--muted);
+}
+@media (max-width: 699px) {
+  .dineflow-app .rider-workspace .rider-route-planner.is-expanded {
+    --rider-fs-gap: 8px;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner.is-expanded
+    .rider-map-dock {
+    left: var(--rider-fs-gap);
+    width: auto;
+  }
+}
+
+/* Fullscreen polish (all widths). */
+.rider-route-switcher-chips {
+  display: none;
+}
+.dineflow-app
+  .rider-workspace
+  .rider-route-planner.is-expanded
+  .dineflow-map-actions
+  > button:first-child {
+  /* The heading already has Exit fullscreen; avoid a second one on the map. */
+  display: none;
+}
+.dineflow-app
+  .rider-workspace
+  .rider-route-planner.is-expanded[data-fullscreen-panel="none"]
+  .rider-route-map-tools {
+  top: auto;
+}
+.dineflow-app
+  .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+  .rider-route-planner.is-expanded
+  .rider-selected-primary-action.df-bottom-bar {
+  bottom: 0;
+}
+.rider-fullscreen-location-actions {
+  display: grid;
+  gap: 8px;
+}
+.rider-fullscreen-location-actions .ui-button {
+  width: 100%;
+  min-height: 48px;
+  justify-content: center;
+}
+
+@media (max-width: 850px) {
+  /* The dock already switches Stops / Delivery, so drop the duplicate tabs. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner
+    .rider-route-itinerary
+    .rider-workbench-tabs {
+    display: none;
+  }
+  /* "Route tools" jumps to a heading that is hidden on phones. */
+  .dineflow-app .rider-delivery-queue > header > a.rider-desktop-route-link {
+    display: none;
+  }
+  .dineflow-app .rider-delivery-queue > header {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+  .dineflow-app .rider-delivery-queue > header > div {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dineflow-app .rider-delivery-queue > header h2 {
+    font-size: 20px;
+    white-space: nowrap;
+  }
+  .dineflow-app .rider-delivery-queue > header > div > span {
+    flex: none;
+    white-space: nowrap;
+  }
+  .dineflow-app .rider-delivery-queue > header > .rider-mobile-reorder {
+    min-height: 44px;
+    white-space: nowrap;
+  }
+
+  /* Pick a delivery with chips, not a native dropdown. */
+  .dineflow-app
+    .rider-workspace
+    .rider-route-planner
+    .rider-route-switcher-control {
+    display: none;
+  }
+  .dineflow-app .rider-workspace .rider-route-switcher-chips {
+    display: flex;
+    flex: 1;
+    gap: 8px;
+    min-width: 0;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-switcher-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .dineflow-app .rider-workspace .rider-route-switcher-chips button {
+    flex: none;
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    align-items: center;
+    min-height: 48px;
+    padding: 6px 12px 6px 6px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+    text-align: left;
+    scroll-snap-align: start;
+  }
+  .dineflow-app .rider-workspace .rider-route-switcher-chips button > span {
+    grid-row: 1 / span 2;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .dineflow-app .rider-workspace .rider-route-switcher-chips button strong {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+  .dineflow-app .rider-workspace .rider-route-switcher-chips button small {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-switcher-chips
+    button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+  .dineflow-app
+    .rider-workspace
+    .rider-route-switcher-chips
+    button[aria-pressed="true"]
+    > span {
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+
+  /* Next step: full-width secondary above a full-width primary. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-selected-primary-action.df-bottom-bar {
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner
+    .rider-selected-workbench
+    .rider-primary-actions {
+    display: grid;
+    justify-content: stretch;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner
+    .rider-selected-workbench
+    .rider-primary-actions
+    .rider-card-navigation {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+}
+
+/* Phone fullscreen: give the open panel more room and keep the top of the
+   map clear; the map's locate control already fits all stops. */
+@media (max-width: 850px) {
+  /* Drag and the locate control already fit the map; the fit bar only
+     covered the zoom buttons. */
+  .dineflow-app
+    .app-shell[data-page="rider-deliveries"]
+    .rider-route-planner.is-expanded
+    .rider-route-map-tools {
+    display: none;
+  }
+}
+@media (max-width: 699px) {
+  /* Phones stack map over panel: give an open panel about half the screen,
+     and hand the whole height to the map when the panel is closed. */
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner.is-expanded
+    .rider-route-layout {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 46dvh);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    .rider-route-planner.is-expanded[data-fullscreen-panel="none"]
+    .rider-route-layout {
+    grid-template-rows: minmax(0, 1fr);
+  }
+}

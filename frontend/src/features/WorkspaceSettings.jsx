@@ -8,9 +8,8 @@ import {
 } from "lucide-react";
 import { Account } from "../Account";
 import { api } from "../api";
-import { visibleNavigation } from "../navigation";
+import { defaultStartPath, visibleNavigation } from "../navigation";
 import { Button, Feedback, PageHeader, Skeleton } from "../components/ui";
-import { RiderProfileSettings } from "./RiderWorkspace";
 import { DeleteCustomerAccount } from "../components/DeleteCustomerAccount";
 import "./workspaceSettings.css";
 import "./settingsPage.css";
@@ -27,6 +26,9 @@ const defaults = {
 
 export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
   const links = visibleNavigation(user.permissions, user.roles);
+  // With no saved choice, show the page this role lands on (same rule as
+  // the app's "/" redirect) instead of a vague "Role default" option.
+  const roleStartPage = defaultStartPath(links, user.roles);
   const [draft, setDraft] = useState({
     ...defaults,
     ...user.preferences,
@@ -63,6 +65,8 @@ export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
       setBusy(false);
     }
   }
+  // Riders manage identity, password and rider details on the Account page.
+  const isRider = user.roles.includes("rider");
   return (
     <section className="workspace-settings">
       <PageHeader
@@ -89,12 +93,11 @@ export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
           <label className="workspace-start-page">
             Start page
             <select
-              value={draft.home_page || ""}
+              value={draft.home_page || roleStartPage}
               onChange={(e) =>
                 setDraft({ ...draft, home_page: e.target.value })
               }
             >
-              <option value="">Role default</option>
               {links.map(([label, , to]) => (
                 <option key={to} value={to}>
                   {label}
@@ -141,52 +144,50 @@ export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
             </Button>
           </div>
         </form>
-        <section
-          className="workspace-card workspace-account-card"
-          aria-labelledby="account-controls-heading"
-        >
-          <h2 id="account-controls-heading">
-            <ShieldCheck size={19} aria-hidden="true" />
-            Your account
-          </h2>
-          <div className="workspace-account-identity">
-            <span className="workspace-account-avatar" aria-hidden="true">
-              {user.name.slice(0, 1)}
-            </span>
-            <div>
-              <strong>{user.name}</strong>
-              <p className="workspace-muted">{user.email}</p>
-            </div>
-          </div>
-          <span className="workspace-role">
-            {user.roles.join(" · ").replaceAll("_", " ")}
-          </span>
-          <p>Update your name or password in Profile & security below.</p>
-          {user.roles.includes("rider") && (
-            <p className="workspace-location-note">
-              Going online shares your GPS for offers and accepted deliveries.
-              Use the availability bar to stop sharing.
-            </p>
-          )}
-          {management.length > 0 && (
-            <>
-              <h3>Restaurant controls</h3>
-              <div className="workspace-settings-links">
-                {management.map(([label, , to]) => (
-                  <Link key={to} to={to}>
-                    {label}
-                    <ArrowUpRight size={15} aria-hidden="true" />
-                  </Link>
-                ))}
+        {!isRider && (
+          <section
+            className="workspace-card workspace-account-card"
+            aria-labelledby="account-controls-heading"
+          >
+            <h2 id="account-controls-heading">
+              <ShieldCheck size={19} aria-hidden="true" />
+              Your account
+            </h2>
+            <div className="workspace-account-identity">
+              <span className="workspace-account-avatar" aria-hidden="true">
+                {user.name.slice(0, 1)}
+              </span>
+              <div>
+                <strong>{user.name}</strong>
+                <p className="workspace-muted">{user.email}</p>
               </div>
-            </>
-          )}
-        </section>
-      </div>
-      {user.roles.includes("rider") &&
-        user.permissions.includes("deliveries.assigned") && (
-          <RiderProfileSettings />
+            </div>
+            <span className="workspace-role">
+              {user.roles.join(" · ").replaceAll("_", " ")}
+            </span>
+            <p>Update your name or password in Profile & security below.</p>
+            {user.roles.includes("rider") && (
+              <p className="workspace-location-note">
+                Going online shares your GPS for offers and accepted deliveries.
+                Use the availability bar to stop sharing.
+              </p>
+            )}
+            {management.length > 0 && (
+              <>
+                <h3>Restaurant controls</h3>
+                <div className="workspace-settings-links">
+                  {management.map(([label, , to]) => (
+                    <Link key={to} to={to}>
+                      {label}
+                      <ArrowUpRight size={15} aria-hidden="true" />
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
         )}
+      </div>
       {user.roles.includes("customer") && (
         <Suspense
           fallback={<Skeleton cards={1} label="Loading saved addresses" />}
@@ -194,21 +195,23 @@ export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
           <SavedDeliveryAddresses user={user} />
         </Suspense>
       )}
-      <details className="workspace-security">
-        <summary>
-          <span>
-            <ShieldCheck size={19} aria-hidden="true" />
-            Profile & security
-          </span>
-          <ChevronDown size={18} aria-hidden="true" />
-        </summary>
-        <Account
-          user={user}
-          onUpdated={onUpdated}
-          embedded
-          showAddresses={false}
-        />
-      </details>
+      {!isRider && (
+        <details className="workspace-security">
+          <summary>
+            <span>
+              <ShieldCheck size={19} aria-hidden="true" />
+              Profile & security
+            </span>
+            <ChevronDown size={18} aria-hidden="true" />
+          </summary>
+          <Account
+            user={user}
+            onUpdated={onUpdated}
+            embedded
+            showAddresses={false}
+          />
+        </details>
+      )}
       {user.roles.length === 1 && user.roles[0] === "customer" && (
         <DeleteCustomerAccount user={user} onDeleted={onDeleted} />
       )}

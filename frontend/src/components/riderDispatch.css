@@ -355,3 +355,335 @@
     padding-inline: 8px;
   }
 }
+
+/* "Save a vehicle before going online": the whole message opens the setting. */
+.rider-dispatch-error-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.rider-dispatch-error-action {
+  display: block;
+  margin-top: 4px;
+  font-weight: 700;
+  text-align: right;
+  text-decoration: underline;
+}
+
+/* Phones: availability errors float just above the bottom bar and its power
+   button, so no page moves. Buttons sit on the right. */
+.rider-dispatch-toast {
+  position: fixed;
+  z-index: 2040;
+  right: 12px;
+  bottom: calc(var(--rider-mobile-nav-height, 70px) + 28px);
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 10px 8px 10px 14px;
+  border: 1px solid #f0c9bf;
+  border-left: 4px solid #b4432f;
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  box-shadow: 0 10px 28px rgb(16 34 24 / 22%);
+  color: var(--ink);
+  animation: rider-dispatch-toast-in 0.2s ease-out;
+}
+.rider-dispatch-toast > svg {
+  flex: none;
+  color: #b4432f;
+}
+.rider-dispatch-toast p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.rider-dispatch-toast a.rider-dispatch-toast-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.rider-dispatch-toast button.rider-dispatch-toast-close {
+  display: grid;
+  flex: none;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+@keyframes rider-dispatch-toast-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rider-dispatch-toast {
+    animation: none;
+  }
+}
+
+/* ---- Offers on a phone, nothing to show yet ------------------------------ */
+@media (max-width: 850px) {
+  .rider-dispatch-panel .offers-help-toggle {
+    display: grid;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .rider-dispatch-panel .offers-help-toggle[aria-expanded="true"] {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .rider-dispatch-panel .offers-help-note {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--neutral-soft, #eef1ec);
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .offers-empty-phone {
+    display: grid;
+    gap: 12px;
+  }
+  .offers-empty-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .offers-empty-phone .offers-empty-icon {
+    position: relative;
+    display: grid;
+    flex: none;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    margin: 0;
+    border-radius: 50%;
+    background: #fbefcf;
+    color: #6f4f0b;
+  }
+  .offers-empty-phone[data-searching] .offers-empty-icon {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  /* Searching: two soft rings ripple out from the vehicle. */
+  .offers-empty-phone[data-searching] .offers-empty-icon::before,
+  .offers-empty-phone[data-searching] .offers-empty-icon::after {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--primary);
+    border-radius: 50%;
+    content: "";
+    opacity: 0;
+    animation: offers-search-ring 2.4s ease-out infinite;
+  }
+  .offers-empty-phone[data-searching] .offers-empty-icon::after {
+    animation-delay: 1.2s;
+  }
+  .offers-empty-head h3 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.3;
+  }
+  .offers-empty-head p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .offers-readiness {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    list-style: none;
+  }
+  .offers-readiness li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    color: var(--primary);
+  }
+  .offers-readiness li:first-child {
+    border-top: 0;
+  }
+  .offers-readiness li[data-state="bad"] {
+    color: #a33a2c;
+  }
+  .offers-readiness li[data-state="wait"] {
+    color: var(--muted);
+  }
+  .offers-readiness li > span {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+  }
+  .offers-readiness strong {
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .offers-readiness small {
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .offers-readiness li[data-state="bad"] small {
+    color: #a33a2c;
+  }
+  .dineflow-app .offers-readiness-fix {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: #a33a2c;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .offers-empty-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .offers-empty-actions .ui-button {
+    width: auto;
+    min-height: 44px;
+    padding: 0 20px;
+  }
+  .rider-dispatch-panel .offers-preview-link {
+    justify-self: end;
+    min-height: 0;
+    padding: 2px 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12.5px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .offers-waiting-map {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    height: clamp(220px, 38dvh, 360px);
+    margin-top: 2px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+  .offers-waiting-map .leaflet-container {
+    width: 100%;
+    height: 100%;
+  }
+  .offers-waiting-map-credit {
+    position: absolute;
+    z-index: 500;
+    right: 8px;
+    bottom: 6px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: rgb(255 255 255 / 80%);
+    color: #4d5a52;
+    font-size: 10.5px;
+  }
+}
+@keyframes offers-search-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .offers-empty-phone[data-searching] .offers-empty-icon::before,
+  .offers-empty-phone[data-searching] .offers-empty-icon::after {
+    animation: none;
+  }
+}
+@media (max-width: 850px) {
+  .offers-readiness[data-ready] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border: 0;
+  }
+  .offers-readiness[data-ready] li {
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--primary-soft);
+  }
+  .offers-readiness[data-ready] li strong,
+  .offers-readiness[data-ready] li > svg:last-child {
+    display: none;
+  }
+  .offers-readiness[data-ready] li small {
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 650;
+  }
+}
+/* Phones: room between the heading, the status card, its actions and the map. */
+@media (max-width: 850px) {
+  .rider-dispatch-panel .rider-offers-status {
+    margin-bottom: 4px;
+  }
+  .offers-empty-phone {
+    gap: 16px;
+    margin-top: 10px;
+  }
+  .offers-empty-actions {
+    margin-top: 2px;
+  }
+  .rider-dispatch-panel .offers-preview-link {
+    margin-top: -6px;
+  }
+  .offers-waiting-map {
+    margin-top: 16px;
+  }
+}

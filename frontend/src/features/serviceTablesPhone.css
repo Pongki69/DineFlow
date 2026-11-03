@@ -1,0 +1,322 @@
+/* ---- Service tables (manager) on a phone --------------------------------
+   Status counts as filter chips, one slim row per table, actions on tap. */
+.service-phone-counts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.dineflow-app #main-content .service-phone-counts button {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px 14px 12px 18px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+/* A colour strip down the left edge for each status. */
+.dineflow-app #main-content .service-phone-counts button::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5px;
+  background: var(--primary-soft);
+  content: "";
+}
+.dineflow-app #main-content .service-phone-counts button[data-status="available"]::before {
+  background: #7aa25b;
+}
+.dineflow-app #main-content .service-phone-counts button[data-status="occupied"]::before {
+  background: var(--primary);
+}
+.dineflow-app #main-content .service-phone-counts button[data-status="cleaning"]::before {
+  background: #d9a21b;
+}
+.dineflow-app #main-content .service-phone-counts button[data-status="unavailable"]::before {
+  background: #9aa59d;
+}
+.service-phone-counts b {
+  font-size: 28px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.service-phone-counts span {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dineflow-app #main-content .service-phone-counts button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.service-phone-list {
+  display: grid;
+  margin: 0 0 12px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  list-style: none;
+}
+.service-phone-list > li + li {
+  border-top: 1px solid var(--border);
+}
+.dineflow-app #main-content .service-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+.service-phone-list > li[data-open] {
+  background: color-mix(in srgb, var(--primary-soft) 45%, transparent);
+}
+.service-phone-number {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 800;
+}
+.service-phone-list li[data-status="occupied"] .service-phone-number {
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.service-phone-list li[data-status="cleaning"] .service-phone-number {
+  background: #fbefcf;
+  color: #6f4f0b;
+}
+.service-phone-list li:is([data-status="unavailable"], [data-status="inactive"]) .service-phone-number {
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--muted);
+}
+.service-phone-main {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.service-phone-main strong {
+  font-size: 15px;
+}
+.service-phone-main small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.service-phone-state {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.service-phone-state[data-status="occupied"] {
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+.service-phone-state[data-status="cleaning"] {
+  background: #fbefcf;
+  color: #6f4f0b;
+}
+.service-phone-state:is([data-status="unavailable"], [data-status="inactive"]) {
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--muted);
+}
+
+/* Actions, on the right, once a row is opened. */
+.service-phone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+.dineflow-app #main-content .service-phone-actions button {
+  width: auto;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+.dineflow-app #main-content .service-phone-actions .service-phone-bill {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+}
+@media (max-width: 850px) {
+  .dineflow-app #main-content .sage-service .sage-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 4px;
+  }
+  .dineflow-app #main-content .sage-service .service-phone-search {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: center;
+    gap: 8px;
+    max-width: none;
+    height: 44px;
+    margin: 0;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--muted);
+  }
+  .dineflow-app #main-content .sage-service .service-phone-search:focus-within {
+    border-color: var(--primary);
+  }
+  .dineflow-app #main-content .sage-service .service-phone-search input {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ink);
+    font: inherit;
+    font-size: 16px;
+    outline: none;
+  }
+  .dineflow-app #main-content .sage-service .sage-freshness {
+    margin: 4px 2px 8px;
+    font-size: 13px;
+  }
+}
+@media (max-width: 850px) {
+  /* Tighter rhythm between the cards, search, count and list. */
+  .dineflow-app #main-content .sage-service {
+    gap: 10px;
+  }
+  .dineflow-app #main-content .sage-service > :is(.service-phone-counts, .sage-toolbar) {
+    margin: 0;
+  }
+  .dineflow-app #main-content .sage-service > .sage-freshness {
+    margin: 2px 2px 0;
+  }
+  /* The heading row is empty on phones (its title is for screen readers),
+     so it takes no slot in the column. */
+  .dineflow-app #main-content .sage-service > .sage-page-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+/* Clear filters always sits on the right. */
+.dineflow-app #main-content .sage-service .sage-clear-filters {
+  margin-left: auto;
+}
+@media (max-width: 850px) {
+  /* Filter chips under the search; area/floor selects as pills beside them. */
+  .service-phone-filters {
+    display: flex;
+    flex: 1 1 100%;
+    gap: 6px;
+    margin: 0 -2px;
+    padding: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dineflow-app #main-content .service-phone-filters button {
+    flex: none;
+    width: auto;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .dineflow-app #main-content .service-phone-filters button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app #main-content .sage-service .sage-toolbar > .sage-field:not(.service-phone-search):not([hidden]) {
+    flex: 1 1 140px;
+    margin: 0;
+    font-size: 0;
+  }
+  .dineflow-app #main-content .sage-service .sage-toolbar > .sage-field:not(.service-phone-search) select {
+    width: 100%;
+    height: 38px;
+    min-height: 38px;
+    border-radius: 999px;
+    font-size: 14px;
+  }
+  .dineflow-app #main-content .sage-service .sage-clear-filters {
+    flex: none;
+    width: auto;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+}
+@media (max-width: 850px) {
+  /* Count on the left, Clear filters on the right, one line. */
+  .service-phone-countrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 36px;
+  }
+  .dineflow-app #main-content .sage-service .service-phone-countrow .sage-freshness {
+    margin: 0 2px;
+  }
+}

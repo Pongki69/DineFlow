@@ -438,3 +438,121 @@
     margin-left: 48px;
   }
 }
+
+/* Dark theme: the selected-delivery card used fixed light-theme greys and
+   white control backgrounds, which fail contrast on the dark surface. */
+.dineflow-app
+  .app-shell[data-theme="dark"][data-workspace="delivery"]
+  .rider-delivery-card
+  :is(
+    .rider-selected-route-progress strong,
+    .rider-selected-route-progress span,
+    .rider-card-field-label,
+    .rider-secondary-actions > summary
+  ) {
+  color: var(--muted);
+}
+.dineflow-app
+  .app-shell[data-theme="dark"][data-workspace="delivery"]
+  .rider-delivery-card
+  .rider-card-items
+  > summary {
+  color: var(--ink);
+}
+.dineflow-app
+  .app-shell[data-theme="dark"][data-workspace="delivery"]
+  .rider-route-planner
+  .rider-delivery-card
+  .rider-actions {
+  background: transparent;
+}
+.dineflow-app
+  .app-shell[data-theme="dark"][data-workspace="delivery"]
+  .rider-route-planner
+  .rider-selected-workbench
+  .rider-primary-actions
+  .rider-card-navigation {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+/* Dark theme: surfaces that were hard-coded light. */
+.dineflow-app
+  .app-shell[data-theme="dark"][data-workspace="delivery"]
+  .rider-route-planner
+  .rider-selected-primary-action.df-bottom-bar {
+  border-color: var(--border);
+  background: var(--surface);
+}
+.dineflow-app
+  .app-shell[data-theme="dark"][data-workspace="delivery"]
+  .rider-route-planner
+  .rider-delivery-card
+  .rider-card-sequence {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* Phones, nothing assigned: one slim row above the map, action on the right. */
+.rider-deliveries-empty-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.rider-deliveries-empty-row > span {
+  display: grid;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.rider-deliveries-empty-row p {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+  margin: 0;
+}
+.rider-deliveries-empty-row strong {
+  font-size: 14.5px;
+}
+.rider-deliveries-empty-row small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.dineflow-app .rider-deliveries-empty-row a {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--df-color-on-brand, #fff);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Nothing assigned: the map fills the screen down to the bottom bar. */
+@media (max-width: 850px) {
+  .dineflow-app
+    #main-content
+    .rider-workspace:has(.rider-deliveries-empty-row)
+    .rider-route-planner:not(.is-expanded)
+    .rider-route-map {
+    height: max(
+      320px,
+      calc(100dvh - var(--rider-mobile-nav-height, 70px) - 185px)
+    );
+  }
+}

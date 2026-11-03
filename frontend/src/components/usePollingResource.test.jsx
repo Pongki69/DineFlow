@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { usePollingResource } from "./usePollingResource";
+import { notifyLiveChange } from "../liveUpdates";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -13,15 +14,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-it("deduplicates overlapping polls and aborts its pending request on unmount", async () => {
+it("deduplicates overlapping refreshes and aborts its pending request on unmount", async () => {
   let signal;
   const loader = vi.fn((options) => {
     signal = options.signal;
     return new Promise(() => {});
   });
-  const { result, unmount } = renderHook(() =>
-    usePollingResource(loader, { intervalMs: 100 }),
-  );
+  const { result, unmount } = renderHook(() => usePollingResource(loader));
   await act(async () => {});
   await act(async () => {
     await vi.advanceTimersByTimeAsync(300);
@@ -40,13 +39,12 @@ it("retains previous data and update time when a refresh fails, then recovers", 
     .mockResolvedValueOnce({ active_count: 3 })
     .mockRejectedValueOnce(new Error("Connection unavailable"))
     .mockResolvedValueOnce({ active_count: 2 });
-  const { result } = renderHook(() =>
-    usePollingResource(loader, { intervalMs: 100 }),
-  );
+  const { result } = renderHook(() => usePollingResource(loader));
   await act(async () => {});
   const updatedAt = result.current.updatedAt;
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(100);
+    notifyLiveChange();
+    await vi.advanceTimersByTimeAsync(300);
   });
   expect(result.current.data).toEqual({ active_count: 3 });
   expect(result.current.error).toBe("Connection unavailable");
@@ -59,14 +57,13 @@ it("retains previous data and update time when a refresh fails, then recovers", 
   expect(result.current.error).toBe("");
 });
 
-it("pauses background polling when hidden and reloads on return", async () => {
+it("defers hidden-page events and reloads when visible", async () => {
   const visibility = vi
     .spyOn(document, "visibilityState", "get")
     .mockReturnValue("visible");
   const loader = vi.fn().mockResolvedValue({ active_count: 1 });
   renderHook(() =>
     usePollingResource(loader, {
-      intervalMs: 100,
       eventName: "rider-deliveries-updated",
     }),
   );
@@ -74,6 +71,7 @@ it("pauses background polling when hidden and reloads on return", async () => {
   visibility.mockReturnValue("hidden");
   await act(async () => {
     document.dispatchEvent(new Event("visibilitychange"));
+    await vi.advanceTimersByTimeAsync(300);
     window.dispatchEvent(new Event("rider-deliveries-updated"));
     await vi.advanceTimersByTimeAsync(300);
   });
@@ -81,6 +79,7 @@ it("pauses background polling when hidden and reloads on return", async () => {
   visibility.mockReturnValue("visible");
   await act(async () => {
     document.dispatchEvent(new Event("visibilitychange"));
+    await vi.advanceTimersByTimeAsync(300);
   });
   expect(loader).toHaveBeenCalledTimes(2);
 });

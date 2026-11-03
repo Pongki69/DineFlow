@@ -6,6 +6,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -41,6 +42,7 @@ vi.mock("react-leaflet", () => ({
   ),
   Circle: () => null,
   useMap: () => map,
+  useMapEvents: () => map,
 }));
 const map = {
   fitBounds: vi.fn(),
@@ -48,6 +50,7 @@ const map = {
   setView: vi.fn(),
   getZoom: vi.fn(() => 14),
   invalidateSize: vi.fn(),
+  panInside: vi.fn(),
   getContainer: () => document.body,
 };
 const openCustomerPopup = vi.fn();
@@ -206,9 +209,11 @@ it("updates live location, limits road refresh frequency, and clears GPS on exit
   });
   const { unmount } = render(<RiderRoutePlanner deliveries={deliveries} />);
   await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
-  fireEvent.click(screen.getByRole("button", { name: "Use live location" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Show my live location" }),
+  );
   act(() =>
-    update({ coords: { latitude: 14.1, longitude: 121.2, accuracy: 10 } }),
+    update({ coords: { latitude: 14.1, longitude: 121.2, accuracy: 500 } }),
   );
   await waitFor(() => expect(api).toHaveBeenCalledTimes(2));
   expect(JSON.parse(api.mock.calls[1][1].body).origin).toEqual({
@@ -284,6 +289,45 @@ it("keeps editable drop-offs in fullscreen, enables wheel zoom, and exits with E
       .getByRole("button", { name: "Enter fullscreen" })
       .getAttribute("aria-expanded"),
   ).toBe("false");
+});
+
+it("keeps Stops and Delivery reachable in fullscreen", async () => {
+  render(
+    <RiderRoutePlanner
+      deliveries={deliveries.map((d) => ({ ...d, batch_key: null }))}
+      selectedDeliveryPanel={<p>Selected delivery details</p>}
+      fullscreenStops={<p>Shared stop list</p>}
+    />,
+  );
+  await screen.findByText("3 km · about 9 min");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Enter fullscreen", exact: true }),
+  );
+  const dialog = await screen.findByRole("dialog", {
+    name: "Route & tracking",
+  });
+  const dock = within(dialog).getByRole("navigation", {
+    name: "Delivery map panels",
+  });
+  const tab = (name) =>
+    within(dock).getByRole("button", { name: new RegExp(`^${name}`) });
+  const stopList = () => within(dialog).queryByText("Shared stop list");
+  // Fullscreen opens on the selected delivery, like the normal view.
+  expect(tab("Delivery").getAttribute("aria-pressed")).toBe("true");
+  expect(
+    screen.getByText("Selected delivery details").closest("[hidden]"),
+  ).toBeNull();
+  expect(stopList()).toBeNull();
+  expect(within(dock).queryByRole("button", { name: /^Tools/ })).toBeNull();
+
+  // Stops shows the same stop list as the page.
+  fireEvent.click(tab("Stops"));
+  expect(tab("Stops").getAttribute("aria-pressed")).toBe("true");
+  expect(stopList()).not.toBeNull();
+
+  fireEvent.click(tab("Stops"));
+  expect(dialog.dataset.fullscreenPanel).toBe("none");
+  expect(stopList()).toBeNull();
 });
 
 it("shows per-stop ETAs and overlays red only for returned congestion", async () => {
@@ -374,9 +418,7 @@ it("focuses the chosen customer on the map and opens its pin without reordering 
   expect(map.setView).toHaveBeenCalledWith(
     [deliveries[1].order.destination.latitude, 121.25],
     19,
-    {
-      animate: false,
-    },
+    { animate: true, duration: 0.45 },
   );
   expect(openCustomerPopup).toHaveBeenCalled();
   expect(stop.getAttribute("aria-pressed")).toBe("true");
@@ -408,7 +450,7 @@ it("keeps the page position on initial assignment focus and scrolls the map afte
     expect(map.setView).toHaveBeenCalledWith(
       [deliveries[0].order.destination.latitude, 121.25],
       19,
-      { animate: false },
+      { animate: true, duration: 0.45 },
     ),
   );
   expect(openCustomerPopup).toHaveBeenCalled();
@@ -419,7 +461,7 @@ it("keeps the page position on initial assignment focus and scrolls the map afte
     expect(map.setView).toHaveBeenLastCalledWith(
       [deliveries[1].order.destination.latitude, 121.25],
       19,
-      { animate: false },
+      { animate: true, duration: 0.45 },
     ),
   );
   expect(scrollMapIntoView).toHaveBeenCalledWith({

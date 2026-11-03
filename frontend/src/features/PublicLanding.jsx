@@ -18,11 +18,13 @@ import {
   Sun,
   Table2,
   UtensilsCrossed,
+  UserRound,
 } from "lucide-react";
 import { api } from "../api";
 import { useRestaurantLocation } from "../components/useRestaurantLocation";
 import { useWorkspaceTheme } from "../components/useWorkspaceTheme";
 import "./publicLanding.css";
+import "../components/mobileWorkspaceChrome.css";
 
 /** @typedef {{id:number,name:string,slug:string}} Category */
 /** @typedef {{id:number,name:string,description?:string,image_url?:string|null,base_price:number|string,discount_percent?:number|string,category?:{name:string},variants?:Array<{id:number,name:string,price_adjustment:number|string}>}} PublicDish */
@@ -624,6 +626,23 @@ export function PublicLanding({ onSignIn }) {
           <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </footer>
+      <nav
+        className="public-mobile-nav"
+        aria-label="Restaurant quick navigation"
+      >
+        <a href="#public-menu">
+          <UtensilsCrossed size={22} aria-hidden="true" />
+          <span>Menu</span>
+        </a>
+        <Link to="/reserve" onClick={(event) => signIn(event, "/reserve")}>
+          <Table2 size={22} aria-hidden="true" />
+          <span>Book a table</span>
+        </Link>
+        <Link to="/login" onClick={(event) => signIn(event, "/menu")}>
+          <UserRound size={22} aria-hidden="true" />
+          <span>Sign in</span>
+        </Link>
+      </nav>
     </div>
   );
 }

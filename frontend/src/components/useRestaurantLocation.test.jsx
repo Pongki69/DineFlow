@@ -41,7 +41,7 @@ it("reloads the saved outlet after a live change and retains the last location d
   expect(result.current.location).toEqual(second);
   expect(result.current.revision).not.toBe(previousRevision);
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(30000);
+    await changed();
   });
   expect(result.current.location).toEqual(second);
   expect(result.current.error).toBe("Connection interrupted");

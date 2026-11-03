@@ -1,0 +1,207 @@
+/* Customer page skeletons: each variant mirrors its page's layout. The
+   shimmer comes from the shared .skeleton class. */
+.csk > div {
+  display: grid;
+  gap: 12px;
+}
+.csk .csk-bar {
+  display: block;
+  height: 14px;
+  border-radius: 7px;
+}
+.csk .csk-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.csk .csk-pad {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+.csk .csk-stack {
+  display: grid;
+  gap: 12px;
+}
+.csk .csk-tight {
+  gap: 6px;
+}
+.csk .csk-grow {
+  flex: 1 1 auto;
+}
+.csk .csk-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.csk .csk-between {
+  justify-content: space-between;
+}
+.csk .csk-end {
+  justify-content: flex-end;
+}
+.csk .csk-w25 { width: 25%; }
+.csk .csk-w40 { width: 40%; }
+.csk .csk-w45 { width: 45%; }
+.csk .csk-w50 { width: 50%; }
+.csk .csk-w60 { width: 60%; }
+.csk .csk-w80 { width: 80%; }
+.csk .csk-w85 { width: 85%; }
+.csk .csk-h10 { height: 10px; }
+.csk .csk-h12 { height: 12px; }
+.csk .csk-h20 { height: 20px; border-radius: 10px; }
+.csk .csk-pill {
+  width: 84px;
+  height: 26px;
+  border-radius: 13px;
+}
+.csk .csk-button {
+  width: 100%;
+  height: 40px;
+  margin-top: 4px;
+  border-radius: 12px;
+}
+.csk .csk-button-right {
+  width: 130px;
+  margin-left: auto;
+}
+
+/* Menu */
+.csk .csk-search {
+  height: 48px;
+  border-radius: 14px;
+}
+.csk .csk-chips {
+  display: flex;
+  gap: 8px;
+}
+.csk .csk-chip {
+  width: 72px;
+  height: 40px;
+  border-radius: 20px;
+}
+.csk .csk-chip-wide {
+  width: 104px;
+}
+.csk .csk-dish-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+}
+.csk .csk-dish-image {
+  display: block;
+  aspect-ratio: 3 / 2;
+  border-radius: 0;
+}
+
+/* Orders, bookings */
+.csk .csk-tile {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 10px;
+}
+.csk .csk-order .csk-row > .csk-pill {
+  margin-left: auto;
+}
+.csk .csk-strip {
+  height: 46px;
+  border-radius: 12px;
+}
+.csk .csk-booking {
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.csk .csk-date-tile {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+}
+.csk .csk-span {
+  grid-column: 1 / -1;
+}
+
+/* Booking */
+.csk .csk-days {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+}
+.csk .csk-day {
+  flex: 0 0 58px;
+  height: 72px;
+  border-radius: 14px;
+}
+.csk .csk-times {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.csk .csk-time {
+  height: 40px;
+  border-radius: 10px;
+}
+.csk .csk-round {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+.csk .csk-plan {
+  height: 320px;
+  border-radius: 16px;
+}
+
+/* Profile, account */
+.csk .csk-avatar {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: 50%;
+}
+.csk .csk-avatar-lg {
+  width: 72px;
+  height: 72px;
+}
+.csk .csk-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+.csk .csk-list-row:last-child {
+  border-bottom: 0;
+}
+.csk .csk-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+.csk .csk-signout {
+  height: 48px;
+  border-radius: 14px;
+}
+.csk .csk-field {
+  height: 44px;
+  border-radius: 10px;
+}
+.csk .csk-row-card {
+  height: 52px;
+  border-radius: 16px;
+}
+
+@media (max-width: 767px) {
+  .csk .csk-dish-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .csk .csk-dish-image {
+    aspect-ratio: 1 / 1;
+  }
+  .csk .csk-pad {
+    padding: 10px;
+  }
+}

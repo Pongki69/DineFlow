@@ -1,0 +1,317 @@
+/* ---- Manager Home on a phone ----------------------------------------------
+   Same building blocks as the administrator's Home: one headline figure,
+   number tiles with an icon, then short lists with a text link per section. */
+@media (max-width: 850px) {
+  .dineflow-app #main-content .operations-dashboard--phone {
+    display: grid;
+    gap: 12px;
+  }
+  .overview-phone {
+    display: grid;
+    gap: 12px;
+  }
+
+  /* The quick-range row matches Reports: small chips, dates side by side. */
+  .dineflow-app #main-content .operations-dashboard--phone .report-range {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px 6px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+  .dineflow-app #main-content .operations-dashboard--phone .report-range > button {
+    grid-column: span 2;
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .dineflow-app #main-content .operations-dashboard--phone .report-range > .report-date-filter {
+    display: grid;
+    grid-column: span 3;
+    min-width: 0;
+  }
+  .dineflow-app #main-content .operations-dashboard--phone .report-range > .report-date-filter > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app #main-content .operations-dashboard--phone .report-range :is(.date-picker, .date-picker-trigger) {
+    width: 100%;
+    min-width: 0;
+  }
+  .dineflow-app #main-content .operations-dashboard--phone .report-range .date-picker-trigger {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 10px;
+    border-radius: 12px;
+    font-size: 13.5px;
+  }
+
+  /* Headline figure, like Order gross on Reports. */
+  .dineflow-app #main-content .overview-hero {
+    display: grid;
+    gap: 4px;
+    padding: 16px 16px 18px;
+    border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+    border-radius: 16px;
+    background:
+      radial-gradient(120% 140% at 0% 0%, var(--primary-soft), transparent 60%),
+      var(--surface);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .overview-hero > span {
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .overview-hero > strong {
+    color: var(--primary);
+    font-size: 30px;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+  }
+  .overview-hero > small {
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+
+  /* Number tiles: label with an icon, the number, one short note. */
+  .overview-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .overview-tiles > .overview-tile:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app #main-content .overview-tile {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .overview-tile-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+  .overview-tile-head > svg {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    padding: 6px;
+    border-radius: 8px;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .overview-tile > strong {
+    font-size: 22px;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+  }
+  .overview-tile > small {
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dineflow-app #main-content .overview-tile[data-alert] {
+    border-color: #e9c98a;
+    background: #fdf6e7;
+  }
+  .overview-tile[data-alert] .overview-tile-head > svg {
+    background: #fbe7bf;
+    color: #8a5a0b;
+  }
+
+  /* Sections: a 16px title with a text link on the right, then a list. */
+  .overview-section {
+    display: grid;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .overview-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 2px;
+  }
+  .dineflow-app #main-content .overview-section-head > h2 {
+    margin: 0;
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 750;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .dineflow-app #main-content .overview-section-head > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .overview-list {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    list-style: none;
+  }
+  .overview-list > li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 11px 14px;
+  }
+  .overview-list > li + li {
+    border-top: 1px solid var(--border);
+  }
+  .overview-when {
+    display: grid;
+    flex: none;
+    min-width: 54px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .overview-when > b {
+    font-size: 13px;
+  }
+  .overview-main {
+    display: grid;
+    flex: 1;
+    gap: 2px;
+    min-width: 0;
+  }
+  .overview-main > strong {
+    overflow: hidden;
+    font-size: 14.5px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .overview-main > small {
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .overview-badge {
+    flex: none;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .overview-rank {
+    display: grid;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 12.5px;
+    font-weight: 750;
+  }
+  .overview-amount {
+    flex: none;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .overview-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .overview-chips > span {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    text-transform: capitalize;
+  }
+  .overview-chips b {
+    color: var(--ink);
+  }
+  .overview-empty {
+    margin: 0;
+    padding: 14px;
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* Shortcuts read as rows with a chevron, like Today's priorities. */
+  .overview-list--links > li {
+    padding: 0;
+  }
+  .dineflow-app #main-content .overview-list--links a {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    padding: 0 14px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .overview-list--links strong {
+    flex: 1;
+    font-size: 14.5px;
+    font-weight: 650;
+  }
+  .overview-list--links a > svg {
+    color: var(--muted);
+  }
+  .overview-link-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border-radius: 9px;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+}

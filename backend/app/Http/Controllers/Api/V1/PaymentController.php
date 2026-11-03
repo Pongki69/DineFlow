@@ -35,13 +35,24 @@ class PaymentController extends Controller
     public function cashOrder(Request $request, Order $order, PaymentService $payments): JsonResponse
     {
         abort_unless($request->user()->hasPermission('payments.manage'), 403);
-        return response()->json(['data' => $payments->receipt($payments->recordCashOrder($order, $request->user()))], 201);
+        [$amount, $tendered] = $this->cashInput($request);
+        return response()->json(['data' => $payments->receipt($payments->recordCashOrder($order, $request->user(), $amount, $tendered))], 201);
     }
 
     public function cashSession(Request $request, DiningSession $session, PaymentService $payments): JsonResponse
     {
         abort_unless($request->user()->hasPermission('payments.manage'), 403);
-        return response()->json(['data' => $payments->receipt($payments->recordCashSession($session, $request->user()))], 201);
+        [$amount, $tendered] = $this->cashInput($request);
+        return response()->json(['data' => $payments->receipt($payments->recordCashSession($session, $request->user(), $amount, $tendered))], 201);
+    }
+
+    /** Optional part amount and cash handed over, both in pesos, as cents. */
+    private function cashInput(Request $request): array
+    {
+        $data = $request->validate(['amount' => ['nullable', 'numeric', 'min:0.01', 'max:1000000'], 'tendered' => ['nullable', 'numeric', 'min:0', 'max:1000000']]);
+        $cents = fn ($value) => $value === null ? null : (int) round(((float) $value) * 100);
+
+        return [$cents($data['amount'] ?? null), $cents($data['tendered'] ?? null)];
     }
 
     public function cashReservation(Request $request, Reservation $reservation, PaymentService $payments): JsonResponse

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { api } from "./api";
+import { notifyLiveChange } from "./liveUpdates";
 import {
   privateEcho,
   subscribeToOperations,
@@ -74,29 +75,30 @@ it("authorizes private subscriptions through the credentialed API client instead
     }),
   });
 });
-it("coalesces rapid live events, pauses hidden tabs and cleans up subscriptions", () => {
+it("coalesces rapid live events, pauses hidden tabs and cleans up subscriptions", async () => {
   const refresh = vi.fn();
   const stop = subscribeToOperations(refresh);
-  socket.changed();
-  socket.changed();
-  socket.changed();
-  vi.advanceTimersByTime(150);
+  notifyLiveChange(["orders"]);
+  notifyLiveChange(["orders"]);
+  notifyLiveChange(["orders"]);
+  await vi.advanceTimersByTimeAsync(300);
   expect(refresh).toHaveBeenCalledOnce();
   vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
-  socket.changed();
-  vi.advanceTimersByTime(150);
+  notifyLiveChange(["orders"]);
+  await vi.advanceTimersByTimeAsync(300);
   expect(refresh).toHaveBeenCalledOnce();
   stop();
-  expect(socket.leave).toHaveBeenCalledWith("admin.operations");
-  expect(socket.disconnect).toHaveBeenCalledOnce();
+  notifyLiveChange(["orders"]);
+  await vi.advanceTimersByTimeAsync(300);
+  expect(refresh).toHaveBeenCalledOnce();
 });
 
-it("refreshes public restaurant details without subscribing to private fleet locations", () => {
+it("refreshes public restaurant details without subscribing to private fleet locations", async () => {
   const refresh = vi.fn();
   const stop = subscribeToRestaurantLocation(refresh);
   expect(socket.publicChannel).toBe("restaurant.location");
   socket.changed();
-  vi.advanceTimersByTime(150);
+  await vi.advanceTimersByTimeAsync(300);
   expect(refresh).toHaveBeenCalledOnce();
   expect(api).not.toHaveBeenCalled();
   stop();

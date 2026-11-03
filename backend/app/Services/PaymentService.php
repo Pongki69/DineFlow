@@ -83,16 +83,17 @@ class PaymentService
         return $this->openCheckout($plan);
     }
 
-    public function recordCashOrder(Order $order, User $actor): Payment
+    public function recordCashOrder(Order $order, User $actor, ?int $requestedCents = null, ?int $tenderedCents = null): Payment
     {
-        return DB::transaction(function () use ($order, $actor): Payment {
+        return DB::transaction(function () use ($order, $actor, $requestedCents, $tenderedCents): Payment {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! $this->policy()['cash_enabled']) throw ValidationException::withMessages(['method' => 'Cash payments are currently disabled.']);
             if ($locked->status === 'cancelled') throw ValidationException::withMessages(['order' => 'This order is no longer payable.']);
             $this->assertNoPending($locked);
             $amount = $this->orderDueCents($locked);
             if ($amount < 1) throw ValidationException::withMessages(['order' => 'This order has no remaining balance.']);
-            $payment = Payment::create(['order_id' => $locked->id, 'purpose' => 'order', 'method' => 'cash', 'status' => 'paid', 'amount' => $this->money($amount), 'currency' => $locked->currency, 'received_by' => $actor->id, 'paid_at' => now(), 'reference_number' => $this->reference()]);
+            $amount = $this->cashAmount($amount, $requestedCents, $tenderedCents);
+            $payment = Payment::create(['order_id' => $locked->id, 'purpose' => 'order', 'method' => 'cash', 'status' => 'paid', 'amount' => $this->money($amount), 'cash_tendered' => $tenderedCents !== null ? $this->money($tenderedCents) : null, 'currency' => $locked->currency, 'received_by' => $actor->id, 'paid_at' => now(), 'reference_number' => $this->reference()]);
             $payment->transactions()->create(['transaction_type' => 'cash_payment', 'status' => 'paid', 'amount' => $payment->amount, 'notes' => 'Cash payment recorded by '.$actor->name]);
             $this->applyToOrder($locked, $amount, $payment, $actor);
             app(RestaurantNotificationService::class)->send($locked->customer, 'payment.paid', 'Payment received', 'Cash payment for order '.$locked->order_number.' was recorded.', ['payment_id' => $payment->id, 'order_id' => $locked->id, 'amount' => $payment->amount]);
@@ -101,9 +102,9 @@ class PaymentService
         }, 3);
     }
 
-    public function recordCashSession(DiningSession $session, User $actor): Payment
+    public function recordCashSession(DiningSession $session, User $actor, ?int $requestedCents = null, ?int $tenderedCents = null): Payment
     {
-        return DB::transaction(function () use ($session, $actor): Payment {
+        return DB::transaction(function () use ($session, $actor, $requestedCents, $tenderedCents): Payment {
             $locked = DiningSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
             if (! $this->policy()['cash_enabled']) throw ValidationException::withMessages(['method' => 'Cash payments are currently disabled.']);
             if ($locked->status !== 'open') throw ValidationException::withMessages(['dining_session' => 'This dining session is no longer open for payment.']);
@@ -112,7 +113,11 @@ class PaymentService
             if (Payment::where('dining_session_id', $locked->id)->where('status', 'pending')->exists()) throw ValidationException::withMessages(['payment' => 'A checkout is already open for this bill.']);
             $amount = $orders->sum(fn (Order $order) => $this->orderDueCents($order));
             if ($amount < 1) throw ValidationException::withMessages(['dining_session' => 'This dining bill has no remaining balance.']);
-            $payment = Payment::create(['dining_session_id' => $locked->id, 'purpose' => 'dining_session', 'method' => 'cash', 'status' => 'paid', 'amount' => $this->money($amount), 'currency' => 'PHP', 'received_by' => $actor->id, 'paid_at' => now(), 'reference_number' => $this->reference()]);
+            $fullBill = $amount;
+            $amount = $this->cashAmount($amount, $requestedCents, $tenderedCents);
+            $payment = Payment::create(['dining_session_id' => $locked->id, 'purpose' => 'dining_session', 'method' => 'cash', 'status' => 'paid', 'amount' => $this->money($amount), 'cash_tendered' => $tenderedCents !== null ? $this->money($tenderedCents) : null, 'currency' => 'PHP', 'received_by' => $actor->id, 'paid_at' => now(), 'reference_number' => $this->reference()]);
+            // Settled in full: the table's bill request is answered.
+            if ($amount >= $fullBill) $locked->forceFill(['bill_requested_at' => null])->save();
             $payment->transactions()->create(['transaction_type' => 'cash_payment', 'status' => 'paid', 'amount' => $payment->amount, 'notes' => 'Cash dining bill recorded by '.$actor->name]);
             $this->allocateSession($payment, $actor);
             foreach (Order::where('dining_session_id', $locked->id)->with('customer')->get() as $billOrder) {
@@ -273,8 +278,30 @@ class PaymentService
 
     public function receipt(Payment $payment): array
     {
-        $payment->loadMissing(['order', 'reservation', 'diningSession.table', 'receivedBy:id,name', 'transactions']);
-        return ['reference' => $payment->reference_number, 'status' => $payment->status, 'purpose' => $payment->purpose, 'method' => $payment->method, 'amount' => $payment->amount, 'currency' => $payment->currency, 'paid_at' => $payment->paid_at?->toIso8601String(), 'provider_reference' => $payment->provider_payment_id ?? $payment->provider_reference, 'order_number' => $payment->order?->order_number, 'reservation_reference' => $payment->reservation?->reference, 'table' => $payment->diningSession?->table?->table_number, 'received_by' => $payment->receivedBy?->name, 'transactions' => $payment->transactions->map(fn ($tx) => ['type' => $tx->transaction_type, 'status' => $tx->status, 'amount' => $tx->amount, 'reference' => $tx->provider_transaction_id, 'created_at' => $tx->created_at?->toIso8601String()])];
+        $payment->loadMissing(['order.items.addons', 'reservation', 'diningSession.table', 'diningSession.orders.items.addons', 'receivedBy:id,name', 'transactions']);
+        // What was paid for: the order's dishes, or every order on a table bill.
+        $orders = $payment->order ? collect([$payment->order]) : ($payment->diningSession?->orders->where('status', '!=', 'cancelled') ?? collect());
+        $lines = $orders->flatMap(fn (Order $order) => $order->items->map(fn ($item) => [
+            'name' => $item->item_name_snapshot, 'variant' => $item->variant_name_snapshot,
+            'quantity' => (int) $item->quantity, 'total' => $item->line_total,
+            'addons' => $item->addons->map(fn ($addon) => ($addon->quantity > 1 ? $addon->quantity.'x ' : '').$addon->addon_name_snapshot)->values(),
+            'note' => $item->special_instructions,
+        ]))->values();
+        // Fees and discounts, so the lines add up to the order totals.
+        $charges = collect([
+            ['Item discounts', -$orders->sum(fn (Order $order) => (float) $order->item_discount_total)],
+            ['Service charge', $orders->sum(fn (Order $order) => (float) $order->service_charge)],
+            ['Delivery fee', $orders->sum(fn (Order $order) => (float) $order->delivery_fee)],
+            ['Tax', $orders->sum(fn (Order $order) => (float) $order->tax)],
+        ])->filter(fn ($row) => abs($row[1]) >= 0.005)->map(fn ($row) => ['name' => $row[0], 'total' => number_format($row[1], 2, '.', '')])->values();
+        $profile = \App\Models\RestaurantSetting::where('key', 'business_profile')->value('value') ?? [];
+        $place = \App\Models\RestaurantSetting::where('key', 'restaurant_location')->value('value') ?? [];
+        $restaurant = [
+            'name' => $profile['restaurant_name'] ?? ($place['name'] ?? 'DineFlow'),
+            'address' => $place['address'] ?? null,
+            'phone' => $place['phone'] ?? null,
+        ];
+        return ['restaurant' => $restaurant, 'lines' => $lines, 'charges' => $charges, 'order_type' => $payment->order?->order_type ?? ($payment->diningSession ? 'dine_in' : null), 'subtotal' => number_format($orders->sum(fn (Order $order) => (float) $order->subtotal), 2, '.', ''), 'order_total' => number_format($orders->sum(fn (Order $order) => (float) $order->total), 2, '.', ''), 'reference' => $payment->reference_number, 'status' => $payment->status, 'purpose' => $payment->purpose, 'method' => $payment->method, 'amount' => $payment->amount, 'currency' => $payment->currency, 'paid_at' => $payment->paid_at?->toIso8601String(), 'provider_reference' => $payment->provider_payment_id ?? $payment->provider_reference, 'order_number' => $payment->order?->order_number, 'reservation_reference' => $payment->reservation?->reference, 'table' => $payment->diningSession?->table?->table_number, 'received_by' => $payment->receivedBy?->name, 'cash_tendered' => $payment->cash_tendered, 'change' => $payment->cash_tendered !== null ? $this->money(max(0, $this->cents($payment->cash_tendered) - $this->cents($payment->amount))) : null, 'transactions' => $payment->transactions->map(fn ($tx) => ['type' => $tx->transaction_type, 'status' => $tx->status, 'amount' => $tx->amount, 'reference' => $tx->provider_transaction_id, 'created_at' => $tx->created_at?->toIso8601String()])];
     }
 
     public function publicPayment(Payment $payment): array
@@ -301,7 +328,7 @@ class PaymentService
         return DiningSession::with(['table:id,table_number', 'orders:id,dining_session_id,order_number,status,total', 'payments:id,dining_session_id,status,amount'])
             ->where('status', 'open')->latest('opened_at')->limit(100)->get()->map(function (DiningSession $session): array {
                 $due = $session->orders->where('status', '!=', 'cancelled')->sum(fn (Order $order) => $this->orderDueCents($order));
-                return ['id' => $session->id, 'table_number' => $session->table?->table_number, 'opened_at' => $session->opened_at?->toIso8601String(), 'orders' => $session->orders->map(fn ($order) => ['order_number' => $order->order_number, 'status' => $order->status, 'total' => $order->total]), 'balance_due' => $this->money($due), 'payment_pending' => $session->payments->contains(fn ($payment) => $payment->status === 'pending')];
+                return ['id' => $session->id, 'table_number' => $session->table?->table_number, 'opened_at' => $session->opened_at?->toIso8601String(), 'bill_requested_at' => $session->bill_requested_at?->toIso8601String(), 'guest_count' => $session->guest_count, 'orders' => $session->orders->map(fn ($order) => ['order_number' => $order->order_number, 'status' => $order->status, 'total' => $order->total]), 'balance_due' => $this->money($due), 'payment_pending' => $session->payments->contains(fn ($payment) => $payment->status === 'pending')];
             })->values()->all();
     }
 
@@ -309,7 +336,7 @@ class PaymentService
     {
         $orders = Order::with(['payments:id,order_id,status,amount'])->where('status', '!=', 'cancelled')->latest()->limit(100)->get()->map(function (Order $order): ?array {
             $due = $this->orderDueCents($order);
-            return $due > 0 ? ['id' => $order->id, 'order_number' => $order->order_number, 'customer_name' => $order->customer_name_snapshot, 'order_type' => $order->order_type, 'status' => $order->status, 'balance_due' => $this->money($due), 'payment_pending' => $order->payments->contains(fn ($payment) => $payment->status === 'pending')] : null;
+            return $due > 0 ? ['id' => $order->id, 'order_number' => $order->order_number, 'customer_name' => $order->customer_name_snapshot, 'order_type' => $order->order_type, 'status' => $order->status, 'dining_session_id' => $order->dining_session_id, 'table_number' => $order->table_number_snapshot, 'created_at' => $order->created_at?->toIso8601String(), 'balance_due' => $this->money($due), 'payment_pending' => $order->payments->contains(fn ($payment) => $payment->status === 'pending')] : null;
         })->filter()->values()->all();
         $policy = app(ReservationService::class)->policy();
         $deposits = [];
@@ -411,6 +438,28 @@ class PaymentService
             if ($remaining <= 0) break;
         }
         if ($remaining !== 0) throw new RuntimeException('Dining-session payment allocation did not reconcile to the verified amount.');
+    }
+
+    /** Amount still due on an order, in cents. */
+    public function dueCents(Order $order): int
+    {
+        return $this->orderDueCents($order);
+    }
+
+    /**
+     * How much of the balance this cash payment covers. Without an amount it
+     * settles everything; with one it is a part payment (split bill). Cash
+     * handed over must cover it.
+     */
+    private function cashAmount(int $dueCents, ?int $requestedCents, ?int $tenderedCents): int
+    {
+        $amount = $requestedCents === null ? $dueCents : min($requestedCents, $dueCents);
+        if ($amount < 1) throw ValidationException::withMessages(['amount' => 'Enter an amount to collect.']);
+        if ($tenderedCents !== null && $tenderedCents < $amount) {
+            throw ValidationException::withMessages(['tendered' => 'The cash received is less than the amount to collect.']);
+        }
+
+        return $amount;
     }
 
     private function orderDueCents(Order $order): int

@@ -1,5 +1,17 @@
+import { playSound } from "../uiSound";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
+import {
+  Bike,
+  CheckCheck,
+  Clock3,
+  MapPin,
+  PackageCheck,
+  RefreshCw,
+  Search,
+  TriangleAlert,
+  Truck,
+} from "lucide-react";
 import {
   EmptyState,
   Feedback,
@@ -10,10 +22,20 @@ import {
 import { usePrompt } from "../components/ConfirmProvider";
 import "../components/riderDeliveryCards.css";
 import "../components/deliveryWorkbench.css";
+import "./dispatchWorkspace.css";
+const queueIcons = {
+  attention: TriangleAlert,
+  waiting: Bike,
+  pickup: PackageCheck,
+  road: Truck,
+  finished: CheckCheck,
+};
 const terminal = ["delivered", "failed", "cancelled"];
 const title = (value) => String(value || "").replaceAll("_", " ");
 import { dispatchQueue, dispatchQueues } from "../components/dispatchQueues";
 import { usePollingResource } from "../components/usePollingResource";
+import { useMediaQuery } from "../components/useMediaQuery";
+import "./dispatchPhone.css";
 
 export function DispatchDashboard() {
   const [queue, setQueue] = useState("attention");
@@ -44,8 +66,8 @@ export function DispatchDashboard() {
     updatedAt,
     refresh: load,
   } = usePollingResource(({ signal }) => api(requestPath, { signal }), {
-    intervalMs: 15000,
     resourceKey: requestPath,
+    topics: ["deliveries", "orders", "settings", "accounts"],
   });
   useEffect(() => {
     if (!result) {
@@ -98,6 +120,7 @@ export function DispatchDashboard() {
         method: "POST",
         body: JSON.stringify({ rider_id: Number(selection[d.id]), reason }),
       });
+      playSound("success");
       setNotice(`Rider assigned to ${d.order.order_number}.`);
     });
   }
@@ -139,61 +162,122 @@ export function DispatchDashboard() {
       }),
     );
   }
+  const queueLabel = dispatchQueues.find(([key]) => key === queue)?.[1];
+  const countFor = (key) =>
+    result?.counts?.[key] ??
+    deliveries.filter((delivery) => dispatchQueue(delivery) === key).length;
+  const nextQueue = dispatchQueues.find(
+    ([key]) => key !== queue && countFor(key) > 0,
+  );
+  function selectQueue(key) {
+    setQueue(key);
+    setPage(1);
+  }
+  // Phones: queue chips, a plain search pill and tighter delivery cards.
+  const phone = useMediaQuery("(max-width: 850px)");
+  const plural = (count) =>
+    `${count} ${Number(count) === 1 ? "delivery" : "deliveries"}`;
+  const arrival = (value) =>
+    value
+      ? new Date(value).toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : null;
   return (
     <section className="welcome dispatch-dashboard">
+      <span className="dispatch-eyebrow">DELIVERY OPERATIONS</span>
       <PageHeader
         title="Dispatch and tracking"
         description="Resolve exceptions, assign riders and monitor active deliveries."
         actions={
           <Button variant="secondary" busy={refreshing} onClick={() => load()}>
-            {refreshing ? "Refreshing deliveries…" : "Refresh deliveries"}
+            {!refreshing && <RefreshCw size={16} aria-hidden="true" />}
+            <span className="admin-refresh-label">
+              {refreshing ? "Refreshing deliveries…" : "Refresh deliveries"}
+            </span>
           </Button>
         }
       />
       <nav className="dispatch-queues" aria-label="Dispatch queues">
-        {dispatchQueues.map(([key, label]) => (
-          <Button
-            key={key}
-            variant="secondary"
-            aria-pressed={queue === key}
-            onClick={() => {
-              setQueue(key);
-              setPage(1);
-            }}
-          >
-            {label}
-            <strong>
-              {result?.counts?.[key] ??
-                deliveries.filter((d) => dispatchQueue(d) === key).length}
-            </strong>
-          </Button>
-        ))}
+        {dispatchQueues.map(([key, label]) => {
+          const Icon = queueIcons[key];
+          return (
+            <Button
+              key={key}
+              variant="secondary"
+              aria-pressed={queue === key}
+              data-queue={key}
+              data-alert={
+                key === "attention" && countFor(key) > 0 ? true : undefined
+              }
+              onClick={() => selectQueue(key)}
+            >
+              <span className="dispatch-queue-label">
+                <Icon size={18} aria-hidden="true" />
+                {label}
+              </span>
+              <strong>{loading && !result ? "—" : countFor(key)}</strong>
+            </Button>
+          );
+        })}
       </nav>
-      <label className="dispatch-search">
-        Search orders, riders or addresses
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Order number, rider or destination"
-        />
-      </label>
-      {updatedAt && (
-        <p className="rider-data-freshness">
-          {refreshError
-            ? "Updates unavailable. Showing previously loaded records."
-            : `Updated at ${updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}{" "}
-          · {result?.meta?.total ?? deliveries.length} matching deliveries
-        </p>
-      )}
+      <div className="dispatch-toolbar">
+        <label className="dispatch-search">
+          Search orders, riders or addresses
+          <span className="dispatch-search-input">
+            <Search size={18} aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Order number, rider or destination"
+            />
+          </span>
+        </label>
+        {updatedAt && (
+          <p className="rider-data-freshness">
+            <Clock3 size={14} aria-hidden="true" />
+            {refreshError
+              ? "Updates unavailable. Showing previously loaded records."
+              : `Updated at ${updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}{" "}
+            · {plural(result?.meta?.total ?? deliveries.length)} matching
+          </p>
+        )}
+      </div>
+      <div className="dispatch-results-heading">
+        <h2>{queueLabel}</h2>
+        <span>
+          {loading
+            ? "Loading…"
+            : plural(
+                result?.meta?.total ??
+                  deliveries.filter(
+                    (delivery) => dispatchQueue(delivery) === queue,
+                  ).length,
+              )}
+        </span>
+      </div>
       {loading && <Skeleton label="Loading your content" />}
       {!loading && !refreshError && deliveries.length === 0 && (
         <EmptyState
+          compact
+          icon={queueIcons[queue]}
           title={searchTerm ? "No matching deliveries" : "This queue is clear"}
           description={
             searchTerm
               ? "Try a different order, rider or address."
               : "Choose another queue to review the rest of your delivery work."
+          }
+          action={
+            searchTerm
+              ? "Clear search"
+              : nextQueue
+                ? `View ${nextQueue[1].toLowerCase()}`
+                : undefined
+          }
+          onAction={() =>
+            searchTerm ? setQuery("") : nextQueue && selectQueue(nextQueue[0])
           }
         />
       )}
@@ -227,13 +311,15 @@ export function DispatchDashboard() {
                 <span>{d.rider?.name || "Unassigned"}</span>
               </div>
               <p className="dispatch-card-address">
+                {phone && <MapPin size={15} aria-hidden="true" />}
                 {d.order.delivery_address}
               </p>
               <p className="dispatch-card-summary">
-                Estimated arrival ·{" "}
-                {d.estimated_arrival_at
-                  ? new Date(d.estimated_arrival_at).toLocaleTimeString()
-                  : "not available"}
+                {phone
+                  ? arrival(d.estimated_arrival_at)
+                    ? `Arrives ${arrival(d.estimated_arrival_at)}`
+                    : "Arrival time not available"
+                  : `Estimated arrival · ${arrival(d.estimated_arrival_at) || "not available"}`}
               </p>
               {d.dispatch_status === "exhausted" && (
                 <Feedback tone="warning">

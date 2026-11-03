@@ -121,6 +121,7 @@
   }
 }
 .rider-history-list {
+  gap: 0;
   padding: 0 20px;
 }
 .rider-history-columns,
@@ -141,7 +142,17 @@
   position: relative;
   padding: 20px 0;
   border-top: 1px solid var(--border);
-  font-size: var(--text-sm);
+  font-size: clamp(1rem, 0.94rem + 0.16vw, 1.1333rem);
+  line-height: 1.55;
+  transition: background-color 160ms ease;
+}
+.rider-history-row:hover {
+  background: var(--neutral-soft);
+}
+.rider-history-row:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: 8px;
 }
 .rider-history-order-cell,
 .rider-history-destination {
@@ -161,8 +172,24 @@
   flex-shrink: 0;
 }
 .rider-history-order {
+  color: var(--primary);
+  font-size: clamp(1.0667rem, 1rem + 0.16vw, 1.2rem);
   font-weight: 650;
   overflow-wrap: anywhere;
+  text-decoration: none;
+}
+.rider-history-order::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.rider-history-order:focus-visible {
+  outline: none;
+}
+.rider-history-row:hover .rider-history-order {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .rider-history-destination {
   color: var(--muted);
@@ -179,6 +206,7 @@
 }
 .rider-history-date small {
   color: var(--muted);
+  font-size: clamp(0.8667rem, 0.8rem + 0.16vw, 1rem);
 }
 .rider-history-field-label {
   display: none;
@@ -186,6 +214,10 @@
 .rider-history-total,
 .rider-history-amount-label {
   text-align: right;
+}
+.rider-history-total strong {
+  font-size: clamp(1.0667rem, 1rem + 0.16vw, 1.2rem);
+  white-space: nowrap;
 }
 .rider-history-arrow {
   color: var(--muted);
@@ -200,7 +232,7 @@
   padding: 16px 20px;
   border-top: 1px solid var(--border);
 }
-@media (max-width: 899px) {
+@media (max-width: 1099px) {
   .rider-history-columns {
     display: none;
   }
@@ -232,5 +264,71 @@
   }
   .rider-history-arrow {
     display: none;
+  }
+}
+
+/* Phones: three short lines per delivery — order and outcome, drop-off,
+   then time and total. Field labels stay for screen readers only. */
+@media (max-width: 599px) {
+  .rider-content .rider-history-list .rider-history-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "order status"
+      "dest dest"
+      "date total";
+    align-items: center;
+    gap: 6px 12px;
+    padding-block: 14px;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .rider-content .rider-history-list .rider-history-order-cell {
+    grid-area: order;
+    gap: 10px;
+  }
+  .rider-content .rider-history-list .rider-history-order-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .rider-content .rider-history-list .rider-history-outcome {
+    grid-area: status;
+  }
+  .rider-content .rider-history-list .rider-history-destination {
+    grid-area: dest;
+    min-width: 0;
+    color: var(--muted);
+  }
+  .rider-content .rider-history-list .rider-history-destination > span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .rider-content .rider-history-list .rider-history-date {
+    grid-area: date;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .rider-content .rider-history-list .rider-history-date time {
+    display: flex;
+    gap: 6px;
+  }
+  .rider-content .rider-history-list .rider-history-total {
+    grid-area: total;
+    text-align: right;
+  }
+  .rider-content .rider-history-list .rider-history-total strong {
+    font-size: 16px;
+  }
+  .rider-content .rider-history-list .rider-history-field-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .rider-content .rider-history-list .rider-history-support {
+    grid-column: 1 / -1;
   }
 }

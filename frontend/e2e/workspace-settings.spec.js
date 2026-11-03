@@ -78,10 +78,13 @@ for (const role of [
     await expect(
       page.getByRole("checkbox", { name: /Unread notification badge/ }),
     ).not.toBeChecked();
-    if (role === "rider")
+    // Riders keep rider details, name and password on the Account page.
+    if (role === "rider") {
+      await page.goto("/account");
       await expect(
         page.getByRole("combobox", { name: "Vehicle", exact: true }),
       ).toBeVisible();
+    }
     if (role === "administrator")
       await expect(
         page.getByRole("heading", { name: "Restaurant controls" }),
@@ -90,7 +93,8 @@ for (const role of [
       await expect(
         page.getByRole("link", { name: "Business settings", exact: true }),
       ).toHaveCount(0);
-    await page.locator(".workspace-security > summary").click();
+    if (role !== "rider")
+      await page.locator(".workspace-security > summary").click();
     await expect(
       page.getByLabel("Current password", { exact: true }),
     ).toBeVisible();
@@ -151,7 +155,7 @@ test("rider dashboard, deliveries, offers and history share one GPS session", as
     });
   });
   await login(page, "rider");
-  await page.goto("/settings");
+  await page.goto("/account");
   await page
     .getByRole("combobox", { name: "Vehicle", exact: true })
     .selectOption("motorcycle");

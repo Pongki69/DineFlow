@@ -1,10 +1,41 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
 import { api } from "./api";
+import { applyLiveUpdates, getLiveState, runLiveRequest } from "./liveUpdates";
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+it("keeps map snapshots outside the page's protected list version", async () => {
+  vi.useFakeTimers();
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: [{ id: 1 }] }),
+    })
+    .mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: [{ id: 1 }, { id: 2 }] }),
+    });
+  vi.stubGlobal("fetch", fetch);
+  await api("/map-cache-isolation");
+  await api("/map-cache-isolation", { mapSnapshot: true });
+  expect(fetch.mock.calls[1][1].mapSnapshot).toBeUndefined();
+  let applied = false;
+  const result = runLiveRequest(() => api("/map-cache-isolation")).then(() => {
+    applied = true;
+  });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(applied).toBe(false);
+  expect(getLiveState().pending).toBeGreaterThan(0);
+  applyLiveUpdates();
+  await result;
+  expect(applied).toBe(true);
 });
 
 it("reuses the submission key after a network failure and starts a fresh submission after success", async () => {

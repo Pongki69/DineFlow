@@ -4,7 +4,18 @@ const TITLES = {
   history: "Delivery history",
   reviews: "Ratings and reviews",
   details: "Order details",
+  offers: "Delivery offers",
+  profile: "Profile",
 };
+
+// Each variant mirrors the page it stands in for, so content lands where the
+// placeholder was instead of jumping. `w` sets a line's width.
+const Line = ({ w = "100%", h, className = "" }) => (
+  <i
+    className={`rsk-line ${className}`.trim()}
+    style={{ "--rsk-w": w, ...(h ? { "--rsk-h": `${h}px` } : null) }}
+  />
+);
 
 export function RiderScreenSkeleton({
   variant = "dashboard",
@@ -15,141 +26,229 @@ export function RiderScreenSkeleton({
 
   return (
     <div
-      className={`rider-screen-skeleton rider-screen-skeleton--${variant}${showHeading ? " rider-screen-skeleton--has-heading" : ""}`}
+      className={`rider-screen-skeleton rsk rsk--${variant}`}
       role="status"
       aria-label={label || `Loading ${title.toLowerCase()}`}
       aria-busy="true"
     >
-      {showHeading && (
-        <>
-          {variant === "details" && (
-            <span className="rider-screen-skeleton-block back-link-placeholder" aria-hidden="true" />
-          )}
-          <div className="rider-screen-skeleton-heading" aria-hidden="true">
-            <span className="rider-screen-skeleton-block title" />
-            <span className="rider-screen-skeleton-block subtitle" />
-            {variant === "deliveries" && (
-              <span className="rider-screen-skeleton-block heading-action" />
-            )}
-          </div>
-        </>
-      )}
-      <div className="rider-screen-skeleton-content" aria-hidden="true">
-        {variant === "history" && showHeading && (
-          <section className="rider-history-panel history-panel-placeholder">
-            <div className="history-toolbar-placeholder">
-              <i /><i /><i />
-            </div>
-            <div className="history-results-placeholder"><i /><span /></div>
-            <HistoryPlaceholder />
-          </section>
-        )}
-        {variant === "dashboard" && (
-          <>
-            <section className="rider-loading-card dashboard-metrics">
-              <span className="rider-screen-skeleton-block section-title" />
-              <span className="rider-screen-skeleton-block section-copy" />
-              <div className="dashboard-metric-grid">
-                {[0, 1, 2, 3].map((item) => (
-                  <div className="dashboard-metric-item" key={item}>
-                    <i />
-                    <b />
-                    <span />
-                  </div>
-                ))}
-              </div>
-            </section>
-            <div className="dashboard-main-grid">
-              <section className="rider-loading-card dashboard-day">
-                <span className="rider-screen-skeleton-block section-title" />
-                <span className="rider-screen-skeleton-block section-copy" />
-                <i className="wide-line" />
-                <i className="medium-line" />
-                <i className="short-line" />
-              </section>
-              <section className="rider-loading-card dashboard-status">
-                <span className="rider-screen-skeleton-block section-title" />
-                <i className="wide-line" />
-                <i className="button-line" />
-                <i className="medium-line" />
-              </section>
-            </div>
-            <section className="rider-loading-card dashboard-tools">
-              <span className="rider-screen-skeleton-block section-title" />
-              <div className="dashboard-tool-grid">
-                {[0, 1, 2].map((item) => (
-                  <div className="dashboard-tool-item" key={item}>
-                    <i />
-                    <span><b /><em /></span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </>
-        )}
-        {variant === "deliveries" && (
-          <div className="rider-loading-card deliveries-planner">
-            <div className="deliveries-map-placeholder">
-              <i className="map-road road-a" />
-              <i className="map-road road-b" />
-              <i className="map-route" />
-              <i className="map-pin pin-a" />
-              <i className="map-pin pin-b" />
-            </div>
-            <div className="deliveries-panel-placeholder">
-              <span className="rider-screen-skeleton-block section-title" />
-              <span className="rider-screen-skeleton-block section-copy" />
-              {[0, 1, 2].map((item) => <i className="delivery-stop-line" key={item} />)}
-            </div>
+      <div className="rsk-body" aria-hidden="true">
+        {showHeading && variant === "details" && <Line w="34%" />}
+        {showHeading && (
+          <div className="rsk-heading">
+            <Line w="46%" h={24} />
+            <Line w="72%" />
           </div>
         )}
-        {variant === "history" && !showHeading && <HistoryPlaceholder />}
-        {variant === "reviews" && (
-          <>
-            <section className="rider-loading-card review-profile-placeholder">
-              <i />
-              <div><b /><span /><em /></div>
-              <small />
-            </section>
-            <div className="review-grid-placeholder">
-              <section className="rider-loading-card review-score-placeholder">
-                <b /><i /><i /><i /><i />
-              </section>
-              <section className="rider-loading-card review-empty-placeholder">
-                <i /><div><b /><span /><span /><span /></div>
-              </section>
-            </div>
-          </>
-        )}
-        {variant === "details" && (
-          <>
-            <section className="rider-loading-card receipt-placeholder">
-              <span className="rider-screen-skeleton-block section-title" />
-              {[0, 1, 2].map((item) => <i key={item} />)}
-            </section>
-            <div className="order-details-grid-placeholder">
-              <section className="rider-loading-card"><i /><i /><i /></section>
-              <section className="rider-loading-card"><i /><i /><i /></section>
-            </div>
-            <section className="rider-loading-card order-map-placeholder" />
-          </>
-        )}
+        {variant === "dashboard" && <Dashboard />}
+        {variant === "deliveries" && <Deliveries />}
+        {variant === "history" && <History />}
+        {variant === "reviews" && <Reviews />}
+        {variant === "details" && <Details />}
+        {variant === "offers" && <Offers />}
+        {variant === "profile" && <Profile />}
       </div>
     </div>
   );
 }
 
-function HistoryPlaceholder() {
+function Dashboard() {
   return (
-    <div className="history-list-placeholder">
-      <div className="history-header-line">
-        {[0, 1, 2, 3, 4, 5].map((item) => <i key={item} />)}
+    <>
+      <section className="rsk-card">
+        <div className="rsk-row">
+          <Line w="40%" h={20} />
+          <Line w="22%" />
+        </div>
+        <div className="rsk-row">
+          <div className="rsk-stack">
+            <Line w="60%" />
+            <Line w="45%" h={24} />
+          </div>
+          <i className="rsk-pill" />
+        </div>
+        <div className="rsk-segments">
+          <i />
+          <i />
+          <i />
+        </div>
+        <div className="rsk-inset">
+          <Line w="38%" />
+          <Line w="70%" h={18} />
+          <i className="rsk-button" />
+        </div>
+      </section>
+      <div className="rsk-grid-2">
+        {[0, 1, 2, 3].map((item) => (
+          <section className="rsk-card rsk-card--tight" key={item}>
+            <Line w="70%" />
+            <Line w="35%" h={24} />
+            <Line w="55%" />
+          </section>
+        ))}
       </div>
-      {[0, 1, 2, 3, 4].map((item) => (
-        <div className="history-row-line" key={item}>
-          {[0, 1, 2, 3, 4, 5].map((cell) => <i key={cell} />)}
+    </>
+  );
+}
+
+function Deliveries() {
+  return (
+    <section className="rsk-card rsk-card--flush">
+      <div className="rsk-chips">
+        <i className="is-active" />
+        <i />
+        <i />
+      </div>
+      <div className="rsk-map">
+        <i className="rsk-pin rsk-pin--a" />
+        <i className="rsk-pin rsk-pin--b" />
+        <i className="rsk-pin rsk-pin--c" />
+      </div>
+      <div className="rsk-sheet">
+        <i className="rsk-handle" />
+        <div className="rsk-segmented">
+          <i />
+          <i className="is-active" />
+          <i />
+        </div>
+        <div className="rsk-row rsk-row--start">
+          <i className="rsk-tile" />
+          <div className="rsk-stack">
+            <Line w="55%" h={20} />
+            <i className="rsk-pill" />
+          </div>
+        </div>
+        <i className="rsk-button rsk-button--tall" />
+      </div>
+    </section>
+  );
+}
+
+function History() {
+  return (
+    <section className="rsk-card">
+      <i className="rsk-input" />
+      <div className="rsk-chips rsk-chips--pills">
+        <i className="is-active" />
+        <i />
+        <i />
+        <i />
+      </div>
+      <Line w="48%" />
+      {[0, 1, 2, 3].map((item) => (
+        <div className="rsk-list-row" key={item}>
+          <div className="rsk-row">
+            <div className="rsk-row rsk-row--start">
+              <i className="rsk-tile rsk-tile--small" />
+              <Line w="90px" h={18} />
+            </div>
+            <i className="rsk-pill" />
+          </div>
+          <Line w="78%" />
+          <div className="rsk-row">
+            <Line w="40%" />
+            <Line w="22%" h={16} />
+          </div>
         </div>
       ))}
-    </div>
+    </section>
+  );
+}
+
+function Reviews() {
+  return (
+    <>
+      <section className="rsk-card rsk-row rsk-row--start">
+        <i className="rsk-avatar" />
+        <div className="rsk-stack">
+          <Line w="55%" h={20} />
+          <i className="rsk-pill" />
+          <Line w="45%" />
+        </div>
+      </section>
+      <section className="rsk-card">
+        <Line w="40%" h={20} />
+        <Line w="50%" />
+      </section>
+      <section className="rsk-card">
+        <i className="rsk-tile" />
+        <Line w="65%" h={18} />
+        <Line w="90%" />
+        <Line w="70%" />
+      </section>
+    </>
+  );
+}
+
+function Details() {
+  return (
+    <>
+      <section className="rsk-card">
+        <div className="rsk-row">
+          <Line w="45%" h={20} />
+          <i className="rsk-pill" />
+        </div>
+        {[0, 1, 2].map((item) => (
+          <div className="rsk-row" key={item}>
+            <Line w="58%" />
+            <Line w="18%" />
+          </div>
+        ))}
+        <div className="rsk-row">
+          <Line w="35%" h={20} />
+          <Line w="25%" h={20} />
+        </div>
+      </section>
+      <section className="rsk-card">
+        <Line w="45%" h={20} />
+        <Line w="80%" />
+        <Line w="65%" />
+      </section>
+    </>
+  );
+}
+
+function Offers() {
+  return (
+    <>
+      {[0, 1].map((item) => (
+        <section className="rsk-card" key={item}>
+          <div className="rsk-row">
+            <Line w="42%" h={20} />
+            <i className="rsk-pill" />
+          </div>
+          <Line w="100%" h={4} />
+          <div className="rsk-stack rsk-stack--route">
+            <Line w="25%" />
+            <Line w="70%" h={18} />
+            <Line w="25%" />
+            <Line w="62%" h={18} />
+          </div>
+          <i className="rsk-button rsk-button--tall" />
+        </section>
+      ))}
+    </>
+  );
+}
+
+function Profile() {
+  return (
+    <>
+      <section className="rsk-card rsk-row rsk-row--start">
+        <i className="rsk-avatar rsk-avatar--small" />
+        <div className="rsk-stack">
+          <Line w="50%" h={18} />
+          <Line w="65%" />
+        </div>
+      </section>
+      <section className="rsk-card rsk-card--list">
+        {[0, 1, 2].map((item) => (
+          <div className="rsk-row rsk-row--start" key={item}>
+            <i className="rsk-tile rsk-tile--small" />
+            <Line w="55%" />
+          </div>
+        ))}
+      </section>
+      <i className="rsk-button rsk-button--tall" />
+    </>
   );
 }

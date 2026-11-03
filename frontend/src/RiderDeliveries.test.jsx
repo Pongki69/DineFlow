@@ -47,18 +47,23 @@ function mockApi(handle) {
 const mount = () => render(<RiderDeliveries />, { wrapper: MemoryRouter });
 const assignmentCalls = () =>
   api.mock.calls.filter(([path]) => path.startsWith("/rider/assignments"));
+const stopRows = async () => [
+  ...(
+    await screen.findByRole("region", { name: "Your delivery queue" })
+  ).querySelectorAll(".rider-delivery-queue-row"),
+];
 async function openAssignment(id) {
-  const picker = await screen.findByRole("combobox", {
-    name: "Jump to an active delivery",
-  });
-  fireEvent.change(picker, { target: { value: String(id) } });
+  const row = (await stopRows()).find(
+    (button) => button.querySelector("strong").textContent === `DF-${id}`,
+  );
+  fireEvent.click(row);
   fireEvent.click(
     screen.getByRole("button", {
       name: "Selected delivery",
       exact: true,
     }),
   );
-  expect(picker.value).toBe(String(id));
+  expect(row.getAttribute("aria-pressed")).toBe("true");
 }
 async function openMoreActions(id) {
   await openAssignment(id);
@@ -82,7 +87,8 @@ it("deduplicates manual refresh while keeping the refresh state recoverable", as
   expect(
     screen.getByRole("button", { name: "Refreshing assignments…" }).disabled,
   ).toBe(true);
-  expect(screen.queryByText("Ready for your next delivery")).toBeNull();
+  // The empty card stays put while refreshing instead of blinking.
+  expect(screen.getByText("Ready for your next delivery")).toBeTruthy();
   await waitFor(() => expect(assignmentCalls()).toHaveLength(2));
   act(() => window.dispatchEvent(new Event("rider-deliveries-updated")));
   expect(assignmentCalls()).toHaveLength(2);
@@ -124,14 +130,13 @@ it("locks route edits during saving and preserves the saved drop-off order", asy
     return Promise.resolve({ data: deliveries, delivery_order: saved });
   });
   mount();
-  const picker = await screen.findByRole("combobox", {
-    name: "Jump to an active delivery",
-  });
+  await stopRows();
   const switchOrder = () =>
-    within(picker)
-      .getAllByRole("option")
-      .filter((option) => option.value)
-      .map((option) => option.textContent.match(/DF-\d+/)[0]);
+    [
+      ...screen
+        .getByRole("region", { name: "Your delivery queue" })
+        .querySelectorAll(".rider-delivery-queue-row strong"),
+    ].map((title) => title.textContent);
   expect(switchOrder()).toEqual(["DF-3", "DF-1", "DF-2"]);
   fireEvent.click(
     screen.getByRole("button", { name: "Route order", exact: true }),

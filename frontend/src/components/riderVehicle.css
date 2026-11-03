@@ -16,3 +16,15 @@
 .rider-vehicle-badge svg {
   flex-shrink: 0;
 }
+
+/* The rider's own screens: no vehicle saved yet, tap to add one. */
+a.rider-vehicle-badge--missing {
+  border-color: #ecd9a6;
+  background: #fbefcf;
+  color: #6f4f0b;
+  text-decoration: none;
+  cursor: pointer;
+}
+a.rider-vehicle-badge--missing:hover {
+  border-color: #d9b75c;
+}

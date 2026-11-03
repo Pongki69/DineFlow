@@ -1,0 +1,4401 @@
+/* Customer app on phones: the rider workspace layout. A slim title bar,
+   alerts and profile in the bottom bar, one heading per page, and
+   thumb-friendly booking controls. Desktop is untouched. */
+@media (max-width: 850px) {
+  /* Title bar: translucent, sticky, title centred. */
+  .dineflow-app .app-shell[data-workspace="customer"] .app-topbar {
+    position: sticky;
+    z-index: 40;
+    top: 0;
+    height: auto;
+    min-height: 52px;
+    padding: calc(4px + env(safe-area-inset-top, 0px)) 8px 4px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    background: color-mix(in srgb, var(--canvas) 86%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .topbar-actions {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .topbar-location
+    .mobile-workspace-title {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    width: 100%;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .mobile-workspace-title
+    > a {
+    grid-column: 1;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .mobile-workspace-title
+    > strong {
+    grid-column: 2;
+    font-size: 17px;
+    font-weight: 650;
+    text-align: center;
+  }
+
+  /* One heading per page: the title bar already names it, so the eyebrow
+     and the large page title are kept for screen readers only. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    :is(
+      .orders-page-heading,
+      .reservation-page-heading,
+      .my-reservations-workspace,
+      .page-heading
+    )
+    > .eyebrow,
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .orders-page-heading
+    > div
+    > .eyebrow {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    :is(
+      .orders-page-heading > div,
+      .reservation-page-heading,
+      .my-reservations-workspace,
+      .page-heading > div
+    )
+    > h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    :is(
+      .reservation-page-heading,
+      .my-reservations-workspace,
+      .page-heading > div
+    )
+    > p {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .orders-page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 0;
+    margin: 0 0 8px;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .orders-page-heading
+    > div:not(:has(p)) {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .orders-page-heading
+    > .orders-refresh {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 0;
+  }
+
+  /* Cancelled reads as a problem at a glance. */
+  .dineflow-app .df-status[data-state="cancelled"] {
+    border-color: var(--df-status-danger-border);
+    background: var(--df-status-danger-bg);
+    color: var(--df-status-danger-text);
+  }
+
+  /* Booking: steps as a compact row. */
+  .dineflow-app .app-shell[data-workspace="customer"] .reservation-steps {
+    gap: 6px;
+    margin: 0 0 12px;
+    font-size: 13px;
+  }
+
+  /* Booking: day strip, time chips and a guest stepper. */
+  .dineflow-app .booking-mobile {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 16px;
+  }
+  .dineflow-app .booking-mobile-block {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .dineflow-app .booking-mobile-block > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .dineflow-app .booking-mobile-block > header > span,
+  .dineflow-app .booking-mobile-row > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .dineflow-app .booking-mobile-block > header > strong {
+    font-size: 15px;
+  }
+  .dineflow-app .booking-day-strip {
+    display: flex;
+    gap: 8px;
+    margin: 0 -14px;
+    padding: 2px 14px 4px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .dineflow-app .booking-day-strip::-webkit-scrollbar {
+    display: none;
+  }
+  .dineflow-app .booking-day-strip > button {
+    display: grid;
+    flex: 0 0 58px;
+    justify-items: center;
+    gap: 1px;
+    padding: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--canvas);
+    color: var(--ink);
+    font: inherit;
+    scroll-snap-align: center;
+    transition:
+      background-color var(--df-motion-duration-fast, 120ms)
+        var(--df-motion-easing),
+      border-color var(--df-motion-duration-fast, 120ms) var(--df-motion-easing),
+      scale var(--df-motion-duration-fast, 120ms) var(--df-motion-easing);
+  }
+  .dineflow-app .booking-day-strip > button small {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .dineflow-app .booking-day-strip > button b {
+    font-size: 20px;
+    line-height: 1.2;
+  }
+  .dineflow-app .booking-day-strip > button:active {
+    scale: 0.96;
+  }
+  .dineflow-app .booking-day-strip > button[aria-checked="true"] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app .booking-day-strip > button[aria-checked="true"] small {
+    color: inherit;
+    opacity: 0.85;
+  }
+  .dineflow-app .booking-more-dates {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .booking-more-dates .reservation-date-trigger {
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+  .dineflow-app .booking-time-group {
+    display: grid;
+    gap: 6px;
+  }
+  .dineflow-app .booking-time-group > small {
+    color: var(--muted);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .dineflow-app .booking-time-group > div {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 6px;
+  }
+  .dineflow-app .booking-time-group button {
+    min-height: 40px;
+    padding: 0 6px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--canvas);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .dineflow-app .booking-time-group button[aria-checked="true"] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app .booking-mobile-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .dineflow-app .booking-mobile-row > select {
+    max-width: 60%;
+    min-height: 44px;
+  }
+  .dineflow-app .booking-stepper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dineflow-app .booking-stepper > button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--canvas);
+    color: var(--ink);
+  }
+  .dineflow-app .booking-stepper > button:disabled {
+    opacity: 0.4;
+  }
+  .dineflow-app .booking-stepper > output {
+    min-width: 36px;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* My bookings: date tile, details, status and actions in one card. */
+  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-list {
+    display: grid;
+    gap: 10px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-list
+    > article {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 10px 12px;
+    align-items: start;
+    margin: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-date {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    border-radius: 12px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    text-align: center;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-date
+    > span {
+    font-size: 12px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 8px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-actions
+    > .reservation-list-status {
+    margin-right: auto;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--neutral-soft);
+    font-size: 12.5px;
+    font-weight: 700;
+    text-transform: capitalize;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-actions
+    > .status-cancelled {
+    background: var(--df-status-danger-bg);
+    color: var(--df-status-danger-text);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-actions
+    > .status-confirmed {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-actions
+    > button {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+
+  /* Profile page: the profile card leads; the duplicate account card goes. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .rider-profile-card
+    ~ *
+    :is(.workspace-account-card, .settings-account-card) {
+    display: none;
+  }
+}
+
+/* ---- 3D view on touch screens (portrait and landscape) ---------------- */
+.pov-touch-controls,
+.pov-book-prompt {
+  display: none;
+}
+@media (max-width: 850px), (pointer: coarse) {
+  /* Toolbar: title and hint on top, the view buttons in one swipeable row
+     underneath, instead of everything squeezed into a single line. */
+  .dineflow-app .floor-scene .scene-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+  .dineflow-app .floor-scene .scene-toolbar > div:first-child {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .dineflow-app .floor-scene .scene-toolbar strong {
+    font-size: 14px;
+  }
+  .dineflow-app .floor-scene .scene-toolbar span {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .dineflow-app .floor-scene .scene-toolbar .scene-toolbar-actions {
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin: 0 -10px;
+    padding: 0 10px 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    pointer-events: auto;
+  }
+  .dineflow-app
+    .floor-scene
+    .scene-toolbar
+    .scene-toolbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .dineflow-app .floor-scene .scene-toolbar-actions button {
+    flex: none;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+  /* While walking the toolbar is just the hint and the exit button. */
+  .dineflow-app .floor-scene.is-walking .scene-toolbar {
+    flex-direction: row;
+    align-items: center;
+  }
+  .dineflow-app .floor-scene.is-walking .scene-toolbar .scene-toolbar-actions {
+    flex: none;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+  .dineflow-app .floor-scene .floor-legend {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    font-size: 12px;
+  }
+  .dineflow-app .floor-scene .pov-touch-controls {
+    position: absolute;
+    z-index: 6;
+    right: 16px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .dineflow-app .pov-touch-controls > div {
+    position: relative;
+    display: grid;
+    width: 124px;
+    height: 124px;
+    place-items: center;
+    border: 2px solid rgb(255 255 255 / 70%);
+    border-radius: 50%;
+    background: rgb(20 40 30 / 28%);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    pointer-events: auto;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: background-color 120ms ease;
+  }
+  .dineflow-app .pov-touch-controls > div[data-active] {
+    background: rgb(20 40 30 / 42%);
+  }
+  .dineflow-app .pov-touch-thumb {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 92%);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 25%);
+    transition: transform 60ms linear;
+  }
+  .dineflow-app .pov-touch-stick:not([data-active]) .pov-touch-thumb {
+    transition: transform 160ms ease-out;
+  }
+  /* The look pad shows four faint arrows around a centre dot. */
+  .dineflow-app .pov-touch-look > span {
+    width: 70px;
+    height: 70px;
+    border: 2px dashed rgb(255 255 255 / 75%);
+    border-radius: 50%;
+  }
+  .dineflow-app .pov-touch-look::after {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 90%);
+    content: "";
+  }
+
+  /* Game-style prompt: pops up when looking at a free table. */
+  .dineflow-app .floor-scene .pov-book-prompt {
+    position: absolute;
+    z-index: 7;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px 8px 8px;
+    border: 2px solid rgb(255 255 255 / 85%);
+    border-radius: 999px;
+    background: rgb(17 33 25 / 78%);
+    color: #fff;
+    box-shadow: 0 10px 28px rgb(0 0 0 / 35%);
+    font: inherit;
+    transform: translate(-50%, 28px);
+    animation: pov-prompt-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .dineflow-app .pov-book-prompt-key {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow:
+      inset 0 -4px 0 rgb(0 0 0 / 25%),
+      0 0 0 3px rgb(255 255 255 / 90%);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+  .dineflow-app .pov-book-prompt-label {
+    display: grid;
+    text-align: left;
+  }
+  .dineflow-app .pov-book-prompt-label strong {
+    font-size: 16px;
+  }
+  .dineflow-app .pov-book-prompt-label small {
+    font-size: 12px;
+    opacity: 0.85;
+  }
+  .dineflow-app .pov-book-prompt:active .pov-book-prompt-key {
+    box-shadow:
+      inset 0 2px 0 rgb(0 0 0 / 25%),
+      0 0 0 3px rgb(255 255 255 / 90%);
+    transform: translateY(2px);
+  }
+  .dineflow-app .pov-crosshair.is-on-table {
+    border-color: var(--primary);
+    transform: scale(1.4);
+  }
+  /* The keyboard hint and mouse-capture overlay mean nothing on a phone. */
+  .dineflow-app .floor-scene.is-walking .floor-legend {
+    display: none;
+  }
+}
+@keyframes pov-prompt-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 28px) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 28px) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dineflow-app .floor-scene .pov-book-prompt {
+    animation: none;
+  }
+}
+
+/* Landscape phones: smaller controls so the scene stays visible. */
+@media (pointer: coarse) and (max-height: 500px) {
+  .dineflow-app .pov-touch-controls > div {
+    width: 96px;
+    height: 96px;
+  }
+  .dineflow-app .pov-touch-thumb {
+    width: 42px;
+    height: 42px;
+  }
+  .dineflow-app .pov-touch-look > span {
+    width: 54px;
+    height: 54px;
+  }
+  .dineflow-app .floor-scene .pov-touch-controls {
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    bottom: 12px;
+    left: calc(16px + env(safe-area-inset-left, 0px));
+  }
+  .dineflow-app .floor-scene .scene-toolbar span {
+    display: none;
+  }
+  .dineflow-app .floor-scene.is-walking .floor-legend,
+  .dineflow-app .floor-scene.is-immersive .floor-legend {
+    display: none;
+  }
+}
+
+/* Orders on phones: pull down to refresh, so no refresh button. */
+@media (max-width: 850px) {
+  html:has(.app-shell[data-workspace="customer"]),
+  body:has(.app-shell[data-workspace="customer"]) {
+    overscroll-behavior-y: contain;
+  }
+  .dineflow-app
+    :is(.app-shell[data-workspace="customer"], .admin-shell)
+    .orders-refresh {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .orders-page-heading:not(:has(> div p)) {
+    display: none;
+  }
+}
+
+/* Order cards on phones (customer and admin): a compact card, and every
+   button or link sits on the right. */
+@media (max-width: 850px) {
+  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .orders-list {
+    display: grid;
+    gap: 10px;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .orders-list
+    > .order-card {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .orders-list
+    > .order-card
+    > .order-card-summary {
+    display: grid;
+    gap: 8px;
+    padding: 14px 14px 12px;
+  }
+  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-title {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 0;
+    margin: 0;
+  }
+  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-reference {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-reference
+    > .order-type-icon {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-reference
+    > strong {
+    overflow: hidden;
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-title
+    > .df-status {
+    flex: none;
+    padding: 2px 9px;
+    font-size: 12px;
+  }
+  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 0;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-metadata > * {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-metadata
+    > *::before,
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-metadata
+    > *::after {
+    content: none;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-metadata
+    > *
+    + *::before {
+    margin: 0 6px;
+    content: "·";
+  }
+  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-items {
+    margin: 0;
+    font-size: 14px;
+  }
+  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-payment-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--neutral-soft);
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-payment-summary
+    > div {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-payment-summary
+    dt {
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-payment-summary
+    dd {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 650;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    :is(.order-delivery-metadata, .order-checkout-note) {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* Track link: a pill on the right with an arrow. */
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .customer-order-track-link {
+    display: inline-flex;
+    align-items: center;
+    justify-self: end;
+    gap: 6px;
+    min-height: 40px;
+    margin: 2px 0 0;
+    padding: 0 14px;
+    border: 1px solid var(--primary);
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .customer-order-track-link::after {
+    font-size: 16px;
+    content: "→" / "";
+  }
+
+  /* Action row: under a divider, buttons sized to their label, on the
+     right. */
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .orders-list
+    > .order-card
+    > .order-card-workbench {
+    width: auto;
+    margin: 0;
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--border);
+    background: transparent;
+  }
+  .dineflow-app
+    :is(.app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]), .admin-shell)
+    .order-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .dineflow-app
+    :is(.app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]), .admin-shell)
+    .order-action-buttons
+    > .order-action-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+}
+
+/* ---- Order tracking and rider profile on phones ------------------------ */
+@media (max-width: 850px) {
+  /* Tracking: one compact header (the title bar already says what this is). */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-tracking
+    > .eyebrow {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .customer-tracking > h1 {
+    margin: 2px 0 4px;
+    font-size: 20px;
+    line-height: 1.25;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-tracking
+    > .track-status {
+    margin: 0 0 12px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .customer-progress-grid {
+    gap: 10px;
+    margin: 0 0 10px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .customer-progress-card {
+    padding: 14px 16px;
+    border-radius: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-progress-heading {
+    font-size: 15px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-progress-heading
+    :is(h2, h3, strong) {
+    font-size: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-progress-current {
+    margin: 6px 0 2px;
+    font-size: 18px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .customer-progress-note {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  /* Rider card: vehicle chip on the left, profile link as a pill on the right. */
+  .dineflow-app .app-shell[data-workspace="customer"] .customer-progress-rider {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 10px;
+    align-items: center;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-progress-rider
+    > * {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-progress-rider
+    > div:not([class]) {
+    grid-column: 1;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-progress-rider
+    > .rider-profile-link {
+    display: inline-flex;
+    grid-column: 2;
+    align-items: center;
+    justify-self: end;
+    gap: 6px;
+    min-height: 40px;
+    margin: 0;
+    padding: 0 14px;
+    border: 1px solid var(--primary);
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 650;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-progress-rider
+    > .rider-profile-link::after {
+    content: "→" / "";
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-progress-disclosure {
+    margin-top: 10px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    :is(.customer-completed-map, .customer-order-timeline) {
+    margin: 0 0 10px;
+    border-radius: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .tracking-disclosure-summary {
+    min-height: 52px;
+    padding: 0 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .tracking-disclosure-title {
+    font-size: 16px;
+  }
+
+  /* Review: stars spread across the card, tags as an even two-column grid,
+     submit on the right. */
+  .dineflow-app .app-shell[data-workspace="customer"] .rider-review-form {
+    padding: 16px;
+    border-radius: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-section-heading
+    h2 {
+    font-size: 18px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-category-input {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-category-input
+    > legend {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-category-input
+    > label {
+    min-width: 0;
+    margin: 0;
+    font-size: 13.5px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-form-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  /* The title bar's back arrow replaces the bottom "Back to my orders". */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-tracking
+    > a:last-child {
+    display: none;
+  }
+
+  /* Rider profile: a centred hero with the facts as chips. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .rider-public-profile
+    > .page-heading:not(:has(:is(h1, p):not(:empty))) {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-profile-header {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    padding: 20px 16px;
+    border-radius: 20px;
+    text-align: center;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-profile-header
+    > div {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-profile-header
+    .review-rider-avatar {
+    width: 72px;
+    height: 72px;
+    font-size: 30px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-profile-header
+    h2 {
+    margin: 0;
+    font-size: 21px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-profile-header
+    small {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-delivery-count {
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-profile-layout {
+    gap: 10px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-summary-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-color: var(--border);
+    border-radius: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-summary-card
+    .review-summary-label {
+    margin: 0;
+    font-size: 16px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-empty-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-first-empty {
+    padding: 16px;
+    border-radius: 16px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-first-empty-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 850px) {
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-category-input
+    > div {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .review-category-input
+    > div
+    > label {
+    min-width: 0;
+    margin: 0;
+    font-size: 13.5px;
+  }
+  /* The title bar names the page; keep the heading for screen readers only. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .rider-public-profile
+    > .page-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .review-delivery-count {
+    justify-self: center;
+    width: auto;
+  }
+}
+
+/* ---- Cart on phones ------------------------------------------------------ */
+.order-type-toggle {
+  display: none;
+}
+@media (max-width: 850px) {
+  /* One flowing card: no inner scroll box hiding the notes field. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary {
+    overflow: visible;
+    border-radius: 20px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-scroll {
+    max-height: none;
+    overflow: visible;
+    padding: 0 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-heading {
+    gap: 10px;
+    padding: 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-heading
+    h2 {
+    font-size: 18px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-heading
+    p {
+    display: none;
+  }
+
+  /* Each line: name, extras and price on the left; the stepper on the right. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-lines {
+    display: grid;
+    gap: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-line
+    > div:first-child {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-line
+    strong {
+    font-size: 15px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-line
+    small {
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-line
+    > div:first-child
+    > span {
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .quantity-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--canvas);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .quantity-control
+    > button {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    min-height: 0;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .quantity-control
+    > button:last-child {
+    margin-left: 4px;
+    background: transparent;
+    color: var(--df-status-danger-text);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .quantity-control
+    > span {
+    min-width: 26px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* Order type: a segmented control; the labelled select stays for
+     keyboards and screen readers but is visually hidden. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-type-toggle {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    margin: 14px 0 0;
+    padding: 4px;
+    border-radius: 14px;
+    background: var(--neutral-soft);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-type-toggle
+    > button {
+    min-height: 40px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 650;
+    transition:
+      background-color var(--df-motion-duration-fast, 120ms)
+        var(--df-motion-easing),
+      color var(--df-motion-duration-fast, 120ms) var(--df-motion-easing);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-type-toggle
+    > button[data-on] {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1px 4px rgb(16 34 24 / 12%);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-type-toggle
+    + :is(.ui-field, label, div):has(select[name="order_type"]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-form {
+    display: grid;
+    gap: 12px;
+    padding: 0 0 12px;
+  }
+
+  /* Checkout: sticks above the tab bar; total on the left, Place order on
+     the right. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-footer {
+    position: sticky;
+    z-index: 3;
+    bottom: calc(var(--mobile-nav-height, 70px) + 8px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px 12px;
+    margin: 0 8px 8px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: 0 -6px 18px rgb(16 34 24 / 10%);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-total {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-total
+    span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-total
+    strong {
+    font-size: 20px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-hint {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-footer
+    > .ui-feedback {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .summary-footer
+    > .ui-button {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    min-height: 48px;
+    padding: 0 18px;
+    border-radius: 14px;
+  }
+
+  /* Floating cart bar: count and subtotal left, the action right. */
+  .dineflow-app .app-shell[data-workspace="customer"] .customer-cart-shortcut {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 10px 10px 14px;
+    border-radius: 18px;
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+    box-shadow: 0 10px 28px rgb(16 34 24 / 28%);
+    animation: rider-rise var(--df-motion-duration, 200ms)
+      var(--rider-ease-spring, ease-out) backwards;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-cart-shortcut
+    > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-cart-shortcut
+    > div
+    > span {
+    display: grid;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-cart-shortcut
+    small {
+    color: inherit;
+    opacity: 0.85;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-cart-shortcut
+    > button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    min-height: 42px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--primary);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+  }
+}
+
+/* ---- Cart bubble and order sheet (phones) ------------------------------ */
+.cart-bubble,
+.cart-sheet-scrim,
+.summary-close {
+  display: none;
+}
+@media (max-width: 850px) {
+  /* The order lives in a sheet; the page shows only the menu. */
+  .dineflow-app .customer-menu .order-summary.is-sheet:not(.is-open) {
+    display: none;
+  }
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-open {
+    position: fixed;
+    z-index: 1200;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: block;
+    max-height: 88dvh;
+    margin: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -12px 40px rgb(16 34 24 / 25%);
+    animation: cart-sheet-up var(--df-motion-duration-slow, 320ms)
+      var(--rider-ease-spring, ease-out) backwards;
+  }
+  .dineflow-app .customer-menu .order-summary.is-open .summary-heading {
+    position: sticky;
+    z-index: 4;
+    top: 0;
+    background: var(--surface);
+  }
+  .dineflow-app .customer-menu .order-summary.is-open .summary-heading::before {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    content: "";
+    transform: translateX(-50%);
+  }
+  .dineflow-app .customer-menu .order-summary.is-open .summary-close {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--neutral-soft);
+    color: var(--ink);
+  }
+  /* Inside the sheet the checkout bar sticks to the sheet's bottom. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-footer {
+    bottom: 8px;
+  }
+  .dineflow-app .cart-sheet-scrim {
+    position: fixed;
+    z-index: 1190;
+    inset: 0;
+    display: block;
+    background: var(--df-color-overlay, rgb(17 44 34 / 40%));
+    animation: rider-fade var(--df-motion-duration, 200ms)
+      var(--df-motion-easing, ease) backwards;
+  }
+
+  /* The bubble: drag it anywhere, it snaps to the nearest side. */
+  .dineflow-app .cart-bubble {
+    position: fixed;
+    z-index: 60;
+    right: 16px;
+    bottom: calc(var(--mobile-nav-height, 70px) + 16px);
+    display: grid;
+    width: 64px;
+    height: 64px;
+    place-items: center;
+    padding: 0;
+    border: 3px solid var(--surface);
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+    box-shadow: 0 10px 26px rgb(16 34 24 / 32%);
+    cursor: grab;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    transition:
+      left 260ms var(--rider-ease-spring, ease-out),
+      right 260ms var(--rider-ease-spring, ease-out),
+      scale 120ms ease;
+    animation: rider-pop var(--df-motion-duration, 200ms)
+      var(--rider-ease-spring, ease-out) backwards;
+  }
+  .dineflow-app .cart-bubble[data-dragging] {
+    cursor: grabbing;
+    scale: 1.08;
+    transition: scale 120ms ease;
+  }
+  .dineflow-app .cart-bubble:active:not([data-dragging]) {
+    scale: 0.94;
+  }
+  .dineflow-app .cart-bubble-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    display: grid;
+    min-width: 24px;
+    height: 24px;
+    place-items: center;
+    padding: 0 6px;
+    border: 2px solid var(--surface);
+    border-radius: 12px;
+    background: var(--df-status-danger-text, #87320c);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+  }
+}
+@keyframes cart-sheet-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-open,
+  .dineflow-app .cart-bubble {
+    animation: none;
+  }
+}
+
+@media (max-width: 850px) {
+  .dineflow-app .customer-menu .order-summary.is-open:focus {
+    outline: none;
+  }
+}
+
+/* ---- Order sheet layout (phones): header and bottom fixed, list scrolls -- */
+@media (max-width: 850px) {
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-open {
+    display: flex;
+    flex-direction: column;
+    max-height: 90dvh;
+    overflow: hidden;
+  }
+  .dineflow-app .customer-menu .order-summary.is-open > .summary-heading {
+    position: relative;
+    flex: none;
+    padding: 18px 16px 12px;
+  }
+  .dineflow-app .customer-menu .order-summary.is-open > .summary-checkout {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-scroll {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+  }
+  /* Only the dishes scroll. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-lines {
+    flex: 1 1 auto;
+    min-height: 64px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 16px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-line:last-child {
+    border-bottom: 0;
+  }
+  /* Order type and notes: pinned under the list. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-form {
+    flex: none;
+    gap: 10px;
+    max-height: 42dvh;
+    overflow-y: auto;
+    padding: 12px 16px 4px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .order-type-toggle {
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-form
+    :is(label, .ui-field)
+    > span:first-child {
+    font-size: 13px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-form
+    textarea {
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+  /* Checkout: total and a one-line note on the left, Place order on the
+     right spanning both rows. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-footer {
+    position: static;
+    flex: none;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 2px 12px;
+    margin: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    border: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--surface);
+    box-shadow: 0 -6px 16px rgb(16 34 24 / 6%);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-total {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-hint {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 11.5px;
+    line-height: 1.3;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-footer
+    > .ui-button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-footer
+    > .ui-feedback {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  /* Tap a dish line to see it. */
+  .dineflow-app .customer-menu .summary-line-info {
+    cursor: pointer;
+    border-radius: 10px;
+  }
+  .dineflow-app .customer-menu .summary-line-info::after {
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 650;
+    content: "View details ›" / "";
+  }
+  .dineflow-app .customer-menu .summary-line-info:active {
+    background: var(--primary-soft);
+  }
+
+  /* Dish detail: slides over the sheet. */
+  .dineflow-app .customer-menu .cart-item-detail {
+    position: absolute;
+    z-index: 6;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: var(--surface);
+    animation: cart-detail-in var(--df-motion-duration, 220ms)
+      var(--rider-ease-spring, ease-out) backwards;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-image {
+    display: grid;
+    flex: none;
+    aspect-ratio: 16 / 10;
+    max-height: 40dvh;
+    place-items: center;
+    overflow: hidden;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .dineflow-app .customer-menu .cart-item-detail-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body {
+    display: grid;
+    flex: 1 1 auto;
+    align-content: start;
+    gap: 8px;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body h3 {
+    margin: 0;
+    font-size: 21px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body dl {
+    display: grid;
+    gap: 6px;
+    margin: 4px 0 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--neutral-soft);
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body dt {
+    color: var(--muted);
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body dd {
+    margin: 0;
+    font-weight: 650;
+    text-align: right;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-actions > strong {
+    margin-right: auto;
+    font-size: 17px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-actions > .ui-button {
+    min-height: 46px;
+    padding: 0 16px;
+  }
+}
+@keyframes cart-detail-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@media (max-width: 850px) {
+  /* The desktop panel is sticky with a top offset; a bottom sheet is not. */
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-open {
+    top: auto;
+  }
+}
+
+/* Order sheet: swipe down from the handle to close, with motion. */
+@media (max-width: 850px) {
+  .dineflow-app .customer-menu .order-summary.is-open > .summary-heading {
+    cursor: grab;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .dineflow-app
+    .customer-menu
+    .order-summary.is-open
+    > .summary-heading::before {
+    top: 8px;
+    width: 44px;
+    height: 5px;
+    border-radius: 3px;
+  }
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-open {
+    transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-closing {
+    transform: translateY(105%) !important;
+    transition: transform 220ms cubic-bezier(0.4, 0, 1, 1) !important;
+  }
+  .dineflow-app .cart-sheet-scrim.is-closing {
+    opacity: 0;
+    transition: opacity 220ms ease;
+  }
+  /* No X: swipe down, tap outside or press Escape. The button stays for
+     screen readers and keyboards. */
+  .dineflow-app .customer-menu .order-summary.is-open .summary-close {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .customer-menu
+    .order-summary.is-open
+    .summary-close:focus-visible {
+    position: static;
+    width: 40px;
+    height: 40px;
+    clip: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-open,
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-closing {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 850px) {
+  /* The sheet always opens at its full size; the list fills the middle and
+     the order type, notes and Place order stay pinned at the bottom. */
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-open {
+    height: 90dvh;
+    min-height: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    :is(.summary-checkout, .summary-scroll) {
+    flex: 1 1 auto;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .customer-menu
+    .order-summary.is-open
+    .summary-lines {
+    flex: 1 1 auto;
+    align-content: start;
+  }
+}
+
+/* ---- Restaurant staff (kitchen, waiter, cashier) on phones ------------- */
+@media (max-width: 850px) {
+  html:has(.app-shell[data-workspace="restaurant"]),
+  body:has(.app-shell[data-workspace="restaurant"]) {
+    overscroll-behavior-y: contain;
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .app-topbar {
+    position: sticky;
+    z-index: 40;
+    top: 0;
+    height: auto;
+    min-height: 52px;
+    padding: calc(4px + env(safe-area-inset-top, 0px)) 8px 4px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    background: color-mix(in srgb, var(--canvas) 86%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .topbar-actions {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="restaurant"]
+    .topbar-location
+    .mobile-workspace-title {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    width: 100%;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="restaurant"]
+    .mobile-workspace-title
+    > a {
+    grid-column: 1;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="restaurant"]
+    .mobile-workspace-title
+    > strong {
+    grid-column: 2;
+    font-size: 17px;
+    font-weight: 650;
+    text-align: center;
+  }
+  /* Kitchen: pull down to refresh; the title bar names the screen. */
+  .dineflow-app .app-shell[data-workspace="restaurant"] .sage-page-heading {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="restaurant"]
+    .sage-kitchen
+    > :is(.eyebrow, .sage-eyebrow) {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .sage-freshness {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  /* Profile page: the profile card leads; the duplicate account card goes. */
+  .dineflow-app
+    .app-shell[data-workspace="restaurant"]
+    .rider-profile-card
+    ~ *
+    :is(.workspace-account-card, .settings-account-card) {
+    display: none;
+  }
+}
+
+/* ---- Menu: two dishes per row with taller photos (phones) --------------- */
+@media (max-width: 767px) {
+  .dineflow-app .app-shell .customer-menu .dish-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .dineflow-app .app-shell .customer-menu .dish-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+  .dineflow-app .app-shell .customer-menu .dish-image {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
+  }
+  .dineflow-app .app-shell .customer-menu .dish-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .dineflow-app .app-shell .customer-menu .dish-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+  }
+  .dineflow-app .app-shell .customer-menu .customer-dish-heading {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .dineflow-app .app-shell .customer-menu .customer-dish-heading .eyebrow {
+    font-size: 10.5px;
+  }
+  .dineflow-app .app-shell .customer-menu .dish-price {
+    font-size: 15px;
+  }
+  .dineflow-app .app-shell .customer-menu .dish-body h2 {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 2px 0 0;
+    font-size: 15px;
+    line-height: 1.3;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  /* Details live in the dish sheet; the card stays scannable. */
+  .dineflow-app .app-shell .customer-menu .dish-body > p,
+  .dineflow-app .app-shell .customer-menu .dish-body > .dish-portion {
+    display: none;
+  }
+  .dineflow-app .app-shell .customer-menu .customer-dish-compact-actions {
+    margin-top: auto;
+    padding-top: 6px;
+  }
+  .dineflow-app
+    .app-shell
+    .customer-menu
+    .customer-dish-compact-actions
+    > .ui-button {
+    min-height: 40px;
+    padding: 0 8px;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  .dineflow-app
+    .app-shell
+    .customer-menu
+    .customer-dish-compact-actions
+    > .df-ghost {
+    min-height: 32px;
+    font-size: 12.5px;
+  }
+}
+
+/* ---- Order sheet performance (phones) ------------------------------------ */
+@media (max-width: 850px) {
+  /* Its own GPU layer, and layout work stays inside it. */
+  .dineflow-app .customer-menu .order-summary.is-sheet.is-open {
+    contain: layout paint;
+    will-change: transform;
+    box-shadow: 0 -8px 24px rgb(16 34 24 / 18%);
+  }
+  /* A blurred bar repainting behind a moving sheet is the costliest thing
+     on screen; pause the blur while the sheet is up. */
+  .dineflow-app .app-shell:has(.order-summary.is-open) .app-topbar {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--canvas);
+  }
+  .dineflow-app .cart-sheet-scrim {
+    will-change: opacity;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Category, name, then price. */
+  .dineflow-app .app-shell .customer-menu .customer-dish-heading {
+    display: contents;
+  }
+  .dineflow-app .app-shell .customer-menu .customer-dish-heading .eyebrow {
+    order: 1;
+  }
+  .dineflow-app .app-shell .customer-menu .dish-body h2 {
+    order: 2;
+  }
+  .dineflow-app .app-shell .customer-menu .dish-price {
+    order: 3;
+    margin-top: 2px;
+  }
+  .dineflow-app .app-shell .customer-menu .customer-dish-compact-actions {
+    order: 4;
+  }
+  /* Dishes without a photo: a soft illustrated tile, not a blank box. */
+  .dineflow-app .app-shell .customer-menu .dish-image.dish-image--illustrated {
+    display: grid;
+    place-content: center;
+    place-items: center;
+    padding: 0;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .dineflow-app
+    .app-shell
+    .customer-menu
+    .dish-image.dish-image--illustrated
+    svg {
+    display: block;
+    width: 44px;
+    height: 44px;
+    opacity: 0.8;
+  }
+}
+
+@media (max-width: 767px) {
+  .dineflow-app
+    .app-shell
+    .customer-menu
+    .dish-image.dish-image--illustrated
+    svg {
+    position: static;
+    inset: auto;
+    margin: auto;
+    transform: none;
+  }
+}
+
+/* ---- Dish detail inside the order sheet (phones) ------------------------ */
+@media (max-width: 850px) {
+  .dineflow-app .customer-menu .cart-item-detail {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-bar {
+    display: grid;
+    flex: none;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    min-height: 56px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dineflow-app .customer-menu .cart-item-detail-bar > button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--ink);
+  }
+  .dineflow-app .customer-menu .cart-item-detail-bar > button:active {
+    background: var(--neutral-soft);
+  }
+  .dineflow-app .customer-menu .cart-item-detail-bar > strong {
+    font-size: 16px;
+    text-align: center;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 14px 16px 8px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-image {
+    aspect-ratio: 4 / 3;
+    max-height: 34dvh;
+    width: 100%;
+    border-radius: 18px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-image.is-illustrated {
+    background:
+      radial-gradient(
+        circle at 30% 25%,
+        rgb(255 255 255 / 55%),
+        transparent 55%
+      ),
+      var(--primary-soft);
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body {
+    gap: 6px;
+    padding: 14px 2px 4px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body .eyebrow {
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-body h3 {
+    font-size: 22px;
+    line-height: 1.25;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-price {
+    margin: 0;
+    color: var(--primary);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-description {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-choices {
+    display: grid;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-choices > span,
+  .dineflow-app .customer-menu .cart-item-detail-note > span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-choices ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-choices li {
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--neutral-soft);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-note {
+    display: grid;
+    gap: 4px;
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-left: 3px solid var(--primary);
+    border-radius: 0 12px 12px 0;
+    background: var(--neutral-soft);
+    font-size: 14px;
+    font-style: italic;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-note > span {
+    font-style: normal;
+  }
+  /* Bottom bar: stepper and total on the left, Done on the right. */
+  .dineflow-app .customer-menu .cart-item-detail-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .dineflow-app .customer-menu .cart-item-detail-total {
+    display: grid;
+    margin-right: auto;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-total small {
+    color: var(--muted);
+    font-size: 11.5px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-total strong {
+    font-size: 17px;
+  }
+  .dineflow-app .customer-menu .cart-item-detail-actions > .ui-button {
+    min-height: 46px;
+    padding: 0 22px;
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Keep choices and the note in view under the picture. */
+  .dineflow-app .customer-menu .cart-item-detail-image {
+    aspect-ratio: 16 / 9;
+    max-height: 26dvh;
+  }
+}
+
+/* ---- Rider profile / reviews page (all phone apps) ---------------------- */
+@media (max-width: 850px) {
+  .dineflow-app .app-shell .rider-public-profile > .page-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app .app-shell .review-profile-header {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    padding: 22px 16px 18px;
+    border-radius: 20px;
+    background:
+      radial-gradient(120% 90% at 50% 0%, var(--primary-soft), transparent 70%),
+      var(--surface);
+    text-align: center;
+  }
+  .dineflow-app .app-shell .review-profile-header > div {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+  }
+  .dineflow-app .app-shell .review-profile-header .review-rider-avatar {
+    width: 76px;
+    height: 76px;
+    border: 3px solid var(--surface);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+    font-size: 30px;
+  }
+  .dineflow-app .app-shell .review-profile-header h2 {
+    margin: 0;
+    font-size: 21px;
+  }
+  .dineflow-app .app-shell .review-profile-header small {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .app-shell .review-delivery-count {
+    justify-self: center;
+    width: auto;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .dineflow-app .app-shell .review-profile-layout {
+    gap: 10px;
+  }
+  .dineflow-app .app-shell .review-summary-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-color: var(--border);
+    border-radius: 16px;
+  }
+  .dineflow-app .app-shell .review-summary-card .review-summary-label {
+    margin: 0;
+    font-size: 16px;
+  }
+  .dineflow-app .app-shell .review-empty-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  /* "Your first review" card: icon beside the copy, not a big tile. */
+  .dineflow-app .app-shell .review-first-empty {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: start;
+    gap: 6px 12px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+  .dineflow-app .app-shell .review-first-empty-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .dineflow-app .app-shell .review-first-empty-copy {
+    display: grid;
+    gap: 4px;
+  }
+  .dineflow-app .app-shell .review-first-empty-copy :is(h2, h3) {
+    margin: 0;
+    font-size: 17px;
+  }
+  .dineflow-app .app-shell .review-first-empty-copy p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+  .dineflow-app .app-shell .review-first-empty-progress {
+    grid-column: 1 / -1;
+    margin: 6px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* ---- My account (customer, rider and staff phones) ---------------------- */
+@media (max-width: 850px) {
+  .dineflow-app .app-shell .account-page > .page-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app .app-shell .account-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  /* Identity: avatar beside name, email and role. */
+  .dineflow-app .app-shell .account-profile {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: center;
+    gap: 2px 14px;
+    padding: 16px;
+    border-radius: 18px;
+    text-align: left;
+  }
+  .dineflow-app .app-shell .account-profile > .avatar {
+    grid-row: 1 / span 3;
+    width: 56px;
+    height: 56px;
+    margin: 0;
+    font-size: 22px;
+  }
+  .dineflow-app .app-shell .account-profile > h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .dineflow-app .app-shell .account-profile > p:not(.profile-note) {
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+  .dineflow-app .app-shell .account-profile > .status-badge {
+    justify-self: start;
+    margin: 4px 0 0;
+    padding: 2px 10px;
+    font-size: 12px;
+  }
+  .dineflow-app .app-shell .account-profile > .profile-note {
+    grid-column: 1 / -1;
+    margin: 10px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  /* Form sections: tighter, saves on the right. */
+  .dineflow-app .app-shell .account-form {
+    padding: 16px;
+    border-radius: 18px;
+  }
+  .dineflow-app .app-shell .account-form :is(h2, legend) {
+    font-size: 17px;
+  }
+  .dineflow-app
+    .app-shell
+    .account-form
+    :is(.account-personal-details, .account-password-settings)
+    > p {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .app-shell .account-password-settings {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  /* Password rules: a compact two-column checklist. */
+  .dineflow-app .app-shell .account-form .password-requirements {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  .dineflow-app .app-shell .account-form .password-requirements ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 10px;
+    font-size: 12.5px;
+  }
+  .dineflow-app .app-shell .account-form .password-requirements li:last-child {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app .app-shell .account-form-actions,
+  .dineflow-app
+    .app-shell
+    .rider-profile-settings
+    :is(.form-actions, .rider-profile-actions) {
+    display: flex;
+    justify-content: flex-end;
+  }
+  /* Saved addresses: heading text on the left, Add address on the right. */
+  .dineflow-app .app-shell header.saved-addresses-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 12px;
+  }
+  .dineflow-app .app-shell header.saved-addresses-heading > div {
+    display: contents;
+  }
+  .dineflow-app .app-shell header.saved-addresses-heading h2 {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+    font-size: 18px;
+  }
+  .dineflow-app .app-shell header.saved-addresses-heading > div p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .dineflow-app .app-shell header.saved-addresses-heading > .ui-button {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    min-height: 38px;
+    padding-inline: 12px;
+    font-size: 13.5px;
+  }
+  /* Password legend: icon, title and "Optional" on one tidy line. */
+  /* Floated legends join the fieldset's grid, so no phantom gap below. */
+  .dineflow-app .app-shell .account-page .account-password-settings > legend {
+    display: flex;
+    float: left;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin: 0 0 -8px;
+    padding: 0;
+    font-size: 17px;
+  }
+  .dineflow-app .app-shell .account-page .account-password-settings > legend > svg {
+    margin: 0;
+  }
+  .dineflow-app .app-shell .account-password-settings > legend .optional-label {
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+  .dineflow-app .app-shell .account-password-settings > p {
+    margin-top: 0;
+  }
+  /* Rider details card: same rhythm as the account form above it. */
+  .dineflow-app .app-shell [aria-labelledby="rider-settings-heading"] {
+    padding: 16px;
+    border-radius: 18px;
+  }
+  .dineflow-app .app-shell [aria-labelledby="rider-settings-heading"] > h2 {
+    margin: 0;
+    font-size: 17px;
+  }
+  .dineflow-app .app-shell [aria-labelledby="rider-settings-heading"] > p {
+    margin: 2px 0 10px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+}
+
+@media (max-width: 850px) {
+  .dineflow-app .app-shell .account-page .workspace-form-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+/* ---- Profile / settings page (all phone apps) ---------------------------
+   Compact cards, and every action button sits on the right. */
+@media (max-width: 850px) {
+  .dineflow-app :is(.app-shell, .admin-shell) .rider-profile-card {
+    display: grid;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card-heading {
+    margin: 0 0 4px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 17px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card-heading p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-start-page {
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-start-page select {
+    min-height: 46px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-start-page small {
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 400;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-toggle {
+    padding-block: 12px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-toggle strong {
+    font-size: 15px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-toggle small {
+    font-size: 12.5px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+    padding-top: 12px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-form-actions
+    .ui-button {
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 20px;
+  }
+  /* Staff "Your account": avatar beside name and email, role as a chip. */
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-card {
+    display: grid;
+    gap: 10px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-avatar {
+    width: 48px;
+    height: 48px;
+    flex: none;
+    font-size: 20px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-identity strong {
+    font-size: 16px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-identity p {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-card .workspace-role {
+    justify-self: start;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    text-transform: capitalize;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-card > p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-card h3 {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings-links a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 46px;
+  }
+  /* "Profile & security": a plain list row with the chevron on the right. */
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-security {
+    padding-inline: 16px;
+    border-radius: 18px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-security > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 54px;
+    font-size: 16px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-security > summary > span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  /* Delete account: quieter copy, the button on the right. */
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .customer-account-delete {
+    display: grid;
+    gap: 8px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .customer-account-delete > p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .customer-account-delete
+    > .account-delete-button {
+    justify-self: end;
+    width: auto;
+    min-height: 44px;
+    margin-top: 4px;
+    padding-inline: 18px;
+  }
+}
+
+/* Profile page rhythm: the same breathing room between every card. */
+@media (max-width: 850px) {
+  .dineflow-app :is(.app-shell, .admin-shell) .rider-profile-card {
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .rider-profile-card > * {
+    margin: 0;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings {
+    display: grid;
+    gap: 18px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings > *,
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings-grid
+    > * {
+    margin-block: 0;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings-grid {
+    display: grid;
+    gap: 18px;
+    margin: 0;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .saved-delivery-addresses {
+    display: grid;
+    gap: 12px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .saved-delivery-addresses
+    > * {
+    margin-block: 0;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card,
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .customer-account-delete {
+    padding: 18px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-preferences {
+    display: grid;
+    gap: 4px;
+  }
+}
+
+/* Sign out: the last row of the profile list, styled like Dark mode. */
+@media (max-width: 850px) {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .rider-profile-card
+    .rider-mobile-profile-actions
+    > button.rider-profile-signout {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 54px;
+    color: var(--df-status-danger-text);
+    font-weight: 600;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .rider-profile-card
+    .rider-mobile-profile-actions
+    > button.rider-profile-signout
+    > svg:first-child {
+    color: var(--df-status-danger-text);
+  }
+}
+
+/* ---- Saved address editor (phones) --------------------------------------
+   Three clear step cards, quieter help text, buttons on the right. */
+@media (max-width: 850px) {
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface);
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    > .saved-addresses-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    > .saved-addresses-heading
+    h3 {
+    margin: 0;
+    font-size: 17px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    > .saved-addresses-heading
+    .ui-button {
+    min-height: 38px;
+    padding-inline: 14px;
+    border-radius: 999px;
+    font-size: 13.5px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .delivery-address-picker {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .delivery-address-steps {
+    margin: 0;
+    padding: 8px 6px;
+    border-radius: 14px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-address-steps
+    li {
+    font-size: 12.5px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .delivery-address-section {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-address-section
+    > h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-address-section
+    :is(p.delivery-address-help, small.delivery-address-help) {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-address-section
+    label {
+    font-size: 14px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-address-section
+    :is(input:not([type="checkbox"]), textarea) {
+    min-height: 46px;
+  }
+  /* Secondary actions hug the right edge instead of spanning the card. */
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .location-device-button {
+    justify-self: end;
+    width: auto;
+    min-height: 40px;
+    padding-inline: 14px;
+    border-radius: 999px;
+    font-size: 13.5px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .outdoor-map {
+    overflow: hidden;
+    border-radius: 14px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .outdoor-map
+    .leaflet-container {
+    height: min(46dvh, 300px);
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .delivery-pin-status {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-address-section
+    > .ui-button--primary {
+    justify-self: end;
+    width: auto;
+    min-height: 44px;
+    padding-inline: 18px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .address-details {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .address-default-choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--neutral-soft);
+    font-weight: 600;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .address-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin: 4px 0 0;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .address-actions
+    .save-address-button {
+    width: auto;
+    min-height: 46px;
+    padding-inline: 18px;
+  }
+}
+
+/* ---- Page titles (phones): DineFlow mark beside a clearer title --------- */
+.mobile-title-mark {
+  display: none;
+}
+@media (max-width: 850px) {
+  .dineflow-app .mobile-title-mark {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+    box-shadow: 0 2px 6px rgb(16 34 24 / 18%);
+  }
+  .dineflow-app .mobile-workspace-title strong,
+  .dineflow-app .app-shell .rider-mobile-app-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink);
+    font-family: var(--df-font-family, inherit);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .dineflow-app .app-shell[data-workspace="delivery"] .rider-mobile-app-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  /* The title sits in the centre column: centre the mark and text together. */
+  .dineflow-app .mobile-workspace-title strong {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+/* ---- 2D floor plan (phones): easy to read at a glance ------------------- */
+@media (max-width: 850px) {
+  /* Legend: one slim strip at the top that scrolls sideways if needed. */
+  .dineflow-app .reservation-floor-board .editor-status-legend {
+    top: 8px;
+    right: 8px;
+    left: 8px;
+    justify-content: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    max-width: none;
+    padding: 6px 10px;
+    border-radius: 14px;
+    font-size: 11px;
+    scrollbar-width: none;
+  }
+  .dineflow-app .reservation-floor-board .editor-status-legend::-webkit-scrollbar {
+    display: none;
+  }
+  .dineflow-app .reservation-floor-board .editor-status-legend span {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .dineflow-app .reservation-floor-board .editor-status-legend i {
+    width: 9px;
+    height: 9px;
+  }
+  /* Zoom: a slim column of round buttons; the slider stays for assistive
+     tech and keyboards but is hidden from view. */
+  .dineflow-app .reservation-floor-board .editor-map-controls {
+    top: 50%;
+    right: 8px;
+    bottom: auto;
+    transform: translateY(-50%);
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .dineflow-app .reservation-floor-board .editor-map-controls > button {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: 0 3px 8px rgb(30 50 36 / 14%);
+    font-size: 18px;
+    line-height: 1;
+  }
+  .dineflow-app .reservation-floor-board .editor-map-controls > button:last-child {
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  .dineflow-app .reservation-floor-board .editor-zoom-slider {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .dineflow-app .reservation-floor-board .editor-board-hint {
+    right: auto;
+    bottom: 8px;
+    left: 50%;
+    max-width: calc(100% - 16px);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+}
+
+/* ---- Saved addresses (phones): "Add address" as the list's last row ----- */
+@media (max-width: 850px) {
+  .dineflow-app :is(.app-shell, .admin-shell) .saved-delivery-addresses {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-delivery-addresses
+    > header.saved-addresses-heading {
+    display: contents;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-delivery-addresses
+    > header.saved-addresses-heading
+    h2 {
+    margin: 0 0 -8px;
+    font-size: 18px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-delivery-addresses
+    > header.saved-addresses-heading
+    > div
+    p {
+    margin: 0;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-delivery-addresses
+    > header.saved-addresses-heading
+    > .ui-button {
+    order: 5;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 60px;
+    margin: 0;
+    padding: 10px 16px;
+    border: 1.5px dashed color-mix(in srgb, var(--primary) 45%, var(--border));
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: none;
+    color: var(--primary);
+    font-size: 15px;
+    font-weight: 650;
+    text-align: left;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-delivery-addresses
+    > header.saved-addresses-heading
+    > .ui-button
+    > svg {
+    box-sizing: content-box;
+    width: 18px;
+    height: 18px;
+    padding: 9px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+  }
+  /* A chevron on the right, like the other rows on the profile page. */
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-delivery-addresses
+    > header.saved-addresses-heading
+    > .ui-button::after {
+    width: 8px;
+    height: 8px;
+    justify-self: end;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    content: "";
+    transform: rotate(45deg);
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-delivery-addresses
+    > header.saved-addresses-heading
+    > .ui-button:active {
+    background: var(--primary-soft);
+  }
+  /* The row above already adds; the empty state just explains. */
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-delivery-addresses
+    .empty-state
+    .ui-button {
+    display: none;
+  }
+}
+@media (max-width: 850px) {
+  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    grid-template-columns: none;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses > * {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .empty-state {
+    gap: 6px;
+    padding: 18px 16px;
+    border-radius: 16px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .empty-state
+    .empty-state-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .empty-state h2 {
+    margin: 4px 0 0;
+    font-size: 16px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .empty-state p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .saved-address-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+}
+
+/* ---- My bookings (phones): grouped, status top right, actions right ----- */
+@media (max-width: 850px) {
+  .dineflow-app .app-shell[data-workspace="customer"] .my-reservations-workspace > p {
+    margin: 0 0 4px;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-group {
+    margin: 8px 2px -2px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-list
+    > article {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-list
+    > article
+    > div:nth-child(2) {
+    display: grid;
+    align-content: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-list
+    > article
+    > div:nth-child(2)
+    > strong {
+    font-size: 16px;
+    letter-spacing: 0.01em;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-list
+    > article
+    > div:nth-child(2)
+    > small {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-date strong {
+    font-size: 15px;
+  }
+  /* Status pill in the top-right corner; buttons on their own row. */
+  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-actions {
+    display: contents;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-actions
+    > .reservation-list-status {
+    grid-row: 1;
+    grid-column: 3;
+    align-self: start;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-actions
+    > .status-completed {
+    background: var(--df-status-success-bg, var(--primary-soft));
+    color: var(--df-status-success-text, var(--primary));
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-actions
+    > .status-pending {
+    background: var(--df-status-pending-bg, #fbefcf);
+    color: var(--df-status-pending-text, #6f4f0b);
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-buttons {
+    display: flex;
+    flex-direction: row-reverse;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-buttons:empty {
+    display: none;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-buttons
+    > button {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-buttons
+    > button.is-primary {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-buttons
+    > button.is-danger {
+    border-color: var(--df-status-danger-border, #e3b4ad);
+    color: var(--df-status-danger-text, #9b2c22);
+  }
+  /* Past bookings step back a little. */
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-list
+    > article:is([data-status="cancelled"], [data-status="completed"], [data-status="no_show"])
+    .my-reservation-date {
+    background: var(--neutral-soft);
+    color: var(--muted);
+  }
+}
+
+/* ---- Delivery tracking (phones): status first, everything open ---------- */
+@media (max-width: 850px) {
+  .dineflow-app .app-shell .customer-tracking {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dineflow-app .app-shell .customer-tracking > * {
+    margin-block: 0;
+  }
+  .dineflow-app .app-shell .customer-tracking > .eyebrow {
+    display: none;
+  }
+  /* 1. Where things stand, in one glance. */
+  .dineflow-app .app-shell .customer-tracking > .tracking-hero {
+    display: grid;
+    order: 0;
+    gap: 6px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background:
+      radial-gradient(130% 120% at 0% 0%, var(--primary-soft), transparent 65%),
+      var(--surface);
+  }
+  .dineflow-app .app-shell .customer-tracking .tracking-hero > h1 {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .dineflow-app .app-shell .customer-tracking .tracking-hero-status {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+  }
+  .dineflow-app .app-shell .customer-tracking .tracking-hero-status strong {
+    color: var(--ink);
+    font-size: 22px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+  .dineflow-app .app-shell .customer-tracking .tracking-hero-status span {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .dineflow-app .app-shell .customer-tracking .tracking-hero .track-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    margin: 4px 0 0;
+    font-size: 12.5px;
+  }
+  .dineflow-app .app-shell .customer-tracking > .customer-tracking-attention {
+    order: 1;
+  }
+  /* 2. The map and times. */
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    > :is(.customer-completed-map, .customer-tracking-map) {
+    order: 2;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface);
+  }
+  /* 3. Rider, then food, each with its steps visible. */
+  .dineflow-app .app-shell .customer-tracking > .customer-progress-grid {
+    display: grid;
+    order: 3;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-rider {
+    order: -1;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-grid > .customer-progress-card {
+    display: grid;
+    gap: 6px;
+    padding: 14px 16px;
+    border-radius: 18px;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-heading {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-heading h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-current {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-rider .rider-profile-link {
+    justify-self: end;
+    margin-top: -36px;
+  }
+  /* The steps sit right in the card: no "Details" row above them. */
+  .dineflow-app .app-shell .customer-tracking .customer-progress-disclosure {
+    margin: 6px 0 0;
+    padding: 10px 0 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+    background: transparent;
+  }
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    .customer-progress-disclosure
+    > summary {
+    display: none;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-steps {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-steps li {
+    min-height: 34px;
+    padding-block: 4px;
+    font-size: 14px;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-steps li > span:last-child {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-progress-steps small {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  /* Section titles instead of tap-to-open rows. */
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    :is(.customer-completed-map, .customer-order-timeline, .delivery-notifications)
+    > summary {
+    min-height: 0;
+    margin: 0 0 10px;
+    padding: 0;
+    border: 0;
+    pointer-events: none;
+  }
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    :is(.customer-completed-map, .customer-order-timeline, .delivery-notifications)
+    > summary
+    .tracking-disclosure-title {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    :is(.customer-completed-map, .customer-order-timeline, .delivery-notifications)
+    > summary
+    svg {
+    display: none;
+  }
+  /* 4. Updates, then review and the rest. */
+  .dineflow-app .app-shell .customer-tracking > .customer-order-timeline {
+    order: 4;
+    padding: 14px 16px;
+    border-radius: 18px;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-order-timeline ol {
+    gap: 0;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-order-timeline li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 10px;
+    padding: 8px 0 8px 12px;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-order-timeline li > strong {
+    grid-column: 1;
+    font-size: 14px;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-order-timeline li > time {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    align-self: center;
+    color: var(--muted);
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .dineflow-app .app-shell .customer-tracking .customer-order-timeline .customer-event-source {
+    grid-row: 2;
+    grid-column: 1;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .dineflow-app .app-shell .customer-tracking > :is(.rider-review-form, .delivery-proof) {
+    order: 5;
+  }
+  .dineflow-app .app-shell .customer-tracking > .delivery-notifications {
+    order: 6;
+  }
+  .dineflow-app .app-shell .customer-tracking > a {
+    order: 7;
+    align-self: flex-end;
+  }
+}
+
+/* ---- Rider profile with ratings (phones) -------------------------------- */
+@media (max-width: 850px) {
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  /* Score card: label, then score beside stars and count, then the bars. */
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-summary-card {
+    display: grid;
+    grid-template-areas:
+      "label label"
+      "score stars"
+      "score count"
+      "bars bars";
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 2px 14px;
+    padding: 16px;
+    border-radius: 18px;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-summary-card
+    > .review-summary-label {
+    grid-area: label;
+    margin: 0 0 6px;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    writing-mode: horizontal-tb;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-scoreline {
+    display: flex;
+    grid-area: score;
+    align-items: baseline;
+    gap: 4px;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-scoreline
+    strong {
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-scoreline
+    span {
+    color: var(--muted);
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-summary-card
+    > :is(.rating-stars, [class*="stars"]) {
+    grid-area: stars;
+    align-self: end;
+    margin: 0;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-summary-card
+    > p {
+    grid-area: count;
+    align-self: start;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-distribution {
+    display: grid;
+    grid-area: bars;
+    gap: 2px;
+    margin: 12px 0 0;
+    padding: 10px 0 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-distribution-row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) 22px;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 34px;
+    margin: 0;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-distribution-row
+    > span:last-child {
+    color: var(--muted);
+    text-align: right;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-distribution-row.is-active {
+    border-color: var(--border);
+    background: var(--neutral-soft);
+    font-weight: 700;
+  }
+  .dineflow-app
+    .app-shell
+    .review-profile-layout:not(.review-profile-layout-empty)
+    .review-distribution-row
+    progress {
+    width: 100%;
+    height: 8px;
+  }
+  /* Reviews header: title left; count and Clear filter on the right. */
+  .dineflow-app .app-shell .review-list {
+    display: grid;
+    gap: 10px;
+  }
+  .dineflow-app .app-shell .review-list-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px 12px;
+    margin: 6px 0 0;
+  }
+  .dineflow-app .app-shell .review-list-heading h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .dineflow-app .app-shell .review-list-heading .review-filter-label {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app .app-shell .review-list-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    margin: 0;
+  }
+  .dineflow-app .app-shell .review-list-actions > span {
+    color: var(--muted);
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .dineflow-app .app-shell .review-list-actions .ui-button {
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+  /* Review cards: name and date, stars with "Verified", small tags. */
+  .dineflow-app .app-shell .review-card {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 16px;
+  }
+  .dineflow-app .app-shell .review-card-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .dineflow-app .app-shell .review-card-heading strong {
+    font-size: 15px;
+  }
+  .dineflow-app .app-shell .review-card-heading time {
+    color: var(--muted);
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .dineflow-app .app-shell .review-card .review-verified {
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .dineflow-app .app-shell .review-card .review-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .dineflow-app .app-shell .review-card .review-tags span {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+  .dineflow-app .app-shell .review-card .review-comment {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 850px) {
+  /* Review card: stars and "Verified delivery" share one row. */
+  .dineflow-app .app-shell .review-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 10px;
+  }
+  .dineflow-app .app-shell .review-card > :not(.review-stars):not(.review-verified) {
+    grid-column: 1 / -1;
+  }
+  .dineflow-app .app-shell .review-card > .review-stars {
+    grid-column: 1;
+    margin: 0;
+  }
+  .dineflow-app .app-shell .review-card > .review-verified {
+    grid-column: 2;
+    margin: 0;
+    padding: 0;
+  }
+  .dineflow-app .app-shell .review-card .review-tags:empty {
+    display: none;
+  }
+
+  /* Saved address card: details, then actions on the right. */
+  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .saved-address-card {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 16px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 0 2px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-card-title
+    h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 16px;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-card-title
+    h3
+    svg {
+    color: var(--primary);
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-default {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .saved-address-card > p {
+    margin: 0;
+    padding-left: 26px;
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-card
+    > p.saved-address-contact {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .saved-address-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 8px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-actions
+    .ui-button {
+    min-width: 88px;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 13.5px;
+  }
+  /* Right-aligned, same size: Set as default, then Edit, then Delete. */
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-actions
+    .ui-button[aria-label^="Set"] {
+    order: 1;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-actions
+    .ui-button[aria-label^="Edit"] {
+    order: 2;
+  }
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-actions
+    .ui-button[aria-label^="Delete"] {
+    order: 3;
+    border-color: var(--df-status-danger-border, #e3b4ad);
+    color: var(--df-status-danger-text, #9b2c22);
+  }
+}
+
+/* ---- 2D plan in the 3D top-view style (phones) --------------------------
+   Same warm floor, wooden tables and brown chairs as the 3D view; the
+   status shows as a ring and a dot on a small floating label. */
+@media (max-width: 850px) {
+  .dineflow-app .reservation-floor-board {
+    --plan-available: #3f8a58;
+    --plan-reserved: #c48a16;
+    --plan-occupied: #c2463d;
+    --plan-cleaning: #5f8796;
+    --plan-unavailable: #8d928f;
+    background-color: #efede8;
+    background-image:
+      linear-gradient(rgb(0 0 0 / 3.5%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(0 0 0 / 3.5%) 1px, transparent 1px);
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table {
+    --plan-status: var(--plan-available);
+    border: 2.5px solid var(--plan-status);
+    background:
+      radial-gradient(120% 120% at 35% 30%, #e1c9a1, #c3a274 70%, #b08e60);
+    box-shadow:
+      0 6px 12px rgb(60 44 24 / 22%),
+      inset 0 1px 2px rgb(255 255 255 / 45%);
+    color: #24302a;
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table.status-reserved {
+    --plan-status: var(--plan-reserved);
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table.status-occupied {
+    --plan-status: var(--plan-occupied);
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table.status-cleaning {
+    --plan-status: var(--plan-cleaning);
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table.status-unavailable {
+    --plan-status: var(--plan-unavailable);
+  }
+  /* Tables that can't be booked look faded, like empty furniture. */
+  .dineflow-app
+    .reservation-floor-board
+    .editor-object.table:is(.status-reserved, .status-occupied, .status-cleaning, .status-unavailable):not(.selected) {
+    background:
+      radial-gradient(120% 120% at 35% 30%, #e4dccd, #c9bda8 70%, #b9ab94);
+  }
+  .dineflow-app .reservation-floor-board .editor-chair {
+    border-color: #6e5038;
+    background: linear-gradient(145deg, #a87a52, #8a6142);
+  }
+  /* The label: a white tag with the status dot, as in the 3D view. */
+  .dineflow-app .reservation-floor-board .editor-object.table > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px 2px 6px;
+    border: 1px solid rgb(0 0 0 / 10%);
+    border-radius: 8px;
+    background: #fffdf8;
+    box-shadow: 0 2px 6px rgb(40 30 20 / 18%);
+    color: #24302a;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table > span::before {
+    width: 7px;
+    height: 7px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--plan-status);
+    content: "";
+  }
+  /* Picked: a thick brand ring and a brand-coloured tag. */
+  .dineflow-app .reservation-floor-board .editor-object.table.selected {
+    --plan-status: var(--primary);
+    border-width: 3px;
+    background:
+      radial-gradient(120% 120% at 35% 30%, #e1c9a1, #c3a274 70%, #b08e60);
+    box-shadow:
+      0 0 0 5px color-mix(in srgb, var(--primary) 26%, transparent),
+      0 8px 16px rgb(60 44 24 / 28%);
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table.selected > span {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table.selected > span::before {
+    background: #fff;
+  }
+  /* Legend dots use the same status colours. */
+  .dineflow-app .reservation-floor-board .editor-status-legend i.status-available {
+    background: var(--plan-available);
+  }
+  .dineflow-app .reservation-floor-board .editor-status-legend i.status-reserved {
+    background: var(--plan-reserved);
+  }
+  .dineflow-app .reservation-floor-board .editor-status-legend i.status-occupied {
+    background: var(--plan-occupied);
+  }
+  .dineflow-app .reservation-floor-board .editor-status-legend i.status-cleaning {
+    background: var(--plan-cleaning);
+  }
+  .dineflow-app .reservation-floor-board .editor-status-legend i.status-unavailable {
+    background: var(--plan-unavailable);
+  }
+}
+@media (max-width: 850px) {
+  /* The tag floats just above the table, clear of the top chair. */
+  .dineflow-app .reservation-floor-board .editor-object.table > span {
+    position: absolute;
+    bottom: calc(100% + 16px);
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table > span::after {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    border-right: 1px solid rgb(0 0 0 / 10%);
+    border-bottom: 1px solid rgb(0 0 0 / 10%);
+    background: inherit;
+    content: "";
+    transform: rotate(45deg);
+  }
+  .dineflow-app .reservation-floor-board .editor-object.table.selected > span::after {
+    border-color: var(--primary);
+  }
+}
+
+/* The restaurant floor under the tables, in the 3D view's stone tone. */
+.reservation-floor-room {
+  display: none;
+}
+@media (max-width: 850px) {
+  .dineflow-app .reservation-floor-board {
+    background-color: #e4e1da;
+    background-image: none;
+  }
+  .dineflow-app .reservation-floor-board .reservation-floor-room {
+    position: absolute;
+    z-index: 0;
+    display: block;
+    border: 1px solid rgb(90 76 56 / 18%);
+    border-radius: 16px;
+    background-color: #f1ede5;
+    background-image:
+      linear-gradient(rgb(120 100 70 / 7%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(120 100 70 / 7%) 1px, transparent 1px);
+    background-size: var(--floor-grid-x, 40px) var(--floor-grid-y, 40px);
+    box-shadow:
+      0 10px 30px rgb(60 44 24 / 12%),
+      inset 0 0 0 6px rgb(255 255 255 / 45%);
+    pointer-events: none;
+  }
+  .dineflow-app .reservation-floor-board .editor-status-legend {
+    right: auto;
+    left: 50%;
+    width: max-content;
+    max-width: calc(100% - 16px);
+    border-radius: 999px;
+    transform: translateX(-50%);
+  }
+}
+
+/* ---- Kitchen display (phones): compact tickets, styled dropdowns -------- */
+@media (max-width: 850px) {
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen {
+    --kds-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23315a44' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+  /* Summary tiles: one tidy row. */
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-stat-grid {
+    gap: 8px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-stat-grid > article {
+    min-height: 0;
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-stat-grid > article span {
+    font-size: 11.5px;
+    line-height: 1.25;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-stat-grid > article strong {
+    font-size: 20px;
+  }
+  /* Filters: status chips, then the order-type dropdown on the right. */
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 4px 0 0;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-filter-chips > button {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-toolbar .sage-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 0 auto;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  /* Dropdowns: a soft rounded field with a drawn arrow, not the native box. */
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen select {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 34px 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface) var(--kds-select-arrow) no-repeat right 10px center / 16px;
+    box-shadow: 0 1px 2px rgb(16 34 24 / 6%);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen select:focus-visible {
+    border-color: var(--primary);
+    outline: 2px solid color-mix(in srgb, var(--primary) 30%, transparent);
+    outline-offset: 1px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-toolbar select {
+    width: auto;
+    min-width: 128px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-freshness {
+    margin: 0;
+    font-size: 12px;
+  }
+  /* Tickets. */
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-grid {
+    gap: 10px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-ticket {
+    padding: 0;
+    border-radius: 16px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-ticket > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px 8px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-type {
+    font-size: 12px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-ticket h2 {
+    margin: 2px 0 0;
+    font-size: 17px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-age strong,
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-countdown {
+    font-variant-numeric: tabular-nums;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-age strong {
+    font-size: 18px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-age span {
+    font-size: 11.5px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-state {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px 10px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-state .df-status,
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-priority-label {
+    min-height: 0;
+    padding: 2px 9px;
+    font-size: 12px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-countdown {
+    margin-left: auto;
+    font-size: 15px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-attention-label {
+    flex-basis: 100%;
+    font-size: 12px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-items {
+    margin: 0;
+    padding: 4px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-items > li {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-height: 0;
+    padding: 7px 0;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-item-quantity {
+    display: inline-grid;
+    flex: none;
+    min-width: 30px;
+    place-items: center;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-items strong {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-items p {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-note {
+    margin: 0 14px 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-prep {
+    margin: 0;
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-prep p {
+    margin: 0;
+    color: var(--muted);
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-prep fieldset {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 10px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-prep legend {
+    grid-column: 1 / -1;
+    margin: 0 0 4px;
+    padding: 0;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-prep label {
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-ticket-prep input {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-ticket > footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 14px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-kds-ticket > footer > .sage-button {
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: 38px;
+    gap: 6px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+  }
+  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-kds-ticket > footer > .sage-button svg {
+    width: 16px;
+    height: 16px;
+  }
+}

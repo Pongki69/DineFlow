@@ -64,6 +64,38 @@ const staffOrder = {
   payment_summary: { paid: "0.00", balance_due: "610.00" },
 };
 
+it.each([
+  ["cancelled", "610.00", ["payments.manage"], false],
+  ["completed", "610.00", ["payments.manage"], true],
+  ["pending", "610.00", ["payments.manage"], true],
+  ["pending", "0.00", ["payments.manage"], false],
+  ["pending", "610.00", [], false],
+])(
+  "offers cash collection only for payable staff orders: %s / %s / %s",
+  async (status, balance, permissions, visible) => {
+    api.mockResolvedValue({
+      data: [
+        {
+          ...staffOrder,
+          status,
+          payment_summary: { paid: "0.00", balance_due: balance },
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <OrdersView staff user={{ permissions }} />
+      </MemoryRouter>,
+    );
+    await screen.findByText("DF-STAFF");
+    expect(Boolean(screen.queryByRole("button", { name: /Record cash/ }))).toBe(
+      visible,
+    );
+    if (status === "cancelled")
+      expect(document.querySelector(".order-card-workbench")).toBeNull();
+  },
+);
+
 it("locks the entire order workbench while recording cash to prevent duplicate submissions", async () => {
   let finish;
   api.mockImplementation((path) =>
@@ -133,4 +165,52 @@ it("rejects invalid preparation times and sends valid preparation choices with a
     prep_minutes: 20,
     delivery_vehicle_class: "car",
   });
+});
+
+it("codes kitchen tickets by priority with a written label and countdown", async () => {
+  const minutesAgo = (minutes) =>
+    new Date(Date.now() - minutes * 60000).toISOString();
+  const minutesAhead = (minutes) =>
+    new Date(Date.now() + minutes * 60000).toISOString();
+  const ticket = (id, fields) => ({
+    id,
+    order_number: `DF-K${id}`,
+    order_type: "pickup",
+    items: [],
+    ...fields,
+  });
+  api.mockResolvedValue({
+    data: [
+      ticket(1, { status: "confirmed", created_at: minutesAgo(2) }),
+      ticket(2, { status: "confirmed", created_at: minutesAgo(12) }),
+      ticket(3, {
+        status: "preparing",
+        created_at: minutesAgo(5),
+        prep_ready_at: minutesAhead(8),
+      }),
+      ticket(4, {
+        status: "preparing",
+        created_at: minutesAgo(30),
+        prep_ready_at: minutesAgo(4),
+      }),
+    ],
+  });
+  render(
+    <MemoryRouter>
+      <OrdersView kitchen user={{ permissions: ["kitchen.orders.update"] }} />
+    </MemoryRouter>,
+  );
+  const card = async (id) =>
+    screen.findByRole("article", { name: `Kitchen order DF-K${id}` });
+  expect((await card(1)).dataset.priority).toBe("normal");
+  expect((await card(2)).dataset.priority).toBe("soon");
+  expect(await card(2)).toHaveTextContent("Due soon");
+  expect((await card(3)).dataset.priority).toBe("normal");
+  expect(await card(3)).toHaveTextContent(/(7:5\d|8:00) left/);
+  expect((await card(4)).dataset.priority).toBe("late");
+  expect(await card(4)).toHaveTextContent("Late");
+  expect(await card(4)).toHaveTextContent(/4:0\d over/);
+  expect(
+    document.querySelector(".sage-kitchen").getAttribute("data-workspace"),
+  ).toBe("kitchen");
 });

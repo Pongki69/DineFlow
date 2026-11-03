@@ -1,0 +1,150 @@
+/* ---- Staff orders on a phone (waiter, and the admin shell's chips) --------
+   Pull to refresh replaces the Refresh button; the order type is a row of
+   chips; the other filters fold behind one button on the right. */
+@media (max-width: 850px) {
+  .dineflow-app .app-shell[data-workspace="restaurant"] .orders-workspace--staff .orders-refresh {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .orders-workspace--staff .orders-page-heading {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .orders-workspace--staff .orders-page-heading > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .orders-workspace--staff .orders-page-heading :is(.eyebrow, h1) {
+    display: none;
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .orders-workspace--staff .orders-page-heading p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+
+  /* Filters button, on the right. */
+  .dineflow-app .app-shell[data-workspace="restaurant"] .orders-filter-toggle {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    margin: 0 0 0 auto;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 650;
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .orders-filter-toggle[aria-expanded="true"] {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .orders-filter-count {
+    display: grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .dineflow-app .app-shell[data-workspace="restaurant"] .order-filters:not([data-open]) {
+    display: none;
+  }
+
+  /* The open filter card: two columns, compact fields, Clear on the right. */
+  .dineflow-app #main-content .orders-workspace--staff .order-filters[data-open] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: none;
+  }
+  .dineflow-app #main-content .orders-workspace--staff .order-filters[data-open] > :is(label, .order-date-filter) {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .dineflow-app #main-content .orders-workspace--staff .order-filters[data-open] :is(select, .date-picker > button) {
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+    padding-block: 0;
+    border-radius: 12px;
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .dineflow-app #main-content .orders-workspace--staff .order-filters[data-open] > .orders-clear-filters {
+    grid-column: 1 / -1;
+    justify-self: end;
+    width: auto;
+    min-height: 36px;
+    padding: 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 13.5px;
+    font-weight: 650;
+  }
+
+  /* Order type chips: one row that scrolls sideways if it must. */
+  .dineflow-app #main-content .orders-type-chips {
+    display: flex;
+    gap: 6px;
+    margin: 0 -2px;
+    padding: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dineflow-app #main-content .orders-type-chips button {
+    flex: none;
+    width: auto;
+    min-width: 0;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 650;
+  }
+  .dineflow-app #main-content .orders-type-chips button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--df-color-on-brand, #fff);
+  }
+
+  .dineflow-app #main-content .orders-workspace--staff .orders-result-bar {
+    margin: 0;
+    font-size: 12.5px;
+  }
+  .dineflow-app #main-content .orders-workspace--staff {
+    gap: 12px;
+  }
+}

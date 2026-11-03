@@ -75,7 +75,9 @@ for (const recorded of [true, false]) {
     await expect(page.locator("#main-content")).toBeVisible();
     await page.goto("/delivery/5/tracking");
     const details = page.locator(".customer-completed-map");
-    await details.locator("summary").click();
+    // Phones open the map already; elsewhere it is one tap away.
+    if (testInfo.project.name !== "mobile")
+      await details.locator("summary").click();
     await expect(
       details.locator('time[datetime="2026-10-23T06:00:00Z"]'),
     ).toBeVisible();

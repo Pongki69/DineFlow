@@ -1,0 +1,135 @@
+/* Shared production primitives. Scope to the application so the design lab
+   retains its reference tokens. Feature layouts keep their own structure. */
+.dineflow-app :is(.app-shell, .admin-shell) {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+.dineflow-app :is(.app-content, .admin-content) {
+  min-width: 0;
+}
+.dineflow-app :is(.app-content, .admin-content) :is(h1, h2, h3) {
+  font-family: var(--font-ui);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.dineflow-app :is(.app-content, .admin-content) h1 {
+  font-size: var(--text-title);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.dineflow-app :is(.app-content, .admin-content) h2 {
+  font-size: var(--text-section);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+.dineflow-app :is(.app-content, .admin-content) h3 {
+  font-size: var(--text-emphasis);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.dineflow-app :is(.page-heading, .admin-page-heading, .sage-page-heading) {
+  gap: var(--ui-page-gap);
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: var(--ui-page-gap);
+}
+.dineflow-app
+  :is(.page-heading, .admin-page-heading, .sage-page-heading)
+  > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.dineflow-app :is(.page-heading, .admin-page-heading, .sage-page-heading) h1 {
+  margin: 0;
+  font-size: var(--text-title);
+  line-height: 1.2;
+}
+.dineflow-app :is(.page-heading, .admin-page-heading, .sage-page-heading) p {
+  margin: 0.5rem 0 0;
+  max-width: 65ch;
+  font-size: var(--text-body);
+  line-height: 1.6;
+}
+.dineflow-app :is(.page-actions, .admin-heading-actions) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  max-width: 100%;
+  padding-top: 0;
+}
+.dineflow-app
+  :is(.app-content, .admin-content, dialog)
+  :is(
+    .ui-button,
+    .admin-button,
+    .workspace-action,
+    .refresh-button,
+    .order-action-button,
+    .text-button,
+    .rider-page-link
+  ) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--ui-control-height);
+  min-width: var(--ui-control-height);
+  max-width: 100%;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-ui);
+  font-size: var(--ui-button-text);
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  border-radius: var(--df-radius-sm);
+}
+.dineflow-app :is(.ui-button, .admin-button, .workspace-action) > svg {
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+.dineflow-app
+  :is(.app-content, .admin-content, dialog)
+  :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+        [type="color"]
+      ),
+    select,
+    textarea
+  ) {
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--ui-control-height);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+.dineflow-app
+  :is(.app-content, .admin-content)
+  :is(label, .field-hint, .field-error) {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.dineflow-app :is(.app-content, .admin-content) :is(.eyebrow, .admin-eyebrow) {
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+}
+@media (max-width: 599px) {
+  .dineflow-app :is(.page-actions, .admin-heading-actions) {
+    width: 100%;
+  }
+  .dineflow-app :is(.page-actions, .admin-heading-actions) > :is(button, a) {
+    flex: 1 1 9rem;
+  }
+  .dineflow-app :is(.ui-feedback, .dialog-actions, .workspace-form-actions) {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}

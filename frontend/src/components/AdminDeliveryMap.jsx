@@ -2,7 +2,6 @@ import { restaurantMapIcon as storeIcon } from "./restaurantMapIcon";
 import { useEffect, useRef, useState } from "react";
 import {
   Circle,
-  CircleMarker,
   MapContainer,
   Marker,
   Popup,
@@ -16,17 +15,38 @@ import { MapControls } from "./MapControls";
 import { RiderEdgeNavigation, RiderMapRoster } from "./AdminRiderNavigation";
 import "leaflet/dist/leaflet.css";
 
+const vehiclePaths = {
+  rider:
+    '<circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2M9 15l3 3 3-3"/>',
+  bicycle:
+    '<circle cx="5" cy="17" r="3.5"/><circle cx="19" cy="17" r="3.5"/><path d="m5 17 4-8 5 8H5m4-8h6l4 8M8 6h4m3-3h2l2 6"/>',
+  motorcycle:
+    '<path d="M6 8a6 6 0 0 1 12 0v3a6 6 0 0 1-12 0V8Zm0 0h12M8 8v3h8V8M4 22v-2a6 6 0 0 1 5-6m6 0a6 6 0 0 1 5 6v2M9 17l3 3 3-3M12 3v2"/>',
+  car: '<path d="m5 7 2-4h10l2 4 2 3v8H3v-8l2-3Zm0 0h14M3 14h18M7 10h1m8 0h1M5 18v3m14-3v3"/>',
+};
 const riderIcons = Object.fromEntries(
-  ["available", "on_delivery"].map((status) => [
-    status,
-    L.divIcon({
-      className: `admin-map-marker admin-map-marker--${status}`,
-      html: '<span aria-hidden="true">●</span>',
-      iconSize: [44, 44],
-      iconAnchor: [22, 22],
-    }),
-  ]),
+  Object.entries(vehiclePaths).flatMap(([vehicle, paths]) =>
+    ["available", "on_delivery"].flatMap((status) =>
+      [false, true].map((selected) => [
+        `${vehicle}-${status}${selected ? "-selected" : ""}`,
+        L.divIcon({
+          className: `admin-map-marker admin-map-marker--${status}${selected ? " admin-rider-focus-ring" : ""}`,
+          html: `<span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg></span>`,
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
+          popupAnchor: [0, -24],
+        }),
+      ]),
+    ),
+  ),
 );
+function riderIcon(rider, selected) {
+  const vehicle = Object.hasOwn(vehiclePaths, rider.vehicle_type)
+    ? rider.vehicle_type
+    : "rider";
+  const status = rider.status === "on_delivery" ? "on_delivery" : "available";
+  return riderIcons[`${vehicle}-${status}${selected ? "-selected" : ""}`];
+}
 export function mapPoint(value) {
   if (
     value?.latitude == null ||
@@ -58,6 +78,7 @@ function MapBehavior({
 }) {
   const map = useMap();
   const initialized = useRef(false);
+  const coverageView = useRef(null);
   const focused = useRef(null);
   const fleetPoints = fleet.map(mapPoint).filter(Boolean);
   const hasFleet = fleetPoints.length > 0;
@@ -66,13 +87,16 @@ function MapBehavior({
     dragstart: () => onBrowse?.(),
   });
   useEffect(() => {
-    if (position)
+    const coverageKey = JSON.stringify([position, radius, previewKey]);
+    if (position && coverageView.current !== coverageKey) {
       map.fitBounds(L.latLng(position).toBounds(Math.max(radius, 0.2) * 2000), {
         padding: [30, 30],
         maxZoom: 16,
         animate: false,
       });
-    else if (hasFleet && !initialized.current) {
+      coverageView.current = coverageKey;
+      initialized.current = true;
+    } else if (!position && hasFleet && !initialized.current) {
       map.fitBounds(fleetPoints, {
         padding: [60, 60],
         maxZoom: 15,
@@ -237,7 +261,6 @@ export default function AdminDeliveryMap({
   const [tileError, setTileError] = useState(false);
   const [tileAttempt, setTileAttempt] = useState(0);
   const [reset, setReset] = useState(0);
-  const [hovered, setHovered] = useState(null);
   const fullscreen = useMapFullscreen();
   const located = fleet.filter((rider) => mapPoint(rider));
   return (
@@ -342,13 +365,11 @@ export default function AdminDeliveryMap({
             <Marker
               key={rider.id}
               position={mapPoint(rider)}
-              icon={riderIcons[rider.status] || riderIcons.available}
+              icon={riderIcon(rider, selected?.id === rider.id)}
               title={rider.name}
-              alt={`Rider ${rider.name}`}
+              alt={`${rider.vehicle_type === "motorcycle" ? "Motorcycle rider" : rider.vehicle_type === "bicycle" ? "Bicycle rider" : rider.vehicle_type === "car" ? "Car driver" : "Rider"} ${rider.name}`}
               eventHandlers={{
                 click: () => onSelect?.(rider.id),
-                mouseover: () => setHovered(rider.id),
-                mouseout: () => setHovered(null),
               }}
             >
               <Popup>
@@ -365,25 +386,6 @@ export default function AdminDeliveryMap({
               </Popup>
             </Marker>
           ))}
-          {located
-            .filter(
-              (rider) => rider.id === selected?.id || rider.id === hovered,
-            )
-            .map((rider) => (
-              <CircleMarker
-                key={`halo-${rider.id}`}
-                center={mapPoint(rider)}
-                radius={27}
-                interactive={false}
-                pathOptions={{
-                  color: "#246b55",
-                  weight: 3,
-                  fillColor: "#246b55",
-                  fillOpacity: 0.1,
-                  className: "admin-rider-focus-ring",
-                }}
-              />
-            ))}
         </MapContainer>
         {showRiderList && (
           <RiderMapRoster

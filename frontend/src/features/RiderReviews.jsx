@@ -1,7 +1,8 @@
+import { subscribeToLiveChanges } from "../liveUpdates";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CheckCircle2, Star } from "lucide-react";
-import { RiderVehicle } from "../components/RiderVehicle";
+import { RIDER_VEHICLE_SETUP, RiderVehicle } from "../components/RiderVehicle";
 import { RiderScreenSkeleton } from "../components/RiderScreenSkeleton";
 import { api } from "../api";
 import { Button, Feedback, PageHeader } from "../components/ui";
@@ -43,6 +44,22 @@ export function RiderReviews({ own = false }) {
       });
     return () => controller.abort();
   }, [riderId, own, page, filterRating, retry]);
+  useEffect(
+    () =>
+      subscribeToLiveChanges(async () => {
+        const query = new URLSearchParams({
+          page: String(page),
+          ...(filterRating != null ? { rating: String(filterRating) } : {}),
+        });
+        const result = await api(
+          own
+            ? `/rider/reviews?${query}`
+            : `/riders/${riderId}/profile?${query}`,
+        );
+        setData(result.data);
+      }, ["reviews", "accounts"]),
+    [riderId, own, page, filterRating],
+  );
   function toggleRatingFilter(stars) {
     setPage(1);
     setFilterRating((current) => (current === stars ? null : stars));
@@ -85,7 +102,10 @@ export function RiderReviews({ own = false }) {
               <div>
                 <h2>{data.rider.name}</h2>
                 <div>
-                  <RiderVehicle type={data.rider.vehicle_type} />
+                  <RiderVehicle
+                    type={data.rider.vehicle_type}
+                    setupTo={own ? RIDER_VEHICLE_SETUP : undefined}
+                  />
                 </div>
                 <small>
                   {data.rider.joined_at
@@ -105,25 +125,10 @@ export function RiderReviews({ own = false }) {
                   aria-label="Rating summary"
                 >
                   <h2 className="review-summary-label">Overall rating</h2>
-                  <div className="review-scoreline">
-                    <strong>—</strong>
-                    <span>/ 5</span>
-                  </div>
-                  <RatingStars value={0} />
-                  <p>No ratings yet</p>
-                  <div className="review-distribution">
-                    {data.summary.breakdown.map((row) => (
-                      <div key={row.stars}>
-                        <span>{row.stars} ★</span>
-                        <progress
-                          max={1}
-                          value={0}
-                          aria-label={`${row.stars} star reviews: 0`}
-                        />
-                        <span>0</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="review-empty-score">
+                    <Star size={18} strokeWidth={1.8} aria-hidden="true" />
+                    No ratings yet
+                  </p>
                 </section>
                 <section
                   className="review-first-empty"

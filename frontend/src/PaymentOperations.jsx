@@ -1,3 +1,5 @@
+import { subscribeToLiveChanges } from "./liveUpdates";
+import { useLiveSettings } from "./components/useLiveSettings";
 import { EmptyState, Feedback, Skeleton, StatusBadge } from "./components/ui";
 import { usePrompt } from "./components/ConfirmProvider";
 import { useEffect, useRef, useState } from "react";
@@ -11,13 +13,37 @@ import {
   Table2,
   Wallet,
   X,
+  AlertCircle,
+  CheckCircle2,
+  Printer,
+  UtensilsCrossed,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import "./features/paymentReceipt.css";
+import {
+  ThermalReceipt,
+  printThermalReceipt,
+} from "./components/ThermalReceipt";
 import { api } from "./api";
 import "./features/staffSage.css";
 
-const money = (value) => `₱${Number(value || 0).toFixed(2)}`;
-const title = (value) => String(value || "").replaceAll("_", " ");
+const money = (value) =>
+  `₱${Number(value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// "gcash" → "GCash", "dining_session" → "Dining session".
+const BRANDS = {
+  gcash: "GCash",
+  qrph: "QR Ph",
+  maya: "Maya",
+  paymaya: "Maya",
+  grabpay: "GrabPay",
+  shopeepay: "ShopeePay",
+  billease: "BillEase",
+};
+const title = (value) =>
+  BRANDS[String(value || "").toLowerCase()] ||
+  String(value || "")
+    .replaceAll("_", " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
 
 export function PaymentDashboard({ user = { permissions: [] } }) {
   const ask = usePrompt();
@@ -92,13 +118,13 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
       };
     }
     load();
-    const timer = setInterval(() => {
-      if (!busyRef.current && !document.hidden) load();
-    }, 12000);
+    const unsubscribe = subscribeToLiveChanges(() => {
+      if (!busyRef.current) return load();
+    }, ["payments", "orders", "reservations"]);
     return () => {
       mounted.current = false;
       requestVersion.current += 1;
-      clearInterval(timer);
+      unsubscribe();
     };
   }, [page, canCash, canView]);
   useEffect(() => {
@@ -129,7 +155,9 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
     ...openBills.map((bill) => ({
       kind: "session",
       id: bill.id,
-      label: "Table " + bill.table_number,
+      label: /^table\s/i.test(String(bill.table_number))
+        ? String(bill.table_number)
+        : "Table " + bill.table_number,
       detail:
         bill.orders?.map((order) => order.order_number).join(" · ") ||
         "Dining session bill",
@@ -759,10 +787,10 @@ export function PaymentReturn() {
       }
     };
     refresh();
-    const id = setInterval(refresh, 4000);
+    const unsubscribe = subscribeToLiveChanges(refresh, ["payments"]);
     return () => {
       active = false;
-      clearInterval(id);
+      unsubscribe();
     };
   }, [paymentId, result]);
   if (!paymentId)
@@ -825,12 +853,16 @@ export function PaymentReturn() {
 
 export function PaymentReceipt() {
   const { paymentId } = useParams();
+  const navigate = useNavigate();
   const [receipt, setReceipt] = useState(null),
     [error, setError] = useState("");
   useEffect(() => {
-    api(`/payments/${paymentId}/receipt`)
-      .then((r) => setReceipt(r.data))
-      .catch((e) => setError(e.message));
+    const load = () =>
+      api(`/payments/${paymentId}/receipt`)
+        .then((r) => setReceipt(r.data))
+        .catch((e) => setError(e.message));
+    load();
+    return subscribeToLiveChanges(load, ["payments"]);
   }, [paymentId]);
   if (error)
     return (
@@ -846,73 +878,111 @@ export function PaymentReceipt() {
         <Skeleton label="Loading receipt" />
       </section>
     );
+  const paid = receipt.status === "paid";
+  const when = receipt.paid_at ? new Date(receipt.paid_at) : null;
+  const rows = [
+    ["Reference", receipt.reference],
+    ["Order", receipt.order_number],
+    ["Booking", receipt.reservation_reference],
+    ["Table", receipt.table],
+    ["Paid with", receipt.method && title(receipt.method)],
+    ["Cash received", receipt.cash_tendered && money(receipt.cash_tendered)],
+    ["Change", receipt.cash_tendered && money(receipt.change || 0)],
+    [
+      "Date",
+      when &&
+        when.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }),
+    ],
+    ["Received by", receipt.received_by],
+    ["Provider reference", receipt.provider_reference],
+  ].filter(([, value]) => value);
+  const restaurant = receipt.restaurant || { name: "DineFlow" };
   return (
     <section className="welcome receipt-page">
-      <span className="eyebrow">DINEFLOW · PAYMENT RECEIPT</span>
-      <h1>
-        {receipt.status === "paid" ? "Payment received" : title(receipt.status)}
-      </h1>
-      <dl>
-        <dt>Reference</dt>
-        <dd>{receipt.reference}</dd>
-        <dt>Amount</dt>
-        <dd>
-          {money(receipt.amount)} {receipt.currency}
-        </dd>
-        <dt>Purpose</dt>
-        <dd>{title(receipt.purpose)}</dd>
-        {receipt.order_number && (
-          <>
-            <dt>Order</dt>
-            <dd>{receipt.order_number}</dd>
-          </>
+      <article className="receipt-paper" aria-label="Payment receipt">
+        <header className="receipt-brand">
+          <span className="receipt-logo" aria-hidden="true">
+            <UtensilsCrossed size={22} />
+          </span>
+          <strong>
+            {restaurant.name || "DineFlow"}
+            {(!restaurant.name || restaurant.name === "DineFlow") && (
+              <b className="receipt-dot">.</b>
+            )}
+          </strong>
+          {restaurant.address && <small>{restaurant.address}</small>}
+          {restaurant.phone && <small>{restaurant.phone}</small>}
+        </header>
+        <div className="receipt-amount" data-status={receipt.status}>
+          <span className="receipt-status">
+            {paid ? (
+              <CheckCircle2 size={16} aria-hidden="true" />
+            ) : (
+              <AlertCircle size={16} aria-hidden="true" />
+            )}
+            {paid ? "Payment received" : title(receipt.status)}
+          </span>
+          <strong>{money(receipt.amount)}</strong>
+          <small>
+            {title(receipt.purpose)} · {receipt.currency}
+          </small>
+        </div>
+        {(receipt.lines?.length > 0 || receipt.charges?.length > 0) && (
+          <ul className="receipt-lines">
+            {receipt.lines.map((line, index) => (
+              <li key={index}>
+                <span>
+                  {line.quantity}× {line.name}
+                  {line.variant && <small>{line.variant}</small>}
+                </span>
+                <b>{money(line.total)}</b>
+              </li>
+            ))}
+            {(receipt.charges || []).map((charge) => (
+              <li key={charge.name} className="receipt-charge">
+                <span>{charge.name}</span>
+                <b>
+                  {Number(charge.total) < 0
+                    ? `−${money(-Number(charge.total))}`
+                    : money(charge.total)}
+                </b>
+              </li>
+            ))}
+          </ul>
         )}
-        {receipt.reservation_reference && (
-          <>
-            <dt>Reservation</dt>
-            <dd>{receipt.reservation_reference}</dd>
-          </>
-        )}
-        {receipt.table && (
-          <>
-            <dt>Table</dt>
-            <dd>{receipt.table}</dd>
-          </>
-        )}
-        {receipt.method && (
-          <>
-            <dt>Method</dt>
-            <dd>{title(receipt.method)}</dd>
-          </>
-        )}
-        {receipt.provider_reference && (
-          <>
-            <dt>Provider reference</dt>
-            <dd>{receipt.provider_reference}</dd>
-          </>
-        )}
-        {receipt.paid_at && (
-          <>
-            <dt>Paid at</dt>
-            <dd>{new Date(receipt.paid_at).toLocaleString()}</dd>
-          </>
-        )}
-        {receipt.received_by && (
-          <>
-            <dt>Received by</dt>
-            <dd>{receipt.received_by}</dd>
-          </>
-        )}
-      </dl>
-      <button
-        className="refresh-button no-print"
-        onClick={() => window.print()}
-      >
-        Print receipt
-      </button>
-      <Link className="no-print" to="/my-orders">
-        Return
-      </Link>
+        <dl className="receipt-rows">
+          {rows.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <footer className="receipt-thanks">
+          <p>Thank you for dining with us!</p>
+          <small>Powered by DineFlow</small>
+        </footer>
+      </article>
+      <ThermalReceipt receipt={receipt} />
+      <div className="receipt-actions no-print">
+        <button
+          type="button"
+          className="receipt-back"
+          onClick={() =>
+            window.history.length > 1 ? navigate(-1) : navigate("/payments")
+          }
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          className="receipt-print"
+          onClick={printThermalReceipt}
+        >
+          <Printer size={16} aria-hidden="true" />
+          Print receipt
+        </button>
+      </div>
     </section>
   );
 }
@@ -940,12 +1010,17 @@ export function PaymentSettings() {
     }),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  const [receivePolicy] = useLiveSettings(
+    () => api("/admin/payment-policy").then((r) => r.data),
+    policy,
+    setPolicy,
+  );
   useEffect(() => {
     setLoading(true);
     setInitialError("");
     setError("");
     api("/admin/payment-policy")
-      .then((r) => setPolicy(r.data))
+      .then((r) => receivePolicy(r.data))
       .catch((e) => {
         setError(e.message);
         setInitialError(e.message);
@@ -972,7 +1047,7 @@ export function PaymentSettings() {
           payment_method_types: policy.payment_method_types,
         }),
       });
-      setPolicy((current) => ({ ...current, ...r.data }));
+      receivePolicy((current) => ({ ...current, ...r.data }));
       setNotice(
         "Payment methods saved. The gateway only accepts methods enabled for your PayMongo merchant account.",
       );

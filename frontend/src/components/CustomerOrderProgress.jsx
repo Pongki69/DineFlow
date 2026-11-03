@@ -3,6 +3,7 @@ import "./customerOrderProgress.css";
 import { TrackingDisclosureSummary } from "./TrackingDisclosureSummary";
 import { Link } from "react-router-dom";
 import { RiderVehicle } from "./RiderVehicle";
+import { useMediaQuery } from "./useMediaQuery";
 
 export const foodLabels = {
   pending: "Order received",
@@ -127,6 +128,9 @@ export function CustomerOrderProgress({ data, children }) {
     foodLabels[data.order_status] || "Waiting for a kitchen update";
   const riderTitle = deliveryLabels[data.status] || readable(data.status);
   const events = trackingTimeline(data);
+  // Phones show every section open: no tapping "Details" to see progress.
+  const phone = useMediaQuery("(max-width: 850px)");
+  const open = phone || undefined;
   return (
     <>
       <div className="customer-progress-grid">
@@ -152,7 +156,7 @@ export function CustomerOrderProgress({ data, children }) {
               </time>
             </p>
           )}
-          <details className="customer-progress-disclosure">
+          <details className="customer-progress-disclosure" open={open}>
             <TrackingDisclosureSummary meta="Details">
               Food preparation
             </TrackingDisclosureSummary>
@@ -206,7 +210,7 @@ export function CustomerOrderProgress({ data, children }) {
                 : "Your rider is at the restaurant while the kitchen finishes your food."}
             </p>
           )}
-          <details className="customer-progress-disclosure">
+          <details className="customer-progress-disclosure" open={open}>
             <TrackingDisclosureSummary meta="Details">
               Rider progress
             </TrackingDisclosureSummary>
@@ -231,7 +235,7 @@ export function CustomerOrderProgress({ data, children }) {
         </p>
       )}
       {children}
-      <details className="customer-progress-card customer-order-timeline">
+      <details className="customer-progress-card customer-order-timeline" open={open}>
         <TrackingDisclosureSummary
           meta={events.length ? `${events.length} updates` : "Details"}
         >
@@ -245,8 +249,16 @@ export function CustomerOrderProgress({ data, children }) {
                   {event.source === "order" ? "Kitchen & order" : "Delivery"}
                 </span>
                 <strong>{event.label}</strong>
-                <time dateTime={event.at}>
-                  {new Date(event.at).toLocaleString()}
+                <time
+                  dateTime={event.at}
+                  title={new Date(event.at).toLocaleString()}
+                >
+                  {phone
+                    ? new Date(event.at).toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    : new Date(event.at).toLocaleString()}
                 </time>
               </li>
             ))}

@@ -11,6 +11,8 @@ use App\Services\AuditLogService;
 use App\Services\MenuCatalogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Models\OrderItem;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -35,8 +37,15 @@ class MenuController extends Controller
             $query->orderable()->whereHas('category', fn ($category) => $category->where('is_active', true));
         }
         if ($request->filled('category')) {
-            $category = $request->input('category');
-            $query->whereHas('category', fn ($builder) => $builder->where('slug', $category)->orWhere('id', $category));
+            $category = (string) $request->input('category');
+            // Match by slug, or by id only when the value is numeric: PostgreSQL
+            // rejects comparing an integer column with text such as "drinks".
+            $query->whereHas('category', fn ($builder) => $builder->where(function ($match) use ($category) {
+                $match->where('slug', $category);
+                if (ctype_digit($category)) {
+                    $match->orWhere('id', (int) $category);
+                }
+            }));
         }
         if ($request->filled('q')) {
             $term = trim((string) $request->input('q'));
@@ -150,9 +159,63 @@ class MenuController extends Controller
         return response()->json(['data' => $item->fresh()]);
     }
 
+    /** Kitchen view of the menu: every active dish, including sold-out ones. */
+    public function kitchenMenu(): JsonResponse
+    {
+        $items = MenuItem::query()->with('category:id,name')
+            ->where('is_active', true)
+            ->whereHas('category', fn ($category) => $category->where('is_active', true))
+            ->orderBy('category_id')->orderBy('sort_order')->orderBy('name')
+            ->get(['id', 'name', 'category_id', 'is_sold_out']);
+
+        return response()->json(['data' => $items->map(fn (MenuItem $item) => [
+            'id' => $item->id,
+            'name' => $item->name,
+            'category' => $item->category?->name,
+            'is_sold_out' => (bool) $item->is_sold_out,
+        ])->values()]);
+    }
+
+    /** Kitchen staff may only flip "sold out"; prices and other details stay with menu managers. */
+    public function kitchenSoldOut(Request $request, MenuItem $item, AuditLogService $audit): JsonResponse
+    {
+        abort_unless($item->is_active, 404);
+        $data = $request->validate(['is_sold_out' => ['required', 'boolean']]);
+        $item->forceFill($data)->save();
+        $audit->record($request->user(), 'menu.item_sold_out_changed', $item, $data + ['name' => $item->name, 'source' => 'kitchen'], $request);
+
+        return response()->json(['data' => ['id' => $item->id, 'name' => $item->name, 'is_sold_out' => (bool) $item->is_sold_out]]);
+    }
+
+    /**
+     * The five best-selling dishes of the last 30 days, as [menu item id => rank],
+     * so the menu can point customers to them. A dish needs at least three sold;
+     * cancelled orders do not count. Kept for ten minutes.
+     */
+    private function popularRanks(): array
+    {
+        return $this->popularRanks ??= Cache::remember('menu.popular_ranks', 600, function (): array {
+            $ids = OrderItem::query()
+                ->whereNotNull('menu_item_id')
+                ->whereHas('order', fn ($order) => $order->whereNotIn('status', ['cancelled'])->where('created_at', '>=', now()->subDays(30)))
+                ->select('menu_item_id', DB::raw('sum(quantity) as sold'))
+                ->groupBy('menu_item_id')
+                ->havingRaw('sum(quantity) >= 3')
+                ->orderByDesc('sold')->orderBy('menu_item_id')
+                ->limit(5)
+                ->pluck('menu_item_id')
+                ->all();
+
+            return $ids ? array_combine($ids, range(1, count($ids))) : [];
+        });
+    }
+
+    private ?array $popularRanks = null;
+
     private function itemPayload(MenuItem $item, bool $manage): array
     {
         $item->setAttribute('is_currently_available', $item->is_currently_available);
+        $item->setAttribute('popular_rank', $this->popularRanks()[$item->id] ?? null);
         $item->setAttribute('image_url', $item->image_source_url ?: ($item->image_path ? Storage::disk('public')->url($item->image_path) : null));
         $item->setRelation('variants', $item->variants->filter(fn ($variant) => $manage || $variant->is_active)->values());
         $item->setRelation('addons', $item->addons->filter(fn ($addon) => $manage || $addon->is_active)->values());
