@@ -195,6 +195,9 @@ test("staff creation shares live checks and the admin sidebar omits the duplicat
     page.getByRole("heading", { name: "Team & access", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".admin-workspace-tag")).toHaveCount(0);
+  // Phones open the new-account form in a sheet.
+  if (info.project.name === "mobile")
+    await page.getByRole("button", { name: "Add staff", exact: true }).click();
   const form = page.locator(".staff-form");
   await form
     .getByLabel("Name", { exact: true })
@@ -225,9 +228,14 @@ test("staff creation shares live checks and the admin sidebar omits the duplicat
   await expect(
     page.getByText("Staff account created.", { exact: true }),
   ).toBeVisible();
-  await expect(
-    form.getByLabel("Temporary password", { exact: true }),
-  ).toHaveValue("");
+  if (info.project.name === "mobile") {
+    // The sheet closes once the account exists.
+    await expect(form).toHaveCount(0);
+  } else {
+    await expect(
+      form.getByLabel("Temporary password", { exact: true }),
+    ).toHaveValue("");
+  }
 });
 
 test("password reset gives the same feedback while invalid reset tokens remain rejected by the server", async ({

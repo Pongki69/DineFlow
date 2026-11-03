@@ -42,7 +42,9 @@ test("rider mobile app navigation reaches work, activity and profile without des
     path: info.outputPath("mobile-offers.png"),
     fullPage: false,
   });
-  await nav.getByRole("link", { name: "Activity", exact: true }).click();
+  // Past deliveries open from Deliveries; Activity is no longer a tab.
+  await nav.getByRole("link", { name: "Deliveries", exact: true }).click();
+  await page.getByRole("link", { name: "Past deliveries" }).click();
   await expect(
     page.getByRole("heading", { name: "Delivery history", exact: true }),
   ).toBeVisible();

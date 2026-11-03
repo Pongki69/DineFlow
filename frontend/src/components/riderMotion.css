@@ -1247,9 +1247,7 @@
     text-align: center;
   }
   /* The list opens as a sheet above the bottom navigation. */
-  .dineflow-app
-    .notification-center--tab
-    .notification-popover {
+  .dineflow-app .notification-center--tab .notification-popover {
     position: fixed;
     z-index: 60;
     top: auto;
@@ -2188,15 +2186,11 @@
     animation: rider-fade var(--df-motion-duration, 200ms)
       var(--df-motion-easing) backwards;
   }
-  .dineflow-app
-    .notification-center--tab
-    .notification-popover {
+  .dineflow-app .notification-center--tab .notification-popover {
     z-index: 1200;
     padding: 0 0 8px;
   }
-  .dineflow-app
-    .notification-center--tab
-    .popover-heading {
+  .dineflow-app .notification-center--tab .popover-heading {
     position: sticky;
     top: 0;
     z-index: 1;
@@ -2208,10 +2202,7 @@
     border-bottom: 1px solid var(--border);
     background: var(--surface);
   }
-  .dineflow-app
-    .notification-center--tab
-    .popover-heading
-    h2 {
+  .dineflow-app .notification-center--tab .popover-heading h2 {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -2226,9 +2217,7 @@
     font-size: 12px;
     font-weight: 700;
   }
-  .dineflow-app
-    .notification-center--tab
-    .notification-item {
+  .dineflow-app .notification-center--tab .notification-item {
     position: relative;
     display: grid;
     gap: 2px;
@@ -2242,14 +2231,10 @@
     color: var(--ink);
     text-align: left;
   }
-  .dineflow-app
-    .notification-center--tab
-    .notification-item:last-child {
+  .dineflow-app .notification-center--tab .notification-item:last-child {
     border-bottom: 0;
   }
-  .dineflow-app
-    .notification-center--tab
-    .notification-item.unread::before {
+  .dineflow-app .notification-center--tab .notification-item.unread::before {
     content: "";
     position: absolute;
     top: 19px;
@@ -2259,29 +2244,18 @@
     border-radius: 50%;
     background: var(--primary);
   }
-  .dineflow-app
-    .notification-center--tab
-    .notification-item
-    b {
+  .dineflow-app .notification-center--tab .notification-item b {
     font-size: 15px;
   }
-  .dineflow-app
-    .notification-center--tab
-    .notification-item
-    span {
+  .dineflow-app .notification-center--tab .notification-item span {
     color: var(--muted);
     font-size: 14px;
   }
-  .dineflow-app
-    .notification-center--tab
-    .notification-item
-    small {
+  .dineflow-app .notification-center--tab .notification-item small {
     color: var(--muted);
     font-size: 12px;
   }
-  .dineflow-app
-    .notification-center--tab
-    .empty-state {
+  .dineflow-app .notification-center--tab .empty-state {
     margin: 12px;
     padding: 24px 16px;
     border-radius: 14px;

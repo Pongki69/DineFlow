@@ -33,7 +33,10 @@ describe("floorCounts", () => {
     expect(
       floorCounts([
         { operational_status: "available" },
-        { operational_status: "occupied", current_session: { bill_requested_at: "x" } },
+        {
+          operational_status: "occupied",
+          current_session: { bill_requested_at: "x" },
+        },
         { operational_status: "occupied", current_session: {} },
         { operational_status: "cleaning", is_active: false },
       ]),
@@ -44,12 +47,30 @@ describe("floorCounts", () => {
 describe("arrivingSoon", () => {
   const now = Date.parse("2026-11-02T12:00:00Z");
   it("keeps confirmed bookings from 30 minutes ago to 3 hours ahead", () => {
-    const at = (minutes, status = "confirmed", id = minutes) => ({ id, status, starts_at: new Date(now + minutes * 60000).toISOString() });
-    const list = arrivingSoon([at(90), at(-20), at(-45), at(200), at(10, "cancelled"), at(30, "checked_in")], now);
+    const at = (minutes, status = "confirmed", id = minutes) => ({
+      id,
+      status,
+      starts_at: new Date(now + minutes * 60000).toISOString(),
+    });
+    const list = arrivingSoon(
+      [
+        at(90),
+        at(-20),
+        at(-45),
+        at(200),
+        at(10, "cancelled"),
+        at(30, "checked_in"),
+      ],
+      now,
+    );
     expect(list.map((booking) => booking.id)).toEqual([-20, 30, 90]);
   });
   it("names the booked tables", () => {
-    expect(bookingTables({ tables: [{ table_number: "Table 2" }, { table_number: "3" }] })).toBe("Table 2, Table 3");
+    expect(
+      bookingTables({
+        tables: [{ table_number: "Table 2" }, { table_number: "3" }],
+      }),
+    ).toBe("Table 2, Table 3");
     expect(bookingTables({})).toBe("No table yet");
   });
 });

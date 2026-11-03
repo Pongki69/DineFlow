@@ -960,84 +960,86 @@ function RiderTeamPanel({ user, resource }) {
             ))}
           </ul>
         ) : (
-        <div
-          className="admin-table-scroll"
-          role="region"
-          aria-label="Rider fleet table"
-          tabIndex={0}
-        >
-          <table className="admin-table">
-            <thead>
-              <tr>
-                {[
-                  "Rider",
-                  "Vehicle",
-                  "Status",
-                  "Active deliveries",
-                  "Last GPS update",
-                  "Account",
-                ].map((label) => (
-                  <th scope="col" key={label}>
-                    {label}
-                  </th>
-                ))}
-                {user.permissions.includes("users.manage") && (
-                  <th scope="col">Action</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((rider) => (
-                <tr key={rider.id}>
-                  <td>
-                    <span className="admin-rider-cell">
-                      <span className="admin-small-avatar">
-                        {rider.name.slice(0, 1)}
-                      </span>
-                      <strong>{rider.name}</strong>
-                    </span>
-                  </td>
-                  <td className="admin-capitalize">
-                    {rider.vehicle_type || "Not configured"}
-                  </td>
-                  <td>
-                    <AdminBadge status={rider.status} />
-                  </td>
-                  <td>{rider.active_deliveries}</td>
-                  <td>
-                    {rider.located_at
-                      ? new Date(rider.located_at).toLocaleString([], {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })
-                      : "No location yet"}
-                  </td>
-                  <td>
-                    <AdminBadge status={rider.is_active ? "active" : "offline"}>
-                      {rider.is_active ? "Active" : "Deactivated"}
-                    </AdminBadge>
-                  </td>
+          <div
+            className="admin-table-scroll"
+            role="region"
+            aria-label="Rider fleet table"
+            tabIndex={0}
+          >
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  {[
+                    "Rider",
+                    "Vehicle",
+                    "Status",
+                    "Active deliveries",
+                    "Last GPS update",
+                    "Account",
+                  ].map((label) => (
+                    <th scope="col" key={label}>
+                      {label}
+                    </th>
+                  ))}
                   {user.permissions.includes("users.manage") && (
-                    <td>
-                      <Button
-                        className="admin-button admin-button--secondary"
-                        variant="secondary"
-                        busy={pending === rider.id}
-                        disabled={
-                          pending != null ||
-                          (rider.is_active && rider.active_deliveries > 0)
-                        }
-                        onClick={() => toggle(rider)}
-                      >
-                        {rider.is_active ? "Deactivate" : "Activate"}
-                      </Button>
-                    </td>
+                    <th scope="col">Action</th>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {visible.map((rider) => (
+                  <tr key={rider.id}>
+                    <td>
+                      <span className="admin-rider-cell">
+                        <span className="admin-small-avatar">
+                          {rider.name.slice(0, 1)}
+                        </span>
+                        <strong>{rider.name}</strong>
+                      </span>
+                    </td>
+                    <td className="admin-capitalize">
+                      {rider.vehicle_type || "Not configured"}
+                    </td>
+                    <td>
+                      <AdminBadge status={rider.status} />
+                    </td>
+                    <td>{rider.active_deliveries}</td>
+                    <td>
+                      {rider.located_at
+                        ? new Date(rider.located_at).toLocaleString([], {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })
+                        : "No location yet"}
+                    </td>
+                    <td>
+                      <AdminBadge
+                        status={rider.is_active ? "active" : "offline"}
+                      >
+                        {rider.is_active ? "Active" : "Deactivated"}
+                      </AdminBadge>
+                    </td>
+                    {user.permissions.includes("users.manage") && (
+                      <td>
+                        <Button
+                          className="admin-button admin-button--secondary"
+                          variant="secondary"
+                          busy={pending === rider.id}
+                          disabled={
+                            pending != null ||
+                            (rider.is_active && rider.active_deliveries > 0)
+                          }
+                          onClick={() => toggle(rider)}
+                        >
+                          {rider.is_active ? "Deactivate" : "Activate"}
+                        </Button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         {resource.loading ? (
           <Skeleton cards={1} label="Loading rider fleet" />

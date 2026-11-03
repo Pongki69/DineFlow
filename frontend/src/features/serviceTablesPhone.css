@@ -32,16 +32,28 @@
   background: var(--primary-soft);
   content: "";
 }
-.dineflow-app #main-content .service-phone-counts button[data-status="available"]::before {
+.dineflow-app
+  #main-content
+  .service-phone-counts
+  button[data-status="available"]::before {
   background: #7aa25b;
 }
-.dineflow-app #main-content .service-phone-counts button[data-status="occupied"]::before {
+.dineflow-app
+  #main-content
+  .service-phone-counts
+  button[data-status="occupied"]::before {
   background: var(--primary);
 }
-.dineflow-app #main-content .service-phone-counts button[data-status="cleaning"]::before {
+.dineflow-app
+  #main-content
+  .service-phone-counts
+  button[data-status="cleaning"]::before {
   background: #d9a21b;
 }
-.dineflow-app #main-content .service-phone-counts button[data-status="unavailable"]::before {
+.dineflow-app
+  #main-content
+  .service-phone-counts
+  button[data-status="unavailable"]::before {
   background: #9aa59d;
 }
 .service-phone-counts b {
@@ -115,7 +127,9 @@
   background: #fbefcf;
   color: #6f4f0b;
 }
-.service-phone-list li:is([data-status="unavailable"], [data-status="inactive"]) .service-phone-number {
+.service-phone-list
+  li:is([data-status="unavailable"], [data-status="inactive"])
+  .service-phone-number {
   background: var(--neutral-soft, #eef1ec);
   color: var(--muted);
 }
@@ -232,7 +246,10 @@
   .dineflow-app #main-content .sage-service {
     gap: 10px;
   }
-  .dineflow-app #main-content .sage-service > :is(.service-phone-counts, .sage-toolbar) {
+  .dineflow-app
+    #main-content
+    .sage-service
+    > :is(.service-phone-counts, .sage-toolbar) {
     margin: 0;
   }
   .dineflow-app #main-content .sage-service > .sage-freshness {
@@ -281,17 +298,29 @@
     font-weight: 650;
     white-space: nowrap;
   }
-  .dineflow-app #main-content .service-phone-filters button[aria-pressed="true"] {
+  .dineflow-app
+    #main-content
+    .service-phone-filters
+    button[aria-pressed="true"] {
     border-color: var(--primary);
     background: var(--primary);
     color: var(--df-color-on-brand, #fff);
   }
-  .dineflow-app #main-content .sage-service .sage-toolbar > .sage-field:not(.service-phone-search):not([hidden]) {
+  .dineflow-app
+    #main-content
+    .sage-service
+    .sage-toolbar
+    > .sage-field:not(.service-phone-search):not([hidden]) {
     flex: 1 1 140px;
     margin: 0;
     font-size: 0;
   }
-  .dineflow-app #main-content .sage-service .sage-toolbar > .sage-field:not(.service-phone-search) select {
+  .dineflow-app
+    #main-content
+    .sage-service
+    .sage-toolbar
+    > .sage-field:not(.service-phone-search)
+    select {
     width: 100%;
     height: 38px;
     min-height: 38px;
@@ -316,7 +345,11 @@
     gap: 8px;
     min-height: 36px;
   }
-  .dineflow-app #main-content .sage-service .service-phone-countrow .sage-freshness {
+  .dineflow-app
+    #main-content
+    .sage-service
+    .service-phone-countrow
+    .sage-freshness {
     margin: 0 2px;
   }
 }

@@ -16,19 +16,34 @@ const alert = (event, context) => ({ data: { event, context } });
 describe("notificationTarget", () => {
   it("sends customers to the record the alert is about", () => {
     expect(
-      notificationTarget(alert("delivery.accepted", { delivery_id: 4 }), customer),
+      notificationTarget(
+        alert("delivery.accepted", { delivery_id: 4 }),
+        customer,
+      ),
     ).toBe("/delivery/4/tracking");
     expect(
-      notificationTarget({ data: { delivery_id: 9, status: "in_transit" } }, customer),
+      notificationTarget(
+        { data: { delivery_id: 9, status: "in_transit" } },
+        customer,
+      ),
     ).toBe("/delivery/9/tracking");
     expect(
-      notificationTarget(alert("order.status_changed", { order_id: 2 }), customer),
+      notificationTarget(
+        alert("order.status_changed", { order_id: 2 }),
+        customer,
+      ),
     ).toBe("/my-orders?order=2");
     expect(
-      notificationTarget(alert("reservation.created", { reservation_id: 1 }), customer),
+      notificationTarget(
+        alert("reservation.created", { reservation_id: 1 }),
+        customer,
+      ),
     ).toBe("/my-reservations");
     expect(
-      notificationTarget(alert("payment.paid", { payment_id: 7, order_id: 2 }), customer),
+      notificationTarget(
+        alert("payment.paid", { payment_id: 7, order_id: 2 }),
+        customer,
+      ),
     ).toBe("/payments/7/receipt");
   });
 
@@ -43,7 +58,10 @@ describe("notificationTarget", () => {
 
   it("sends staff only to pages they can open", () => {
     expect(
-      notificationTarget(alert("delivery.dispatch_exhausted", { delivery_id: 5 }), manager),
+      notificationTarget(
+        alert("delivery.dispatch_exhausted", { delivery_id: 5 }),
+        manager,
+      ),
     ).toBe("/admin/deliveries");
     expect(
       notificationTarget(alert("order.placed", { order_id: 2 }), kitchen),

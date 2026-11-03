@@ -42,7 +42,8 @@
   display: block;
   height: 6px;
   border-radius: 999px;
-  background: linear-gradient(
+  background:
+    linear-gradient(
       to right,
       var(--primary) var(--share, 0%),
       transparent var(--share, 0%)
@@ -112,7 +113,11 @@
     font-weight: 650;
     white-space: nowrap;
   }
-  .dineflow-app #main-content .reports-dashboard .report-range > .report-date-filter {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .report-range
+    > .report-date-filter {
     display: grid;
     grid-column: span 3;
     gap: 4px;
@@ -122,7 +127,11 @@
     font-weight: 700;
   }
   .dineflow-app #main-content .reports-dashboard .report-range .date-picker,
-  .dineflow-app #main-content .reports-dashboard .report-range .date-picker-trigger {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .report-range
+    .date-picker-trigger {
     width: 100%;
     min-width: 0;
   }
@@ -142,7 +151,11 @@
       radial-gradient(120% 140% at 0% 0%, var(--primary-soft), transparent 60%),
       var(--surface);
   }
-  .dineflow-app .reports-dashboard .ops-stats--sales > .ops-stat:nth-child(2) strong {
+  .dineflow-app
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat:nth-child(2)
+    strong {
     font-size: 30px;
   }
   .dineflow-app .reports-dashboard .ops-stat {
@@ -180,10 +193,18 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales > .ops-stat:nth-child(2) {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat:nth-child(2) {
     margin-bottom: 10px;
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales > .ops-stat:not(:nth-child(2)) {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat:not(:nth-child(2)) {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -195,14 +216,27 @@
     border-top-width: 0;
     box-shadow: none;
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales > .ops-stat:nth-child(1) {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat:nth-child(1) {
     border-top-width: 1px;
     border-radius: 14px 14px 0 0;
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales > .ops-stat:last-child {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat:last-child {
     border-radius: 0 0 14px 14px;
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales > .ops-stat:not(:nth-child(2)) > strong {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat:not(:nth-child(2))
+    > strong {
     margin: 0;
     font-size: 15px;
     font-weight: 750;
@@ -237,7 +271,10 @@
   color: var(--ink);
   font-weight: 700;
 }
-.dineflow-app .reports-dashboard .reports-export > button[aria-expanded="true"] {
+.dineflow-app
+  .reports-dashboard
+  .reports-export
+  > button[aria-expanded="true"] {
   border-color: var(--primary);
 }
 .reports-export-menu {
@@ -291,10 +328,12 @@
 .report-change[data-trend="down"] {
   color: #b2402f;
 }
-:is(.app-shell, .admin-shell)[data-theme="dark"] .report-change[data-trend="up"] {
+:is(.app-shell, .admin-shell)[data-theme="dark"]
+  .report-change[data-trend="up"] {
   color: #5fcf95;
 }
-:is(.app-shell, .admin-shell)[data-theme="dark"] .report-change[data-trend="down"] {
+:is(.app-shell, .admin-shell)[data-theme="dark"]
+  .report-change[data-trend="down"] {
   color: #f08a78;
 }
 
@@ -344,7 +383,12 @@
     min-height: 34px;
     font-size: 12.5px;
   }
-  .dineflow-app #main-content .reports-dashboard .report-range > .report-date-filter > span {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .report-range
+    > .report-date-filter
+    > span {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -352,7 +396,11 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
-  .dineflow-app #main-content .reports-dashboard .report-range .date-picker-trigger {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .report-range
+    .date-picker-trigger {
     min-height: 40px;
     height: 40px;
     padding: 0 10px;
@@ -388,7 +436,11 @@
     font-size: 13.5px;
     font-weight: 700;
   }
-  .dineflow-app #main-content .reports-dashboard .reports-tabs > button[aria-selected="true"] {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .reports-tabs
+    > button[aria-selected="true"] {
     background: var(--primary);
     color: var(--df-color-on-brand, #fff);
   }
@@ -398,24 +450,47 @@
   }
 
   /* Sales rows: title with its change underneath, figure on the right. */
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales > .ops-stat:not(:nth-child(2)) {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat:not(:nth-child(2)) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     column-gap: 12px;
     row-gap: 2px;
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales > .ops-stat:not(:nth-child(2)) > strong {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat:not(:nth-child(2))
+    > strong {
     grid-column: 2;
     grid-row: 1 / span 2;
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales > .ops-stat > small {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat
+    > small {
     margin: 0;
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales > .ops-stat:nth-child(2) > small {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    > .ops-stat:nth-child(2)
+    > small {
     margin-top: 4px;
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats--sales + .reports-more {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats--sales
+    + .reports-more {
     margin: 4px 0 6px;
   }
   .dineflow-app #main-content .reports-dashboard .report-trend {
@@ -431,33 +506,62 @@
   letter-spacing: 0;
   text-transform: none;
 }
-.dineflow-app #main-content .reports-dashboard .ops-stat .report-change[data-trend="up"] {
+.dineflow-app
+  #main-content
+  .reports-dashboard
+  .ops-stat
+  .report-change[data-trend="up"] {
   color: #1f7a4d;
 }
-.dineflow-app #main-content .reports-dashboard .ops-stat .report-change[data-trend="down"] {
+.dineflow-app
+  #main-content
+  .reports-dashboard
+  .ops-stat
+  .report-change[data-trend="down"] {
   color: #b2402f;
 }
-:is(.app-shell, .admin-shell)[data-theme="dark"] #main-content .reports-dashboard .ops-stat .report-change[data-trend="up"] {
+:is(.app-shell, .admin-shell)[data-theme="dark"]
+  #main-content
+  .reports-dashboard
+  .ops-stat
+  .report-change[data-trend="up"] {
   color: #5fcf95;
 }
-:is(.app-shell, .admin-shell)[data-theme="dark"] #main-content .reports-dashboard .ops-stat .report-change[data-trend="down"] {
+:is(.app-shell, .admin-shell)[data-theme="dark"]
+  #main-content
+  .reports-dashboard
+  .ops-stat
+  .report-change[data-trend="down"] {
   color: #f08a78;
 }
 
 /* Larger screens: the main figures (orders, gross, average) get wider cards,
    the smaller money lines sit after them. */
 @media (min-width: 851px) {
-  :is(.app-content, .admin-content) .reports-dashboard.welcome .ops-stats--sales {
+  :is(.app-content, .admin-content)
+    .reports-dashboard.welcome
+    .ops-stats--sales {
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   }
-  :is(.app-content, .admin-content) .reports-dashboard.welcome .ops-stats--sales > .ops-stat:nth-child(-n + 3) strong {
+  :is(.app-content, .admin-content)
+    .reports-dashboard.welcome
+    .ops-stats--sales
+    > .ops-stat:nth-child(-n + 3)
+    strong {
     font-size: clamp(22px, 2.1vw, 30px);
     white-space: nowrap;
   }
-  :is(.app-content, .admin-content) .reports-dashboard.welcome .ops-stats--sales > .ops-stat:nth-child(n + 4) strong {
+  :is(.app-content, .admin-content)
+    .reports-dashboard.welcome
+    .ops-stats--sales
+    > .ops-stat:nth-child(n + 4)
+    strong {
     font-size: 22px;
   }
-  :is(.app-content, .admin-content) .reports-dashboard.welcome .ops-stat .report-change {
+  :is(.app-content, .admin-content)
+    .reports-dashboard.welcome
+    .ops-stat
+    .report-change {
     letter-spacing: 0;
     text-transform: none;
     font-weight: 650;
@@ -466,20 +570,40 @@
 
 @media (max-width: 850px) {
   /* Quick ranges and Export on one row: three chips, then Export. */
-  .dineflow-app #main-content .reports-dashboard .report-range:has(> .reports-export) {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .report-range:has(> .reports-export) {
     grid-template-columns: repeat(12, minmax(0, 1fr));
   }
-  .dineflow-app #main-content .reports-dashboard .report-range:has(> .reports-export) > button {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .report-range:has(> .reports-export)
+    > button {
     grid-column: span 3;
   }
-  .dineflow-app #main-content .reports-dashboard .report-range:has(> .reports-export) > .report-date-filter {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .report-range:has(> .reports-export)
+    > .report-date-filter {
     grid-column: span 6;
   }
-  .dineflow-app #main-content .reports-dashboard .report-range > .reports-export {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .report-range
+    > .reports-export {
     grid-column: span 3;
     margin: 0;
   }
-  .dineflow-app #main-content .reports-dashboard .report-range > .reports-export > button {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .report-range
+    > .reports-export
+    > button {
     justify-content: center;
     width: 100%;
     min-height: 34px;
@@ -487,12 +611,19 @@
     padding: 0 8px;
     font-size: 12.5px;
   }
-  .dineflow-app #main-content .reports-dashboard .reports-head:not(:has(.reports-export)) {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .reports-head:not(:has(.reports-export)) {
     margin: 0;
   }
 
   /* Order gross: a little room before the rows under it. */
-  .dineflow-app #main-content .reports-dashboard .ops-stats.ops-stats--sales > .ops-stat:nth-child(2) {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats.ops-stats--sales
+    > .ops-stat:nth-child(2) {
     align-self: start;
     height: auto;
     min-height: 0;
@@ -501,14 +632,22 @@
   }
 
   /* A card left alone on the last row takes the full width. */
-  .dineflow-app #main-content .reports-dashboard .ops-stats:not(.ops-stats--sales) > .ops-stat:last-child:nth-child(odd) {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats:not(.ops-stats--sales)
+    > .ops-stat:last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 850px) {
   /* Refunded total reads like Order gross: the section's headline figure. */
-  .dineflow-app #main-content .reports-dashboard .ops-stats > .ops-stat.ops-stat--hero {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats
+    > .ops-stat.ops-stat--hero {
     grid-column: 1 / -1;
     padding: 16px 16px 20px;
     border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
@@ -516,7 +655,12 @@
       radial-gradient(120% 140% at 0% 0%, var(--primary-soft), transparent 60%),
       var(--surface);
   }
-  .dineflow-app #main-content .reports-dashboard .ops-stats > .ops-stat.ops-stat--hero strong {
+  .dineflow-app
+    #main-content
+    .reports-dashboard
+    .ops-stats
+    > .ops-stat.ops-stat--hero
+    strong {
     font-size: 30px;
   }
 }

@@ -154,6 +154,7 @@ export function StaffAccounts() {
     const selected = data.find((person) => person.id === selectedId);
     return (
       <section className="welcome admin-users admin-users--phone">
+        <h1 className="sr-only">Team & access</h1>
         {error && <Feedback onRetry={load}>{error}</Feedback>}
         {notice && <Feedback tone="success">{notice}</Feedback>}
         <div className="team-phone-tools">
@@ -254,7 +255,10 @@ export function StaffAccounts() {
           </TeamSheet>
         )}
         {adding && (
-          <TeamSheet title="Add a staff member" onClose={() => setAdding(false)}>
+          <TeamSheet
+            title="Add a staff member"
+            onClose={() => setAdding(false)}
+          >
             {staffForm}
           </TeamSheet>
         )}

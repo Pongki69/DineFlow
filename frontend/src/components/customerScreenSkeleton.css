@@ -41,16 +41,37 @@
 .csk .csk-end {
   justify-content: flex-end;
 }
-.csk .csk-w25 { width: 25%; }
-.csk .csk-w40 { width: 40%; }
-.csk .csk-w45 { width: 45%; }
-.csk .csk-w50 { width: 50%; }
-.csk .csk-w60 { width: 60%; }
-.csk .csk-w80 { width: 80%; }
-.csk .csk-w85 { width: 85%; }
-.csk .csk-h10 { height: 10px; }
-.csk .csk-h12 { height: 12px; }
-.csk .csk-h20 { height: 20px; border-radius: 10px; }
+.csk .csk-w25 {
+  width: 25%;
+}
+.csk .csk-w40 {
+  width: 40%;
+}
+.csk .csk-w45 {
+  width: 45%;
+}
+.csk .csk-w50 {
+  width: 50%;
+}
+.csk .csk-w60 {
+  width: 60%;
+}
+.csk .csk-w80 {
+  width: 80%;
+}
+.csk .csk-w85 {
+  width: 85%;
+}
+.csk .csk-h10 {
+  height: 10px;
+}
+.csk .csk-h12 {
+  height: 12px;
+}
+.csk .csk-h20 {
+  height: 20px;
+  border-radius: 10px;
+}
 .csk .csk-pill {
   width: 84px;
   height: 26px;

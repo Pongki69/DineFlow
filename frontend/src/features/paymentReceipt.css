@@ -25,7 +25,12 @@
   bottom: -8px;
   left: 0;
   height: 9px;
-  background: radial-gradient(circle at 6px -2px, transparent 6px, var(--surface) 6.5px) 0 0 / 12px 9px repeat-x;
+  background: radial-gradient(
+      circle at 6px -2px,
+      transparent 6px,
+      var(--surface) 6.5px
+    )
+    0 0 / 12px 9px repeat-x;
   content: "";
 }
 .receipt-brand {
@@ -200,7 +205,6 @@
     grid-column: 1 / -1;
   }
 }
-
 
 .receipt-lines .receipt-charge {
   color: var(--muted);

@@ -723,8 +723,7 @@ export function RiderDispatchPanel({
             </Button>
           )}
         </div>
-        {(!phone ||
-          ["disconnected", "unknown"].includes(presenceState)) && (
+        {(!phone || ["disconnected", "unknown"].includes(presenceState)) && (
           <p
             role="status"
             aria-label="Rider availability"

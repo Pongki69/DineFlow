@@ -3,7 +3,9 @@
    buttons; "go to" links read as links; refresh is a small ghost control. */
 @media (min-width: 851px) {
   /* Refresh and the live-updates control: ghost buttons. */
-  .dineflow-app :is(#main-content, .live-updates-bar) button:has(> .lucide-refresh-cw),
+  .dineflow-app
+    :is(#main-content, .live-updates-bar)
+    button:has(> .lucide-refresh-cw),
   .dineflow-app .live-updates-bar > button {
     min-height: 34px;
     height: auto;
@@ -15,15 +17,22 @@
     color: var(--muted, #5b695e);
     font-weight: 650;
   }
-  .dineflow-app :is(#main-content, .live-updates-bar) button:has(> .lucide-refresh-cw):hover:not(:disabled),
+  .dineflow-app
+    :is(#main-content, .live-updates-bar)
+    button:has(> .lucide-refresh-cw):hover:not(:disabled),
   .dineflow-app .live-updates-bar > button:hover:not(:disabled) {
     background: var(--primary-soft, #e6efe9);
     color: var(--primary, #1f4d3a);
   }
 
   /* "Go to" buttons inside cards: text links with an arrow. */
-  .dineflow-app #main-content
-    :is(.admin-priority-strip, .admin-tracking-shortcut, .admin-outlet-summary-footer)
+  .dineflow-app
+    #main-content
+    :is(
+      .admin-priority-strip,
+      .admin-tracking-shortcut,
+      .admin-outlet-summary-footer
+    )
     .admin-button {
     gap: 6px;
     width: auto;
@@ -39,8 +48,13 @@
   .dineflow-app #main-content .admin-priority-strip .admin-button {
     color: #7a4c06;
   }
-  .dineflow-app #main-content
-    :is(.admin-priority-strip, .admin-tracking-shortcut, .admin-outlet-summary-footer)
+  .dineflow-app
+    #main-content
+    :is(
+      .admin-priority-strip,
+      .admin-tracking-shortcut,
+      .admin-outlet-summary-footer
+    )
     .admin-button:hover {
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -55,20 +69,29 @@
     padding: 0 12px;
     border-radius: 999px;
   }
-  .dineflow-app #main-content .catalog-dish-actions > .ui-button:not(:first-child) {
+  .dineflow-app
+    #main-content
+    .catalog-dish-actions
+    > .ui-button:not(:first-child) {
     border-color: transparent;
     background: transparent;
     box-shadow: none;
     color: var(--muted, #5b695e);
   }
-  .dineflow-app #main-content .catalog-dish-actions > .ui-button:not(:first-child):hover:not(:disabled) {
+  .dineflow-app
+    #main-content
+    .catalog-dish-actions
+    > .ui-button:not(:first-child):hover:not(:disabled) {
     background: var(--neutral-soft, #eef1ec);
     color: var(--ink, #1d2b23);
   }
   .dineflow-app #main-content .catalog-dish-actions > .ui-button.dish-delete {
     color: #a33a2c;
   }
-  .dineflow-app #main-content .catalog-dish-actions > .ui-button.dish-delete:hover:not(:disabled) {
+  .dineflow-app
+    #main-content
+    .catalog-dish-actions
+    > .ui-button.dish-delete:hover:not(:disabled) {
     background: #fbe3df;
     color: #9b2c22;
   }
@@ -88,13 +111,19 @@
     box-shadow: none;
     color: var(--muted, #5b695e);
   }
-  .dineflow-app #main-content .calendar-booking-actions > button.secondary:hover {
+  .dineflow-app
+    #main-content
+    .calendar-booking-actions
+    > button.secondary:hover {
     background: var(--neutral-soft, #eef1ec);
     color: var(--ink, #1d2b23);
   }
 
   /* Payments queue: one quiet outlined Review payment per card. */
-  .dineflow-app #main-content article > button.sage-button:has(> .lucide-arrow-right) {
+  .dineflow-app
+    #main-content
+    article
+    > button.sage-button:has(> .lucide-arrow-right) {
     justify-content: center;
     min-height: 38px;
     border: 1px solid var(--primary, #1f4d3a);
@@ -103,7 +132,10 @@
     box-shadow: none;
     color: var(--primary, #1f4d3a);
   }
-  .dineflow-app #main-content article > button.sage-button:has(> .lucide-arrow-right):hover:not(:disabled) {
+  .dineflow-app
+    #main-content
+    article
+    > button.sage-button:has(> .lucide-arrow-right):hover:not(:disabled) {
     background: var(--primary, #1f4d3a);
     color: var(--df-color-on-brand, #fff);
   }
@@ -147,10 +179,16 @@
   .dineflow-app #main-content .admin-map-roster-list > button:last-of-type {
     border-bottom: 0;
   }
-  .dineflow-app #main-content .admin-map-roster-list > button:hover:not(:disabled) {
+  .dineflow-app
+    #main-content
+    .admin-map-roster-list
+    > button:hover:not(:disabled) {
     background: var(--primary-soft, #e6efe9);
   }
-  .dineflow-app #main-content .admin-map-roster-list > button[aria-pressed="true"] {
+  .dineflow-app
+    #main-content
+    .admin-map-roster-list
+    > button[aria-pressed="true"] {
     background: var(--primary-soft, #e6efe9);
     box-shadow: inset 3px 0 0 var(--primary, #1f4d3a);
   }

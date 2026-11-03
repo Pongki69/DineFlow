@@ -230,7 +230,7 @@ it('ranks a shorter road ETA higher even if the rider is farther in straight-lin
     $delivery = dispatchDelivery();
     app()->instance(MapProviderService::class, new class extends MapProviderService
     {
-        public function route(float $fromLat, float $fromLng, float $toLat, float $toLng, bool $includeGeometry = false): array
+        public function route(float $fromLat, float $fromLng, float $toLat, float $toLng, bool $includeGeometry = false, bool $withTraffic = false): array
         {
             return ['duration_minutes' => $fromLat < 14.6015 ? 12 : 3, 'distance_km' => 2, 'geometry' => []];
         }
@@ -246,7 +246,7 @@ it('rejects an aligned batch whose road detour exceeds the limit', function () {
     $b = dispatchDelivery(['delivery_latitude' => 14.621]);
     app()->instance(MapProviderService::class, new class extends MapProviderService
     {
-        public function route(float $fromLat, float $fromLng, float $toLat, float $toLng, bool $includeGeometry = false): array
+        public function route(float $fromLat, float $fromLng, float $toLat, float $toLng, bool $includeGeometry = false, bool $withTraffic = false): array
         {
             return ['duration_minutes' => 20, 'distance_km' => 2, 'geometry' => []];
         }

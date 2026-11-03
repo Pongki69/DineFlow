@@ -39,7 +39,12 @@
     width: 16px;
     height: 16px;
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button > strong {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-queues
+    > button
+    > strong {
     display: grid;
     min-width: 24px;
     height: 24px;
@@ -50,19 +55,37 @@
     font-size: 12.5px;
     line-height: 1;
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button[aria-pressed="true"] {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-queues
+    > button[aria-pressed="true"] {
     border-color: var(--primary);
     background: var(--primary);
     color: var(--df-color-on-brand, #fff);
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button[aria-pressed="true"] > strong {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-queues
+    > button[aria-pressed="true"]
+    > strong {
     background: rgb(255 255 255 / 22%);
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button[data-alert] > strong {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-queues
+    > button[data-alert]
+    > strong {
     background: #c2412c;
     color: #fff;
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-queues > button[data-alert]:not([aria-pressed="true"]) {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-queues
+    > button[data-alert]:not([aria-pressed="true"]) {
     border-color: #e3b4aa;
     color: #a33a2c;
   }
@@ -92,7 +115,10 @@
     background: var(--surface);
     color: var(--muted);
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-search-input:focus-within {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-search-input:focus-within {
     border-color: var(--primary);
   }
   .dineflow-app #main-content .dispatch-dashboard .dispatch-search-input input {
@@ -109,7 +135,11 @@
     font-size: 16px;
     outline: none;
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-toolbar .rider-data-freshness {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-toolbar
+    .rider-data-freshness {
     margin: 0 4px;
     font-size: 12.5px;
   }
@@ -123,7 +153,11 @@
     margin: 0;
     font-size: 16px;
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-results-heading span {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-results-heading
+    span {
     color: var(--muted);
     font-size: 12.5px;
   }
@@ -166,11 +200,17 @@
     font-size: 12px;
     font-weight: 700;
   }
-  .dineflow-app #main-content .dispatch-dashboard .delivery-state:is(.state-failed, .state-cancelled) {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .delivery-state:is(.state-failed, .state-cancelled) {
     background: #fbe3df;
     color: #9b2c22;
   }
-  .dineflow-app #main-content .dispatch-dashboard .delivery-state.state-pending_assignment {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .delivery-state.state-pending_assignment {
     background: #fbefcf;
     color: #6f4f0b;
   }
@@ -248,10 +288,18 @@
     color: var(--df-color-on-brand, #fff);
     font-weight: 700;
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-assign > button:disabled {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-assign
+    > button:disabled {
     opacity: 0.5;
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-secondary-details > summary {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-secondary-details
+    > summary {
     color: var(--muted);
     font-size: 13px;
     font-weight: 650;
@@ -264,7 +312,11 @@
     flex-flow: row nowrap;
     grid-template-columns: none;
   }
-  .dineflow-app #main-content .dispatch-dashboard nav.dispatch-queues > .ui-button {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    nav.dispatch-queues
+    > .ui-button {
     display: inline-flex;
     flex: none;
     flex-direction: row;
@@ -274,7 +326,12 @@
     min-height: 40px;
     white-space: nowrap;
   }
-  .dineflow-app #main-content .dispatch-dashboard nav.dispatch-queues > .ui-button > strong {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    nav.dispatch-queues
+    > .ui-button
+    > strong {
     margin: 0;
   }
   .dineflow-app #main-content .dispatch-dashboard .dispatch-toolbar {
@@ -285,7 +342,10 @@
     width: 100%;
     max-width: none;
   }
-  .dineflow-app #main-content .dispatch-dashboard .dispatch-assign.dispatch-primary-panel {
+  .dineflow-app
+    #main-content
+    .dispatch-dashboard
+    .dispatch-assign.dispatch-primary-panel {
     padding: 0;
     border: 0;
     border-radius: 0;

@@ -98,8 +98,12 @@
 }
 
 /* Buttons. */
-.dineflow-app #main-content :is(.waiter-button, .waiter-primary, .waiter-secondary),
-.dineflow-app .waiter-sheet :is(.waiter-button, .waiter-primary, .waiter-secondary) {
+.dineflow-app
+  #main-content
+  :is(.waiter-button, .waiter-primary, .waiter-secondary),
+.dineflow-app
+  .waiter-sheet
+  :is(.waiter-button, .waiter-primary, .waiter-secondary) {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -260,7 +264,11 @@
   background: #eef4f7;
 }
 .dineflow-app #main-content .waiter-table[data-status="unavailable"] {
-  background: repeating-linear-gradient(135deg, #f1f2f1 0 6px, #e7e9e7 6px 12px);
+  background: repeating-linear-gradient(
+    135deg,
+    #f1f2f1 0 6px,
+    #e7e9e7 6px 12px
+  );
   color: var(--muted);
 }
 .dineflow-app #main-content .waiter-table[data-bill] {

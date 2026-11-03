@@ -269,7 +269,9 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.dineflow-app .floor-editor-toolbar :is(button, select, .builder-menu > summary) {
+.dineflow-app
+  .floor-editor-toolbar
+  :is(button, select, .builder-menu > summary) {
   min-height: 40px;
   height: 40px;
   border-radius: 999px;
@@ -282,7 +284,8 @@
   background-color: var(--surface, #fff);
 }
 /* Every ordinary button and dropdown: white with a thin border. */
-.dineflow-app .floor-editor-toolbar
+.dineflow-app
+  .floor-editor-toolbar
   :is(.floor-action-secondary, .builder-menu > summary, .floor-action-publish) {
   display: inline-flex;
   align-items: center;
@@ -314,7 +317,9 @@
   background: var(--surface, #fff);
   color: #a33a2c;
 }
-.dineflow-app .floor-editor-toolbar :is(button, .builder-menu > summary):disabled,
+.dineflow-app
+  .floor-editor-toolbar
+  :is(button, .builder-menu > summary):disabled,
 .dineflow-app .floor-editor-toolbar button:disabled {
   opacity: 0.45;
 }
@@ -338,51 +343,108 @@
     grid-template-areas: "floors" "actions" "library" "canvas";
     gap: 12px;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-group {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-group {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: stretch;
     padding-top: 0;
     border-top: 0;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-label {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-label {
     grid-column: 1 / -1;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-floors > select {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-floors
+    > select {
     grid-column: 1 / -1;
     width: 100%;
   }
   /* A disabled Delete draft floor only takes room when it can be used. */
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-action-delete:disabled {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-action-delete:disabled {
     display: none;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-floors > .floor-action-secondary:last-of-type:only-of-type {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-floors
+    > .floor-action-secondary:last-of-type:only-of-type {
     grid-column: 1 / -1;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-actions {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-group > :is(button, .builder-menu, .snap-toggle),
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu > summary {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-group
+    > :is(button, .builder-menu, .snap-toggle),
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .builder-menu
+    > summary {
     width: 100%;
     min-width: 0;
     padding-inline: 8px;
     white-space: nowrap;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .builder-menu {
     position: relative;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-canvas {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-canvas {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-canvas > .snap-toggle {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-canvas
+    > .snap-toggle {
     justify-content: center;
   }
   /* Keyboard shortcuts mean nothing on a touch screen. */
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-shortcuts {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-shortcuts {
     display: none;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu-popover {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .builder-menu-popover {
     width: min(300px, calc(100vw - 48px));
   }
 }
@@ -392,26 +454,55 @@
   }
 }
 @media (max-width: 850px) {
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-group > :is(button, .snap-toggle),
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu > summary {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-group
+    > :is(button, .snap-toggle),
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .builder-menu
+    > summary {
     flex: initial;
     height: 40px;
     min-height: 40px;
     border-radius: 999px;
     font-size: 13px;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .builder-menu > summary {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .builder-menu
+    > summary {
     justify-content: center;
   }
 }
 @media (max-width: 850px) {
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar .floor-toolbar-floors:not(:has(.floor-action-delete:enabled)) > .floor-action-secondary {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    .floor-toolbar-floors:not(:has(.floor-action-delete:enabled))
+    > .floor-action-secondary {
     grid-column: 1 / -1;
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar > .floor-toolbar-actions {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    > .floor-toolbar-actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .dineflow-app #main-content .floor-editor .floor-editor-toolbar > .floor-toolbar-actions > button {
+  .dineflow-app
+    #main-content
+    .floor-editor
+    .floor-editor-toolbar
+    > .floor-toolbar-actions
+    > button {
     grid-column: auto;
     padding-inline: 6px;
     font-size: 12.5px;

@@ -441,7 +441,8 @@ fieldset:disabled {
     opacity: 0;
     transform: translateY(8px);
   }
-  10%, 78% {
+  10%,
+  78% {
     opacity: 1;
     transform: translateY(0);
   }
@@ -668,19 +669,27 @@ fieldset:disabled {
 @media (min-width: 1000px) and (min-height: 600px) {
   /* The document itself can overflow when the delivery workspace expands.
      Keep wheel/keyboard scrolling, but avoid a second scrollbar beside the app. */
-  html:has(.app-shell[data-workspace="delivery"][data-page="rider-deliveries"]) {
+  html:has(
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+  ) {
     scrollbar-width: none;
     scrollbar-gutter: auto;
   }
-  html:has(.app-shell[data-workspace="delivery"][data-page="rider-deliveries"])::-webkit-scrollbar {
+  html:has(
+      .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    )::-webkit-scrollbar {
     display: none;
     width: 0;
     height: 0;
   }
-  body:has(.app-shell[data-workspace="delivery"][data-page="rider-deliveries"]) {
+  body:has(
+    .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+  ) {
     scrollbar-width: none;
   }
-  body:has(.app-shell[data-workspace="delivery"][data-page="rider-deliveries"])::-webkit-scrollbar {
+  body:has(
+      .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
+    )::-webkit-scrollbar {
     display: none;
     width: 0;
     height: 0;
@@ -722,17 +731,20 @@ fieldset:disabled {
     grid-template-rows: minmax(0, 1fr);
   }
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-    .rider-route-layout .rider-route-map-area {
+    .rider-route-layout
+    .rider-route-map-area {
     min-height: 0;
     overflow: hidden;
   }
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-    .rider-route-layout .rider-route-map {
+    .rider-route-layout
+    .rider-route-map {
     min-height: 0;
     height: 100%;
   }
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-    .rider-route-layout .rider-route-itinerary {
+    .rider-route-layout
+    .rider-route-itinerary {
     min-height: 0;
     max-height: 100%;
     overflow: auto;
@@ -1011,7 +1023,8 @@ fieldset:disabled {
   box-shadow: 0 2px 8px rgb(25 50 38 / 4%);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  :is(.rider-delivery-queue, .rider-before-pickup) > header {
+  :is(.rider-delivery-queue, .rider-before-pickup)
+  > header {
   gap: var(--rider-space-3);
   margin-bottom: var(--rider-space-3);
   padding-bottom: var(--rider-space-3);
@@ -1029,7 +1042,10 @@ fieldset:disabled {
   padding: var(--rider-space-3);
   border-color: var(--rider-card-border);
   border-radius: var(--rider-control-radius);
-  transition: border-color 160ms, background-color 160ms, box-shadow 160ms;
+  transition:
+    border-color 160ms,
+    background-color 160ms,
+    box-shadow 160ms;
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
   .rider-delivery-queue-row[aria-pressed="true"] {
@@ -1057,7 +1073,8 @@ fieldset:disabled {
   border-color: var(--rider-card-border);
 }
 .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
-  .rider-delivery-queue-pagination .ui-button {
+  .rider-delivery-queue-pagination
+  .ui-button {
   min-height: var(--rider-control-height);
   border-radius: var(--rider-control-radius);
 }

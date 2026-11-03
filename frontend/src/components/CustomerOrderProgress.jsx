@@ -235,7 +235,10 @@ export function CustomerOrderProgress({ data, children }) {
         </p>
       )}
       {children}
-      <details className="customer-progress-card customer-order-timeline" open={open}>
+      <details
+        className="customer-progress-card customer-order-timeline"
+        open={open}
+      >
         <TrackingDisclosureSummary
           meta={events.length ? `${events.length} updates` : "Details"}
         >

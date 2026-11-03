@@ -690,7 +690,9 @@
 }
 
 /* Group and section labels stay small: the page heading rule would enlarge them. */
-.dineflow-app #main-content :is(.cashier-group > h2, .cashier-group > summary, .cashier-activity h2) {
+.dineflow-app
+  #main-content
+  :is(.cashier-group > h2, .cashier-group > summary, .cashier-activity h2) {
   margin: 6px 2px 0;
   font-size: 12px;
   line-height: 1.4;
@@ -731,7 +733,11 @@
     font-size: 15px;
     font-variant-numeric: tabular-nums;
   }
-  .dineflow-app #main-content .cashier-desk .cashier-split-chips button[aria-pressed="true"] {
+  .dineflow-app
+    #main-content
+    .cashier-desk
+    .cashier-split-chips
+    button[aria-pressed="true"] {
     border-color: var(--primary);
     background: var(--primary-soft);
     box-shadow: inset 0 0 0 1px var(--primary);

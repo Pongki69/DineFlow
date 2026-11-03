@@ -342,7 +342,10 @@
   font-weight: 650;
   cursor: pointer;
 }
-.dineflow-app #main-content .kitchen-soldout-filter > button[aria-pressed="true"] {
+.dineflow-app
+  #main-content
+  .kitchen-soldout-filter
+  > button[aria-pressed="true"] {
   background: var(--surface);
   box-shadow: 0 1px 3px rgb(16 34 24 / 14%);
   color: var(--ink);
@@ -408,7 +411,11 @@
   border-bottom: 0;
 }
 .kitchen-soldout-groups li[data-sold-out] {
-  background: color-mix(in srgb, var(--df-status-danger-bg, #fbe3df) 45%, var(--surface));
+  background: color-mix(
+    in srgb,
+    var(--df-status-danger-bg, #fbe3df) 45%,
+    var(--surface)
+  );
 }
 .kitchen-soldout-dish {
   display: grid;

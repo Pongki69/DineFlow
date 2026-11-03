@@ -86,7 +86,10 @@
   flex: 1 1 0;
   min-width: 0;
 }
-.dineflow-app #main-content .bookings-phone-filters :is(select, .date-picker > button) {
+.dineflow-app
+  #main-content
+  .bookings-phone-filters
+  :is(select, .date-picker > button) {
   width: 100%;
   height: 40px;
   min-height: 40px;
@@ -165,7 +168,8 @@
   font-size: 11px;
   font-weight: 700;
 }
-.bookings-phone-card:is([data-status="cancelled"], [data-status="no_show"]) time {
+.bookings-phone-card:is([data-status="cancelled"], [data-status="no_show"])
+  time {
   background: #fbe9e7;
   color: #a33a2c;
 }
@@ -205,7 +209,8 @@
   background: #fbefcf;
   color: #6f4f0b;
 }
-.bookings-phone-card:is([data-status="cancelled"], [data-status="no_show"]) .bookings-phone-status {
+.bookings-phone-card:is([data-status="cancelled"], [data-status="no_show"])
+  .bookings-phone-status {
   background: #fbe9e7;
   color: #a33a2c;
 }
@@ -299,7 +304,10 @@
   padding-top: 0;
   border-top: 0;
 }
-.dineflow-app #main-content .bookings-phone-actions[data-compact] .bookings-phone-icon {
+.dineflow-app
+  #main-content
+  .bookings-phone-actions[data-compact]
+  .bookings-phone-icon {
   width: 32px;
   min-height: 32px;
 }

@@ -438,8 +438,16 @@ function OverviewPhone({ data, has }) {
   ].filter(Boolean);
   const shortcuts = [
     has("orders.manage") && ["Manage orders", "/orders", ShoppingBag],
-    has("deliveries.manage") && ["Dispatch deliveries", "/admin/deliveries", Bike],
-    has("reservations.manage") && ["Reservations calendar", "/reservations", CalendarDays],
+    has("deliveries.manage") && [
+      "Dispatch deliveries",
+      "/admin/deliveries",
+      Bike,
+    ],
+    has("reservations.manage") && [
+      "Reservations calendar",
+      "/reservations",
+      CalendarDays,
+    ],
     has("payments.manage") && ["Cashier and payments", "/payments", CreditCard],
     has("reports.operations") && ["Operational reports", "/reports", BarChart3],
   ].filter(Boolean);
@@ -452,8 +460,7 @@ function OverviewPhone({ data, has }) {
           <strong>{peso(data.orders.revenue)}</strong>
           <small>
             {data.orders.count} orders · {data.orders.cancelled} cancelled
-            {data.payments &&
-              ` · ${peso(data.payments.paid)} received`}
+            {data.payments && ` · ${peso(data.payments.paid)} received`}
           </small>
         </Link>
       )}
@@ -597,7 +604,9 @@ function OverviewPhone({ data, has }) {
               ))}
             </ol>
           ) : (
-            <p className="overview-empty">No completed item sales in this period.</p>
+            <p className="overview-empty">
+              No completed item sales in this period.
+            </p>
           )}
         </section>
       )}
@@ -707,8 +716,7 @@ export function ReportsDashboard({ user }) {
   const trendRows = data?.sales_trend
     ? fillDays(data.sales_trend.days || [], data.sales_trend)
     : fillDays(data?.sales_by_day || [], range);
-  const trendLonger =
-    data?.sales_trend && data.sales_trend.from !== range.from;
+  const trendLonger = data?.sales_trend && data.sales_trend.from !== range.from;
   const dishes = data?.popular_items || [];
   const deliveryMinutes = data?.delivery_performance?.average_minutes;
   // Phones keep Export on the quick-range row; larger screens by the title.

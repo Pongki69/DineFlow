@@ -251,7 +251,9 @@
   background: var(--primary-soft);
   color: var(--primary);
 }
-.cashier-activity li:is([data-status="failed"], [data-status="refunded"]) .cashier-activity-status {
+.cashier-activity
+  li:is([data-status="failed"], [data-status="refunded"])
+  .cashier-activity-status {
   background: var(--df-status-danger-bg, #fbe3df);
   color: var(--df-status-danger-text, #9b2c22);
 }

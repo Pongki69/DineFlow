@@ -61,9 +61,7 @@ export function sortTickets(tickets) {
     const bReady = b.order.status === "ready_to_serve";
     if (aReady !== bReady) return aReady ? 1 : -1;
     if (aReady)
-      return (
-        new Date(b.order.ready_at || 0) - new Date(a.order.ready_at || 0)
-      );
+      return new Date(b.order.ready_at || 0) - new Date(a.order.ready_at || 0);
     return (
       PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
       new Date(a.order.created_at || 0) - new Date(b.order.created_at || 0)

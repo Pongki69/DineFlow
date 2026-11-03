@@ -3124,15 +3124,20 @@ export function FloorPlanEditor() {
       ),
     );
     const ratio = nextZoom / active.zoom;
-    const mid = { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top };
+    const mid = {
+      x: (a.x + b.x) / 2 - rect.left,
+      y: (a.y + b.y) / 2 - rect.top,
+    };
     const centre = { x: rect.width / 2, y: rect.height / 2 };
     const startPan = {
       x: (active.pan.x / 100) * rect.width,
       y: (active.pan.y / 100) * rect.height,
     };
     // Keep the spot that started between the fingers under them.
-    const panX = mid.x - centre.x - (active.mid.x - centre.x - startPan.x) * ratio;
-    const panY = mid.y - centre.y - (active.mid.y - centre.y - startPan.y) * ratio;
+    const panX =
+      mid.x - centre.x - (active.mid.x - centre.x - startPan.x) * ratio;
+    const panY =
+      mid.y - centre.y - (active.mid.y - centre.y - startPan.y) * ratio;
     setZoom(Number(nextZoom.toFixed(3)));
     setPan({ x: (panX * 100) / rect.width, y: (panY * 100) / rect.height });
   }

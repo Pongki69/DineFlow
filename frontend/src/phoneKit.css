@@ -9,7 +9,8 @@
    ------------------------------------------------------------------------- */
 @media (max-width: 850px) {
   /* -- Search ------------------------------------------------------------- */
-  .dineflow-app #main-content
+  .dineflow-app
+    #main-content
     :is(
       .search-field,
       .admin-customers-search,
@@ -33,7 +34,8 @@
     box-shadow: none;
     color: var(--muted);
   }
-  .dineflow-app #main-content
+  .dineflow-app
+    #main-content
     :is(
       .search-field,
       .admin-customers-search,
@@ -45,7 +47,8 @@
     border-color: var(--primary);
     outline: 0;
   }
-  .dineflow-app #main-content
+  .dineflow-app
+    #main-content
     :is(
       .search-field,
       .admin-customers-search,
@@ -59,7 +62,8 @@
     width: 17px;
     height: 17px;
   }
-  .dineflow-app #main-content
+  .dineflow-app
+    #main-content
     :is(
       .search-field,
       .admin-customers-search,
@@ -130,7 +134,10 @@
     font-size: 13px;
     font-weight: 700;
   }
-  .dineflow-app #main-content .bookings-phone-modes > button[aria-pressed="true"] {
+  .dineflow-app
+    #main-content
+    .bookings-phone-modes
+    > button[aria-pressed="true"] {
     background: var(--primary);
     color: var(--df-color-on-brand, #fff);
   }
@@ -183,13 +190,19 @@
   }
 
   /* -- Figure tiles --------------------------------------------------------- */
-  .dineflow-app #main-content
-    :is(.admin-metric, .sage-stat-grid > article, .ops-stats:not(.ops-stats--sales) > .ops-stat) {
+  .dineflow-app
+    #main-content
+    :is(
+      .admin-metric,
+      .sage-stat-grid > article,
+      .ops-stats:not(.ops-stats--sales) > .ops-stat
+    ) {
     padding: 12px 14px;
     border-radius: 14px;
     box-shadow: none;
   }
-  .dineflow-app #main-content
+  .dineflow-app
+    #main-content
     :is(
       .admin-metric-top > span:first-child,
       .sage-stat-grid > article > span,
@@ -201,10 +214,13 @@
     letter-spacing: 0;
     text-transform: none;
   }
-  .dineflow-app #main-content
+  .dineflow-app
+    #main-content
     :is(
       .admin-metric > strong,
-      .ops-stats:not(.ops-stats--sales) > .ops-stat:not(.ops-stat--hero) > strong
+      .ops-stats:not(.ops-stats--sales)
+        > .ops-stat:not(.ops-stat--hero)
+        > strong
     ) {
     font-size: 22px;
     font-weight: 750;
@@ -216,8 +232,13 @@
     font-weight: 750;
     font-variant-numeric: tabular-nums;
   }
-  .dineflow-app #main-content
-    :is(.admin-metric > small, .sage-stat-grid > article > small, .ops-stat > small) {
+  .dineflow-app
+    #main-content
+    :is(
+      .admin-metric > small,
+      .sage-stat-grid > article > small,
+      .ops-stat > small
+    ) {
     color: var(--muted);
     font-size: 12px;
   }
@@ -239,7 +260,8 @@
   /* -- Count and freshness line ---------------------------------------------
      "52 orders · Updated 8:42 PM": small, muted, one line under the filters,
      no band behind it. */
-  .dineflow-app #main-content
+  .dineflow-app
+    #main-content
     :is(
       .orders-result-bar,
       .rider-history-results,
@@ -261,7 +283,10 @@
     font-size: 12.5px;
     font-weight: 500;
   }
-  .dineflow-app #main-content :is(.orders-result-bar, .rider-history-results) svg {
+  .dineflow-app
+    #main-content
+    :is(.orders-result-bar, .rider-history-results)
+    svg {
     width: 14px;
     height: 14px;
   }
@@ -272,7 +297,8 @@
   }
 
   /* -- No intro paragraph under the (hidden) page title ------------------- */
-  .dineflow-app #main-content
+  .dineflow-app
+    #main-content
     :is(
       .orders-page-heading > div,
       .admin-customers,
@@ -286,7 +312,8 @@
   }
 
   /* -- "Go to" links inside cards read as text links with an arrow ------- */
-  .dineflow-app #main-content
+  .dineflow-app
+    #main-content
     :is(.admin-priority-strip, .admin-tracking-shortcut)
     .admin-button {
     gap: 4px;
@@ -334,7 +361,10 @@
     box-shadow: 0 1px 0 transparent;
     transition: box-shadow 0.2s ease;
   }
-  html[data-scrolled] .dineflow-app :is(.app-shell, .admin-shell) :is(.app-topbar, .admin-topbar) {
+  html[data-scrolled]
+    .dineflow-app
+    :is(.app-shell, .admin-shell)
+    :is(.app-topbar, .admin-topbar) {
     box-shadow: 0 1px 0 var(--border);
   }
   .dineflow-app :is(.app-shell, .admin-shell) .mobile-workspace-title {
@@ -374,12 +404,19 @@
 
 @media (max-width: 850px) {
   /* Staff and customer shells centred their titles in a 3-column grid. */
-  .dineflow-app .app-shell[data-workspace] .topbar-location .mobile-workspace-title {
+  .dineflow-app
+    .app-shell[data-workspace]
+    .topbar-location
+    .mobile-workspace-title {
     display: flex;
     grid-template-columns: none;
     justify-content: flex-start;
   }
-  .dineflow-app .app-shell[data-workspace] .topbar-location .mobile-workspace-title > strong {
+  .dineflow-app
+    .app-shell[data-workspace]
+    .topbar-location
+    .mobile-workspace-title
+    > strong {
     font-size: 19px;
     font-weight: 750;
     text-align: left;
@@ -388,18 +425,27 @@
   .dineflow-app .app-shell[data-workspace="delivery"] .app-topbar {
     grid-template-columns: minmax(0, 1fr) auto;
   }
-  .dineflow-app .app-shell[data-workspace="delivery"] .app-topbar .topbar-location {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .app-topbar
+    .topbar-location {
     grid-column: 1;
     justify-content: flex-start;
   }
-  .dineflow-app .app-shell[data-workspace="delivery"] .app-topbar .rider-mobile-app-title {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .app-topbar
+    .rider-mobile-app-title {
     max-width: none;
     font-size: 19px;
     font-weight: 750;
     letter-spacing: -0.02em;
     text-align: left;
   }
-  .dineflow-app .app-shell[data-workspace="delivery"] .app-topbar #rider-presence-slot {
+  .dineflow-app
+    .app-shell[data-workspace="delivery"]
+    .app-topbar
+    #rider-presence-slot {
     grid-column: 2;
     justify-self: end;
   }

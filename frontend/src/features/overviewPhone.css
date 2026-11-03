@@ -22,7 +22,11 @@
     background: none;
     box-shadow: none;
   }
-  .dineflow-app #main-content .operations-dashboard--phone .report-range > button {
+  .dineflow-app
+    #main-content
+    .operations-dashboard--phone
+    .report-range
+    > button {
     grid-column: span 2;
     width: 100%;
     min-width: 0;
@@ -33,12 +37,21 @@
     font-weight: 650;
     white-space: nowrap;
   }
-  .dineflow-app #main-content .operations-dashboard--phone .report-range > .report-date-filter {
+  .dineflow-app
+    #main-content
+    .operations-dashboard--phone
+    .report-range
+    > .report-date-filter {
     display: grid;
     grid-column: span 3;
     min-width: 0;
   }
-  .dineflow-app #main-content .operations-dashboard--phone .report-range > .report-date-filter > span {
+  .dineflow-app
+    #main-content
+    .operations-dashboard--phone
+    .report-range
+    > .report-date-filter
+    > span {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -46,11 +59,19 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
-  .dineflow-app #main-content .operations-dashboard--phone .report-range :is(.date-picker, .date-picker-trigger) {
+  .dineflow-app
+    #main-content
+    .operations-dashboard--phone
+    .report-range
+    :is(.date-picker, .date-picker-trigger) {
     width: 100%;
     min-width: 0;
   }
-  .dineflow-app #main-content .operations-dashboard--phone .report-range .date-picker-trigger {
+  .dineflow-app
+    #main-content
+    .operations-dashboard--phone
+    .report-range
+    .date-picker-trigger {
     height: 40px;
     min-height: 40px;
     padding: 0 10px;

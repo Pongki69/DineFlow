@@ -54,7 +54,9 @@ test("completed orders stay compact with keyboard-accessible progress, map and t
   // Phones show progress, map and updates open; larger screens stay compact.
   const phone = testInfo.project.name === "mobile";
   if (phone) {
-    await expect(page.locator(".customer-progress-steps").first()).toBeVisible();
+    await expect(
+      page.locator(".customer-progress-steps").first(),
+    ).toBeVisible();
     await expect(page.locator(".customer-order-timeline ol")).toBeVisible();
     await expect(
       page.getByRole("region", { name: "Completed delivery map" }),

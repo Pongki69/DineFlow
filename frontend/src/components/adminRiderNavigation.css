@@ -327,7 +327,11 @@
     border-radius: 999px;
     background: var(--surface);
   }
-  .dineflow-app .admin-shell .admin-map-roster--docked .admin-map-roster-search input {
+  .dineflow-app
+    .admin-shell
+    .admin-map-roster--docked
+    .admin-map-roster-search
+    input {
     min-height: 40px;
     padding: 0;
     border: 0;

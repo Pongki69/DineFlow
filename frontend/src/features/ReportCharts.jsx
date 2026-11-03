@@ -41,9 +41,13 @@ export function shareParts(rows, order) {
     .sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key))
     .map((row) => ({ ...row, slot: order.indexOf(row.key) % SLOTS }));
   const other = rest.reduce((sum, row) => sum + row.value, 0);
-  if (other > 0) parts.push({ key: "other", label: "Other", value: other, slot: "other" });
+  if (other > 0)
+    parts.push({ key: "other", label: "Other", value: other, slot: "other" });
   const total = parts.reduce((sum, row) => sum + row.value, 0);
-  return parts.map((part) => ({ ...part, share: total ? part.value / total : 0 }));
+  return parts.map((part) => ({
+    ...part,
+    share: total ? part.value / total : 0,
+  }));
 }
 
 /** A thin bar of one whole split into parts, with a small key underneath. */
@@ -51,7 +55,13 @@ export function ShareBar({ parts, label }) {
   if (!parts.length) return null;
   return (
     <figure className="report-share" aria-label={label}>
-      <div className="report-share-bar" role="img" aria-label={parts.map((p) => `${p.label} ${Math.round(p.share * 100)}%`).join(", ")}>
+      <div
+        className="report-share-bar"
+        role="img"
+        aria-label={parts
+          .map((p) => `${p.label} ${Math.round(p.share * 100)}%`)
+          .join(", ")}
+      >
         {parts.map((part) => (
           <span
             key={part.key}
@@ -116,7 +126,10 @@ export function SalesTrend({ rows, span = null }) {
       month: "short",
       day: "numeric",
     });
-  const every = Math.max(1, Math.ceil(days.length / Math.max(1, Math.floor(plotW / 48))));
+  const every = Math.max(
+    1,
+    Math.ceil(days.length / Math.max(1, Math.floor(plotW / 48))),
+  );
   const picked = active === null ? null : days[active];
   const total = days.reduce((sum, d) => sum + d.gross, 0);
   // The highest day gets its value over the column and a note in the header.
@@ -130,12 +143,7 @@ export function SalesTrend({ rows, span = null }) {
         <h3>Sales by day</h3>
         <small>
           {span || `${days.length} days`} · {peso(total)} order gross
-          {best >= 0 && (
-            <>
-              {" "}
-              · Best {label(days[best].date)}
-            </>
-          )}
+          {best >= 0 && <> · Best {label(days[best].date)}</>}
         </small>
       </figcaption>
       <div className="report-trend-plot" ref={ref}>
@@ -149,7 +157,12 @@ export function SalesTrend({ rows, span = null }) {
           >
             {ticks.map((tick) => (
               <g key={tick} className="report-trend-grid">
-                <line x1={pad.left} x2={width - pad.right} y1={y(tick)} y2={y(tick)} />
+                <line
+                  x1={pad.left}
+                  x2={width - pad.right}
+                  y1={y(tick)}
+                  y2={y(tick)}
+                />
                 <text x={pad.left - 8} y={y(tick)} dy="0.32em" textAnchor="end">
                   {compactPeso(tick)}
                 </text>
@@ -171,7 +184,9 @@ export function SalesTrend({ rows, span = null }) {
                       d={path}
                       className="report-trend-bar"
                       data-active={active === index || undefined}
-                      data-dim={active !== null && active !== index ? true : undefined}
+                      data-dim={
+                        active !== null && active !== index ? true : undefined
+                      }
                     />
                   )}
                   {index === best && (
@@ -211,7 +226,13 @@ export function SalesTrend({ rows, span = null }) {
                 </g>
               );
             })}
-            <line className="report-trend-base" x1={pad.left} x2={width - pad.right} y1={y(0)} y2={y(0)} />
+            <line
+              className="report-trend-base"
+              x1={pad.left}
+              x2={width - pad.right}
+              y1={y(0)}
+              y2={y(0)}
+            />
           </svg>
         )}
         {picked && width > 0 && (

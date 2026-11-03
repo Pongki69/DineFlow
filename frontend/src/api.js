@@ -135,7 +135,9 @@ export async function api(path, options = {}) {
       // Another device signed in to this account; the app returns to sign-in.
       if (details.code === "session_replaced")
         window.dispatchEvent(
-          new CustomEvent("dineflow:session-replaced", { detail: error.message }),
+          new CustomEvent("dineflow:session-replaced", {
+            detail: error.message,
+          }),
         );
       throw error;
     }

@@ -638,7 +638,9 @@
 /* Order cards on phones (customer and admin): a compact card, and every
    button or link sits on the right. */
 @media (max-width: 850px) {
-  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .orders-list {
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .orders-list {
     display: grid;
     gap: 10px;
   }
@@ -660,7 +662,9 @@
     gap: 8px;
     padding: 14px 14px 12px;
   }
-  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-title {
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-title {
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
@@ -669,7 +673,9 @@
     min-height: 0;
     margin: 0;
   }
-  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-reference {
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-reference {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -701,7 +707,9 @@
     padding: 2px 9px;
     font-size: 12px;
   }
-  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-metadata {
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-metadata {
     display: flex;
     flex-wrap: wrap;
     gap: 2px 0;
@@ -709,7 +717,10 @@
     color: var(--muted);
     font-size: 13px;
   }
-  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-metadata > * {
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-metadata
+    > * {
     margin: 0;
     padding: 0;
     border: 0;
@@ -732,11 +743,15 @@
     margin: 0 6px;
     content: "·";
   }
-  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-card-items {
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-card-items {
     margin: 0;
     font-size: 14px;
   }
-  .dineflow-app .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]) .order-payment-summary {
+  .dineflow-app
+    .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"])
+    .order-payment-summary {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
@@ -818,7 +833,10 @@
     background: transparent;
   }
   .dineflow-app
-    :is(.app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]), .admin-shell)
+    :is(
+      .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]),
+      .admin-shell
+    )
     .order-action-buttons {
     display: flex;
     flex-wrap: wrap;
@@ -826,7 +844,10 @@
     gap: 8px;
   }
   .dineflow-app
-    :is(.app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]), .admin-shell)
+    :is(
+      .app-shell:is([data-workspace="customer"], [data-workspace="restaurant"]),
+      .admin-shell
+    )
     .order-action-buttons
     > .order-action-button {
     flex: 0 0 auto;
@@ -2590,7 +2611,12 @@
     padding: 0;
     font-size: 17px;
   }
-  .dineflow-app .app-shell .account-page .account-password-settings > legend > svg {
+  .dineflow-app
+    .app-shell
+    .account-page
+    .account-password-settings
+    > legend
+    > svg {
     margin: 0;
   }
   .dineflow-app .app-shell .account-password-settings > legend .optional-label {
@@ -2631,49 +2657,88 @@
   .dineflow-app :is(.app-shell, .admin-shell) .rider-profile-card {
     display: grid;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-card {
     padding: 16px;
     border-radius: 18px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card-heading {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-card-heading {
     margin: 0 0 4px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card h2 {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-card
+    h2 {
     display: flex;
     align-items: center;
     gap: 8px;
     margin: 0;
     font-size: 17px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card-heading p {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-card-heading
+    p {
     margin: 2px 0 0;
     color: var(--muted);
     font-size: 13px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-start-page {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-start-page {
     gap: 6px;
     margin-top: 12px;
     font-size: 14px;
     font-weight: 600;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-start-page select {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-start-page
+    select {
     min-height: 46px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-start-page small {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-start-page
+    small {
     color: var(--muted);
     font-size: 12.5px;
     font-weight: 400;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-toggle {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-toggle {
     padding-block: 12px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-toggle strong {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-toggle
+    strong {
     font-size: 15px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-toggle small {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-toggle
+    small {
     font-size: 12.5px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-form-actions {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-form-actions {
     display: flex;
     justify-content: flex-end;
     margin-top: 4px;
@@ -2706,7 +2771,10 @@
     flex: none;
     font-size: 20px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-identity strong {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-account-identity
+    strong {
     font-size: 16px;
   }
   .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-identity p {
@@ -2714,7 +2782,10 @@
     overflow-wrap: anywhere;
     font-size: 13px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-account-card .workspace-role {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-account-card
+    .workspace-role {
     justify-self: start;
     padding: 3px 10px;
     border-radius: 999px;
@@ -2740,28 +2811,47 @@
     min-height: 46px;
   }
   /* "Profile & security": a plain list row with the chevron on the right. */
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-security {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-security {
     padding-inline: 16px;
     border-radius: 18px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-security > summary {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-security
+    > summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
     min-height: 54px;
     font-size: 16px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-security > summary > span {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-security
+    > summary
+    > span {
     display: flex;
     align-items: center;
     gap: 10px;
   }
   /* Delete account: quieter copy, the button on the right. */
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .customer-account-delete {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .customer-account-delete {
     display: grid;
     gap: 8px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .customer-account-delete > p {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .customer-account-delete
+    > p {
     margin: 0;
     color: var(--muted);
     font-size: 13px;
@@ -2794,10 +2884,7 @@
     gap: 18px;
   }
   .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings > *,
-  .dineflow-app
-    :is(.app-shell, .admin-shell)
-    .workspace-settings-grid
-    > * {
+  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings-grid > * {
     margin-block: 0;
   }
   .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings-grid {
@@ -2819,7 +2906,10 @@
     > * {
     margin-block: 0;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .workspace-settings .workspace-card,
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .workspace-settings
+    .workspace-card,
   .dineflow-app
     :is(.app-shell, .admin-shell)
     .workspace-settings
@@ -2897,7 +2987,10 @@
     border-radius: 999px;
     font-size: 13.5px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .delivery-address-picker {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-address-picker {
     display: grid;
     gap: 12px;
     margin: 0;
@@ -2905,7 +2998,10 @@
     border: 0;
     background: transparent;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .delivery-address-steps {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-address-steps {
     margin: 0;
     padding: 8px 6px;
     border-radius: 14px;
@@ -2917,7 +3013,10 @@
     li {
     font-size: 12.5px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .delivery-address-section {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-address-section {
     display: grid;
     gap: 8px;
     margin: 0;
@@ -2970,7 +3069,10 @@
     border-radius: 999px;
     font-size: 13.5px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .outdoor-map {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .outdoor-map {
     overflow: hidden;
     border-radius: 14px;
   }
@@ -2981,7 +3083,10 @@
     .leaflet-container {
     height: min(46dvh, 300px);
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .delivery-pin-status {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .delivery-pin-status {
     margin: 0;
     padding: 10px 12px;
     border-radius: 12px;
@@ -2997,12 +3102,18 @@
     min-height: 44px;
     padding-inline: 18px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .address-details {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .address-details {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .address-default-choice {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .address-default-choice {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -3011,7 +3122,10 @@
     background: var(--neutral-soft);
     font-weight: 600;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .saved-address-editor .address-actions {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .saved-address-editor
+    .address-actions {
     display: flex;
     justify-content: flex-end;
     margin: 4px 0 0;
@@ -3091,7 +3205,9 @@
     font-size: 11px;
     scrollbar-width: none;
   }
-  .dineflow-app .reservation-floor-board .editor-status-legend::-webkit-scrollbar {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-status-legend::-webkit-scrollbar {
     display: none;
   }
   .dineflow-app .reservation-floor-board .editor-status-legend span {
@@ -3131,7 +3247,10 @@
     font-size: 18px;
     line-height: 1;
   }
-  .dineflow-app .reservation-floor-board .editor-map-controls > button:last-child {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-map-controls
+    > button:last-child {
     font-size: 10.5px;
     font-weight: 700;
   }
@@ -3277,16 +3396,27 @@
     height: 44px;
     border-radius: 12px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .empty-state h2 {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .empty-state
+    h2 {
     margin: 4px 0 0;
     font-size: 16px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .empty-state p {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .empty-state
+    p {
     margin: 0;
     font-size: 13px;
     line-height: 1.45;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .saved-address-grid {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
@@ -3295,7 +3425,10 @@
 
 /* ---- My bookings (phones): grouped, status top right, actions right ----- */
 @media (max-width: 850px) {
-  .dineflow-app .app-shell[data-workspace="customer"] .my-reservations-workspace > p {
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservations-workspace
+    > p {
     margin: 0 0 4px;
     color: var(--muted);
     font-size: 13.5px;
@@ -3349,7 +3482,10 @@
     color: var(--muted);
     font-size: 13px;
   }
-  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-date strong {
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-date
+    strong {
     font-size: 15px;
   }
   /* Status pill in the top-right corner; buttons on their own row. */
@@ -3390,7 +3526,9 @@
     padding-top: 12px;
     border-top: 1px solid var(--border);
   }
-  .dineflow-app .app-shell[data-workspace="customer"] .my-reservation-buttons:empty {
+  .dineflow-app
+    .app-shell[data-workspace="customer"]
+    .my-reservation-buttons:empty {
     display: none;
   }
   .dineflow-app
@@ -3426,7 +3564,11 @@
   .dineflow-app
     .app-shell[data-workspace="customer"]
     .my-reservation-list
-    > article:is([data-status="cancelled"], [data-status="completed"], [data-status="no_show"])
+    > article:is(
+      [data-status="cancelled"],
+      [data-status="completed"],
+      [data-status="no_show"]
+    )
     .my-reservation-date {
     background: var(--neutral-soft);
     color: var(--muted);
@@ -3513,7 +3655,11 @@
   .dineflow-app .app-shell .customer-tracking .customer-progress-rider {
     order: -1;
   }
-  .dineflow-app .app-shell .customer-tracking .customer-progress-grid > .customer-progress-card {
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    .customer-progress-grid
+    > .customer-progress-card {
     display: grid;
     gap: 6px;
     padding: 14px 16px;
@@ -3534,7 +3680,11 @@
     font-size: 17px;
     font-weight: 700;
   }
-  .dineflow-app .app-shell .customer-tracking .customer-progress-rider .rider-profile-link {
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    .customer-progress-rider
+    .rider-profile-link {
     justify-self: end;
     margin-top: -36px;
   }
@@ -3564,7 +3714,12 @@
     padding-block: 4px;
     font-size: 14px;
   }
-  .dineflow-app .app-shell .customer-tracking .customer-progress-steps li > span:last-child {
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    .customer-progress-steps
+    li
+    > span:last-child {
     display: flex;
     flex: 1;
     align-items: center;
@@ -3579,7 +3734,11 @@
   .dineflow-app
     .app-shell
     .customer-tracking
-    :is(.customer-completed-map, .customer-order-timeline, .delivery-notifications)
+    :is(
+      .customer-completed-map,
+      .customer-order-timeline,
+      .delivery-notifications
+    )
     > summary {
     min-height: 0;
     margin: 0 0 10px;
@@ -3590,7 +3749,11 @@
   .dineflow-app
     .app-shell
     .customer-tracking
-    :is(.customer-completed-map, .customer-order-timeline, .delivery-notifications)
+    :is(
+      .customer-completed-map,
+      .customer-order-timeline,
+      .delivery-notifications
+    )
     > summary
     .tracking-disclosure-title {
     font-size: 16px;
@@ -3599,7 +3762,11 @@
   .dineflow-app
     .app-shell
     .customer-tracking
-    :is(.customer-completed-map, .customer-order-timeline, .delivery-notifications)
+    :is(
+      .customer-completed-map,
+      .customer-order-timeline,
+      .delivery-notifications
+    )
     > summary
     svg {
     display: none;
@@ -3619,11 +3786,21 @@
     gap: 0 10px;
     padding: 8px 0 8px 12px;
   }
-  .dineflow-app .app-shell .customer-tracking .customer-order-timeline li > strong {
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    .customer-order-timeline
+    li
+    > strong {
     grid-column: 1;
     font-size: 14px;
   }
-  .dineflow-app .app-shell .customer-tracking .customer-order-timeline li > time {
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    .customer-order-timeline
+    li
+    > time {
     grid-row: 1 / span 2;
     grid-column: 2;
     align-self: center;
@@ -3631,13 +3808,20 @@
     font-size: 12.5px;
     white-space: nowrap;
   }
-  .dineflow-app .app-shell .customer-tracking .customer-order-timeline .customer-event-source {
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    .customer-order-timeline
+    .customer-event-source {
     grid-row: 2;
     grid-column: 1;
     color: var(--muted);
     font-size: 12px;
   }
-  .dineflow-app .app-shell .customer-tracking > :is(.rider-review-form, .delivery-proof) {
+  .dineflow-app
+    .app-shell
+    .customer-tracking
+    > :is(.rider-review-form, .delivery-proof) {
     order: 5;
   }
   .dineflow-app .app-shell .customer-tracking > .delivery-notifications {
@@ -3881,7 +4065,10 @@
     align-items: center;
     column-gap: 10px;
   }
-  .dineflow-app .app-shell .review-card > :not(.review-stars):not(.review-verified) {
+  .dineflow-app
+    .app-shell
+    .review-card
+    > :not(.review-stars):not(.review-verified) {
     grid-column: 1 / -1;
   }
   .dineflow-app .app-shell .review-card > .review-stars {
@@ -3898,7 +4085,10 @@
   }
 
   /* Saved address card: details, then actions on the right. */
-  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .saved-address-card {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-card {
     display: grid;
     gap: 4px;
     margin: 0;
@@ -3942,7 +4132,11 @@
     border-radius: 999px;
     font-size: 12px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .saved-address-card > p {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-card
+    > p {
     margin: 0;
     padding-left: 26px;
     color: var(--ink);
@@ -3957,7 +4151,10 @@
     color: var(--muted);
     font-size: 13px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #delivery-addresses .saved-address-actions {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #delivery-addresses
+    .saved-address-actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
@@ -4021,8 +4218,12 @@
   .dineflow-app .reservation-floor-board .editor-object.table {
     --plan-status: var(--plan-available);
     border: 2.5px solid var(--plan-status);
-    background:
-      radial-gradient(120% 120% at 35% 30%, #e1c9a1, #c3a274 70%, #b08e60);
+    background: radial-gradient(
+      120% 120% at 35% 30%,
+      #e1c9a1,
+      #c3a274 70%,
+      #b08e60
+    );
     box-shadow:
       0 6px 12px rgb(60 44 24 / 22%),
       inset 0 1px 2px rgb(255 255 255 / 45%);
@@ -4037,15 +4238,26 @@
   .dineflow-app .reservation-floor-board .editor-object.table.status-cleaning {
     --plan-status: var(--plan-cleaning);
   }
-  .dineflow-app .reservation-floor-board .editor-object.table.status-unavailable {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-object.table.status-unavailable {
     --plan-status: var(--plan-unavailable);
   }
   /* Tables that can't be booked look faded, like empty furniture. */
   .dineflow-app
     .reservation-floor-board
-    .editor-object.table:is(.status-reserved, .status-occupied, .status-cleaning, .status-unavailable):not(.selected) {
-    background:
-      radial-gradient(120% 120% at 35% 30%, #e4dccd, #c9bda8 70%, #b9ab94);
+    .editor-object.table:is(
+      .status-reserved,
+      .status-occupied,
+      .status-cleaning,
+      .status-unavailable
+    ):not(.selected) {
+    background: radial-gradient(
+      120% 120% at 35% 30%,
+      #e4dccd,
+      #c9bda8 70%,
+      #b9ab94
+    );
   }
   .dineflow-app .reservation-floor-board .editor-chair {
     border-color: #6e5038;
@@ -4079,8 +4291,12 @@
   .dineflow-app .reservation-floor-board .editor-object.table.selected {
     --plan-status: var(--primary);
     border-width: 3px;
-    background:
-      radial-gradient(120% 120% at 35% 30%, #e1c9a1, #c3a274 70%, #b08e60);
+    background: radial-gradient(
+      120% 120% at 35% 30%,
+      #e1c9a1,
+      #c3a274 70%,
+      #b08e60
+    );
     box-shadow:
       0 0 0 5px color-mix(in srgb, var(--primary) 26%, transparent),
       0 8px 16px rgb(60 44 24 / 28%);
@@ -4090,23 +4306,41 @@
     background: var(--primary);
     color: var(--df-color-on-brand, #fff);
   }
-  .dineflow-app .reservation-floor-board .editor-object.table.selected > span::before {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-object.table.selected
+    > span::before {
     background: #fff;
   }
   /* Legend dots use the same status colours. */
-  .dineflow-app .reservation-floor-board .editor-status-legend i.status-available {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-status-legend
+    i.status-available {
     background: var(--plan-available);
   }
-  .dineflow-app .reservation-floor-board .editor-status-legend i.status-reserved {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-status-legend
+    i.status-reserved {
     background: var(--plan-reserved);
   }
-  .dineflow-app .reservation-floor-board .editor-status-legend i.status-occupied {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-status-legend
+    i.status-occupied {
     background: var(--plan-occupied);
   }
-  .dineflow-app .reservation-floor-board .editor-status-legend i.status-cleaning {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-status-legend
+    i.status-cleaning {
     background: var(--plan-cleaning);
   }
-  .dineflow-app .reservation-floor-board .editor-status-legend i.status-unavailable {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-status-legend
+    i.status-unavailable {
     background: var(--plan-unavailable);
   }
 }
@@ -4132,7 +4366,10 @@
     content: "";
     transform: rotate(45deg);
   }
-  .dineflow-app .reservation-floor-board .editor-object.table.selected > span::after {
+  .dineflow-app
+    .reservation-floor-board
+    .editor-object.table.selected
+    > span::after {
     border-color: var(--primary);
   }
 }
@@ -4178,23 +4415,48 @@
     --kds-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23315a44' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
   /* Summary tiles: one tidy row. */
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-stat-grid {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-stat-grid {
     gap: 8px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-stat-grid > article {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-stat-grid
+    > article {
     min-height: 0;
     padding: 10px 12px;
     border-radius: 14px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-stat-grid > article span {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-stat-grid
+    > article
+    span {
     font-size: 11.5px;
     line-height: 1.25;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-stat-grid > article strong {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-stat-grid
+    > article
+    strong {
     font-size: 20px;
   }
   /* Filters: status chips, then the order-type dropdown on the right. */
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-toolbar {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -4202,12 +4464,22 @@
     gap: 8px;
     margin: 4px 0 0;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-filter-chips > button {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-filter-chips
+    > button {
     min-height: 36px;
     padding: 0 14px;
     font-size: 13px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-toolbar .sage-field {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-toolbar
+    .sage-field {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -4217,13 +4489,18 @@
     font-weight: 600;
   }
   /* Dropdowns: a soft rounded field with a drawn arrow, not the native box. */
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen select {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    select {
     height: 40px;
     min-height: 40px;
     padding: 0 34px 0 12px;
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--surface) var(--kds-select-arrow) no-repeat right 10px center / 16px;
+    background: var(--surface) var(--kds-select-arrow) no-repeat right 10px
+      center / 16px;
     box-shadow: 0 1px 2px rgb(16 34 24 / 6%);
     color: var(--ink);
     font: inherit;
@@ -4232,12 +4509,21 @@
     appearance: none;
     -webkit-appearance: none;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen select:focus-visible {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    select:focus-visible {
     border-color: var(--primary);
     outline: 2px solid color-mix(in srgb, var(--primary) 30%, transparent);
     outline-offset: 1px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-toolbar select {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-toolbar
+    select {
     width: auto;
     min-width: 128px;
   }
@@ -4253,7 +4539,11 @@
     padding: 0;
     border-radius: 16px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-ticket > header {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-kds-ticket
+    > header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -4263,18 +4553,37 @@
   .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-type {
     font-size: 12px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-ticket h2 {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-kds-ticket
+    h2 {
     margin: 2px 0 0;
     font-size: 17px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-age strong,
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-countdown {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-age
+    strong,
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-countdown {
     font-variant-numeric: tabular-nums;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-age strong {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-age
+    strong {
     font-size: 18px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-age span {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-age
+    span {
     font-size: 11.5px;
   }
   .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-state {
@@ -4284,17 +4593,30 @@
     gap: 6px;
     padding: 0 14px 10px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-state .df-status,
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-priority-label {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-state
+    .df-status,
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-priority-label {
     min-height: 0;
     padding: 2px 9px;
     font-size: 12px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-countdown {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-countdown {
     margin-left: auto;
     font-size: 15px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-attention-label {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-attention-label {
     flex-basis: 100%;
     font-size: 12px;
   }
@@ -4303,14 +4625,21 @@
     padding: 4px 14px;
     border-top: 1px solid var(--border);
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-items > li {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-kds-items
+    > li {
     display: flex;
     align-items: baseline;
     gap: 10px;
     min-height: 0;
     padding: 7px 0;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-item-quantity {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-item-quantity {
     display: inline-grid;
     flex: none;
     min-width: 30px;
@@ -4322,7 +4651,11 @@
     font-size: 13px;
     font-weight: 800;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-items strong {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-kds-items
+    strong {
     font-size: 15px;
     font-weight: 600;
   }
@@ -4342,11 +4675,19 @@
     border-top: 1px solid var(--border);
     font-size: 12.5px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-prep p {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-prep
+    p {
     margin: 0;
     color: var(--muted);
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-prep fieldset {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-prep
+    fieldset {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px 10px;
@@ -4354,7 +4695,11 @@
     padding: 0;
     border: 0;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-prep legend {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-prep
+    legend {
     grid-column: 1 / -1;
     margin: 0 0 4px;
     padding: 0;
@@ -4362,21 +4707,34 @@
     font-size: 12px;
     font-weight: 700;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-ticket-prep label {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-ticket-prep
+    label {
     display: grid;
     gap: 4px;
     color: var(--muted);
     font-size: 12px;
     font-weight: 600;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-ticket-prep input {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-ticket-prep
+    input {
     height: 40px;
     min-height: 40px;
     padding: 0 12px;
     border-radius: 12px;
     font-size: 14px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) .sage-kitchen .sage-kds-ticket > footer {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    .sage-kitchen
+    .sage-kds-ticket
+    > footer {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
@@ -4384,7 +4742,13 @@
     padding: 8px 14px 12px;
     border-top: 1px solid var(--border);
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-kds-ticket > footer > .sage-button {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-kds-ticket
+    > footer
+    > .sage-button {
     width: auto;
     min-width: 0;
     height: auto;
@@ -4394,7 +4758,14 @@
     border-radius: 10px;
     font-size: 13.5px;
   }
-  .dineflow-app :is(.app-shell, .admin-shell) #main-content .sage-kitchen .sage-kds-ticket > footer > .sage-button svg {
+  .dineflow-app
+    :is(.app-shell, .admin-shell)
+    #main-content
+    .sage-kitchen
+    .sage-kds-ticket
+    > footer
+    > .sage-button
+    svg {
     width: 16px;
     height: 16px;
   }

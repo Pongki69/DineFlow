@@ -48,7 +48,7 @@ config(['database.default' => 'pgsql', 'database.connections.pgsql.url' => null,
 DB::purge('pgsql');
 $app->instance(MapProviderService::class, new class extends MapProviderService
 {
-    public function route(float $fromLat, float $fromLng, float $toLat, float $toLng, bool $includeGeometry = false): array
+    public function route(float $fromLat, float $fromLng, float $toLat, float $toLng, bool $includeGeometry = false, bool $withTraffic = false): array
     {
         usleep(100000); // Two workers can compute the same candidate before the final SQL reservation.
 

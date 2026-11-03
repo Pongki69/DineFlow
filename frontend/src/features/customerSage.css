@@ -948,7 +948,12 @@
     padding: 4px 8px;
     font-size: 11px;
   }
-  .dineflow-app .app-shell .customer-menu .dish-image.dish-image--illustrated .dish-popular > svg,
+  .dineflow-app
+    .app-shell
+    .customer-menu
+    .dish-image.dish-image--illustrated
+    .dish-popular
+    > svg,
   .dineflow-app .customer-menu .dish-image .dish-popular > svg {
     display: block;
     width: 12px;
