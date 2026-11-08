@@ -10,12 +10,15 @@ import {
   UserRound,
   UtensilsCrossed,
   Wallet,
+  X,
 } from "lucide-react";
 import { api } from "../api";
 import { subscribeToLiveChanges } from "../liveUpdates";
 import { EmptyState, Feedback, Skeleton } from "../components/ui";
 import { Pagination } from "../components/Pagination";
 import { DatePicker } from "../components/DatePicker";
+import { useAdminDesktop } from "../components/adminDesk";
+import { useDragScroll } from "../components/useDragScroll";
 import "./activityLog.css";
 
 export const ACTIVITY_AREAS = [
@@ -114,10 +117,44 @@ function useActivity(endpoint, filters) {
   return { ...state, reload: load };
 }
 
-function ActivityFilters({ area, setArea, day, setDay, children }) {
+// The day to send: the picked one, or today when only a time is set.
+function activityRange(day, fromTime, toTime) {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const date = day || (fromTime || toTime ? today : "");
+  return {
+    from: date,
+    to: date,
+    from_time: date ? fromTime : "",
+    to_time: date ? toTime : "",
+  };
+}
+
+function ActivityFilters({
+  area,
+  setArea,
+  day,
+  setDay,
+  fromTime = "",
+  setFromTime,
+  toTime = "",
+  setToTime,
+  // Extra filters in the row (the Audit log person): whether one is set,
+  // and how to reset it, so Clear covers them too.
+  extraActive = false,
+  onClearExtra,
+  children,
+}) {
+  const chipsRef = useDragScroll();
+  const anySet = Boolean(day || fromTime || toTime || extraActive);
   return (
     <div className="activity-filters">
-      <div className="activity-chips" role="group" aria-label="Area">
+      <div
+        className="activity-chips"
+        role="group"
+        aria-label="Area"
+        ref={chipsRef}
+      >
         {ACTIVITY_AREAS.map(([value, text]) => (
           <button
             key={value || "all"}
@@ -137,22 +174,66 @@ function ActivityFilters({ area, setArea, day, setDay, children }) {
             value={day}
             onChange={(value) => setDay(value || "")}
           />
-          {day && (
-            <button
-              type="button"
-              className="activity-clear"
-              onClick={() => setDay("")}
+          {setFromTime && (
+            <div
+              className="activity-time"
+              role="group"
+              aria-label="Time of day"
             >
-              All days
-            </button>
+              <label>
+                <span>From</span>
+                <input
+                  type="time"
+                  value={fromTime}
+                  onChange={(event) => setFromTime(event.target.value)}
+                  aria-label="From time"
+                />
+              </label>
+              <label>
+                <span>to</span>
+                <input
+                  type="time"
+                  value={toTime}
+                  onChange={(event) => setToTime(event.target.value)}
+                  aria-label="To time"
+                />
+              </label>
+            </div>
           )}
+          <button
+            type="button"
+            className="activity-clear"
+            disabled={!anySet}
+            onClick={() => {
+              setDay("");
+              setFromTime?.("");
+              setToTime?.("");
+              onClearExtra?.();
+            }}
+          >
+            <X size={14} aria-hidden="true" />
+            Clear
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+// "Just now", "12 min ago", "3 h ago" for today; earlier days show the date.
+function sinceLabel(value) {
+  const at = new Date(value);
+  const minutes = Math.round((Date.now() - at.getTime()) / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 24 * 60 && at.toDateString() === new Date().toDateString())
+    return `${Math.floor(minutes / 60)} h ago`;
+  return at.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
 function ActivityList({ rows, showActor }) {
+  // Admin desktop: a timestamp column down the left, like a timeline.
+  const desk = useAdminDesktop();
   return groupByDay(rows).map((group) => (
     <section className="activity-group" key={group.key}>
       <h2>{activityDay(group.at)}</h2>
@@ -161,22 +242,35 @@ function ActivityList({ rows, showActor }) {
           const Icon = areaIcon(entry.area);
           return (
             <li key={entry.id} data-area={entry.area}>
+              {desk && (
+                <time className="activity-stamp" dateTime={entry.created_at}>
+                  <strong>
+                    {new Date(entry.created_at).toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </strong>
+                  <small>{sinceLabel(entry.created_at)}</small>
+                </time>
+              )}
               <span className="activity-icon" aria-hidden="true">
                 <Icon size={16} />
               </span>
               <div>
                 <p>{entry.summary}</p>
                 <small>
-                  <time dateTime={entry.created_at}>
-                    {new Date(entry.created_at).toLocaleTimeString([], {
-                      hour: "numeric",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })}
-                  </time>
+                  {!desk && (
+                    <time dateTime={entry.created_at}>
+                      {new Date(entry.created_at).toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </time>
+                  )}
                   {showActor && (
                     <>
-                      {" · "}
+                      {desk ? "" : " · "}
                       <strong>{entry.actor?.name || "System"}</strong>
                       {entry.actor?.role && ` (${entry.actor.role})`}
                     </>
@@ -200,7 +294,12 @@ function ActivityBody({ data, filtered, page, setPage, showActor }) {
   return (
     <>
       {data.error && <Feedback onRetry={data.reload}>{data.error}</Feedback>}
-      {data.loading && <Skeleton label="Loading activity" />}
+      {data.loading && (
+        <Skeleton
+          label="Loading activity"
+          layout={{ body: "list", rows: 10 }}
+        />
+      )}
       {!data.loading && !data.error && data.rows.length === 0 && (
         <EmptyState
           title={filtered ? "Nothing matches" : "No activity yet"}
@@ -235,11 +334,12 @@ function ActivityBody({ data, filtered, page, setPage, showActor }) {
 export function MyActivity() {
   const [area, setArea] = useState("");
   const [day, setDay] = useState("");
+  const [fromTime, setFromTime] = useState("");
+  const [toTime, setToTime] = useState("");
   const [page, setPage] = useState(1);
   const data = useActivity("/activity", {
     area,
-    from: day,
-    to: day,
+    ...activityRange(day, fromTime, toTime),
     page,
     per_page: 25,
   });
@@ -260,6 +360,10 @@ export function MyActivity() {
         setArea={reset(setArea)}
         day={day}
         setDay={reset(setDay)}
+        fromTime={fromTime}
+        setFromTime={reset(setFromTime)}
+        toTime={toTime}
+        setToTime={reset(setToTime)}
       />
       <ActivityBody
         data={data}
@@ -275,6 +379,8 @@ export function MyActivity() {
 export function TeamActivity() {
   const [area, setArea] = useState("");
   const [day, setDay] = useState("");
+  const [fromTime, setFromTime] = useState("");
+  const [toTime, setToTime] = useState("");
   const [person, setPerson] = useState("");
   const [page, setPage] = useState(1);
   const [people, setPeople] = useState([]);
@@ -286,8 +392,7 @@ export function TeamActivity() {
   const data = useActivity("/admin/activity", {
     area,
     actor_id: person,
-    from: day,
-    to: day,
+    ...activityRange(day, fromTime, toTime),
     page,
     per_page: 25,
   });
@@ -308,6 +413,12 @@ export function TeamActivity() {
         setArea={reset(setArea)}
         day={day}
         setDay={reset(setDay)}
+        fromTime={fromTime}
+        setFromTime={reset(setFromTime)}
+        toTime={toTime}
+        setToTime={reset(setToTime)}
+        extraActive={Boolean(person)}
+        onClearExtra={() => reset(setPerson)("")}
       >
         <label className="activity-person">
           <span className="sr-only">Person</span>

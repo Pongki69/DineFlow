@@ -315,7 +315,10 @@ class PaymentService
         $allocatedPaid = $order->paymentAllocations->filter(fn ($allocation) => $allocation->payment?->status === 'paid')->sum(fn ($allocation) => $this->cents($allocation->amount));
         $pending = $order->payments->where('status', 'pending')->sum(fn ($payment) => $this->cents($payment->amount));
         $paid = $directPaid + $allocatedPaid;
-        return ['paid' => $this->money($paid), 'balance_due' => $this->money(max(0, $this->cents($order->total) - $paid)), 'pending' => $this->money($pending)];
+        $methods = $order->payments->where('status', 'paid')->pluck('method')
+            ->merge($order->paymentAllocations->map(fn ($allocation) => $allocation->payment?->status === 'paid' ? $allocation->payment?->method : null))
+            ->filter()->unique()->values()->all();
+        return ['paid' => $this->money($paid), 'balance_due' => $this->money(max(0, $this->cents($order->total) - $paid)), 'pending' => $this->money($pending), 'methods' => $methods];
     }
 
     public function all(): array

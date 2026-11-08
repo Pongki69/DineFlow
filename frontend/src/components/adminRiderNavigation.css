@@ -161,7 +161,7 @@
   padding: 2px;
   border: 2px solid #fff;
   color: #fff;
-  background: #246b55;
+  background: var(--primary-fill, var(--primary, #246b55));
   border-radius: 50%;
   box-shadow: 0 1px 4px #173d3526;
 }

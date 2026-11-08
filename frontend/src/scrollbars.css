@@ -1,0 +1,57 @@
+/*
+ * Scrollbars: thin and softly green across every app, in both themes.
+ *
+ * The thumb is the brand green at low strength and firms up on hover; the
+ * track stays clear. The colours are set on every .df-theme root too, so a
+ * dark workspace uses its own (lighter) brand green. Places that hide their
+ * scrollbar on purpose (chip rows, carousels) keep doing so: these rules
+ * carry the lowest specificity.
+ */
+:root,
+.df-theme {
+  --df-scrollbar-thumb: color-mix(
+    in srgb,
+    var(--df-color-brand, #1e4d3a) 30%,
+    transparent
+  );
+  --df-scrollbar-thumb-hover: color-mix(
+    in srgb,
+    var(--df-color-brand, #1e4d3a) 55%,
+    transparent
+  );
+  scrollbar-color: var(--df-scrollbar-thumb) transparent;
+}
+
+/* The page scrollbar follows the workspace theme too. */
+:root:has([data-df-theme="dark"]) {
+  --df-scrollbar-thumb: color-mix(in srgb, #c5ddbd 30%, transparent);
+  --df-scrollbar-thumb-hover: color-mix(in srgb, #c5ddbd 55%, transparent);
+}
+
+:where(*) {
+  scrollbar-width: thin;
+}
+
+/* Safari and older Chromium read the WebKit pseudo-elements instead. */
+:where(*)::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+:where(*)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:where(*)::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--df-scrollbar-thumb) padding-box;
+}
+
+:where(*)::-webkit-scrollbar-thumb:hover {
+  background: var(--df-scrollbar-thumb-hover) padding-box;
+}
+
+:where(*)::-webkit-scrollbar-corner {
+  background: transparent;
+}

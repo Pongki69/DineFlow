@@ -85,7 +85,7 @@
   border-color: var(--border, #cbd6cd);
 }
 .date-picker .date-picker-days button[aria-pressed="true"] {
-  background: #246b55;
+  background: var(--primary-fill, var(--primary, #246b55));
   color: white;
 }
 .date-picker .date-picker-days button[aria-current="date"] {

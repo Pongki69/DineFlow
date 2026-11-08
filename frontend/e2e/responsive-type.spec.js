@@ -48,9 +48,14 @@ for (const [role, path] of [
             wraps: node.scrollWidth <= node.clientWidth + 1,
           })),
         );
+      // The admin desktop (1024px+, mouse) uses 40px controls; touch screens
+      // and smaller viewports keep the 48px target.
+      const minimumHeight = role === "administrator" && width >= 1024 ? 40 : 48;
       for (const control of controls) {
         expect(control.size, control.name).toBeGreaterThanOrEqual(14);
-        expect(control.height, control.name).toBeGreaterThanOrEqual(48);
+        expect(control.height, control.name).toBeGreaterThanOrEqual(
+          minimumHeight,
+        );
         expect(control.wraps, control.name).toBe(true);
       }
       await page.screenshot({

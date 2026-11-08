@@ -88,8 +88,8 @@
 
 /* Quick ranges: the picked one reads as selected (all screens). */
 .dineflow-app .report-range > button[aria-pressed="true"] {
-  border-color: var(--primary);
-  background: var(--primary);
+  border-color: var(--primary-fill, var(--primary));
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
 }
 
@@ -441,7 +441,7 @@
     .reports-dashboard
     .reports-tabs
     > button[aria-selected="true"] {
-    background: var(--primary);
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
   }
   /* With tabs, the tab names the section. */

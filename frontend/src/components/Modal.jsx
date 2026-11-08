@@ -9,17 +9,24 @@ export function Modal({
   children,
   eyebrow = "RESTAURANT CATALOG",
   closeLabel = "Close editor",
+  className = "",
 }) {
   const dialog = useRef(null),
     id = useId();
   useEffect(() => {
-    if (open && !dialog.current.open) dialog.current.showModal();
-    else if (!open && dialog.current.open) dialog.current.close();
+    if (open && !dialog.current.open) {
+      dialog.current.showModal();
+      // Desktop: start typing in the form, not on the close button.
+      if (window.matchMedia?.("(min-width: 1024px)")?.matches)
+        dialog.current
+          .querySelector("form :is(input, select, textarea)")
+          ?.focus();
+    } else if (!open && dialog.current.open) dialog.current.close();
   }, [open]);
   return (
     <dialog
       ref={dialog}
-      className="editor-modal"
+      className={`editor-modal ${className}`.trim()}
       aria-labelledby={`${id}-title`}
       aria-describedby={description ? `${id}-description` : undefined}
       onCancel={(event) => {

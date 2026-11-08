@@ -46,9 +46,9 @@
   font-weight: 650;
 }
 .reservation-steps li[aria-current="step"] > span {
-  background: #246b55;
+  background: var(--primary-fill, var(--primary, #246b55));
   color: #fff;
-  border-color: #246b55;
+  border-color: var(--primary-fill, var(--primary, #246b55));
 }
 .reservation-page .reservation-controls {
   display: grid;
@@ -313,7 +313,7 @@
   width: auto;
   min-height: 44px;
   padding: 11px 22px;
-  background: #246b55;
+  background: var(--primary-fill, var(--primary, #246b55));
   color: #fff;
 }
 .reservation-page .reservation-form-footer > button:hover:not(:disabled) {
@@ -366,4 +366,97 @@
   .reservation-page .reservation-form-footer > button {
     width: 100%;
   }
+}
+
+/* My reservations: search and status filters above the list. */
+.dineflow-app .my-reservation-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin: 16px 0 0;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.dineflow-app .my-reservation-search {
+  position: relative;
+  display: block;
+  flex: 1 1 260px;
+  max-width: 360px;
+  margin: 0;
+}
+.dineflow-app .my-reservation-search > svg {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  color: var(--muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.dineflow-app .my-reservation-search > input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px 0 36px;
+  border: 1px solid var(--control-border, var(--border));
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+.dineflow-app .my-reservation-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dineflow-app .my-reservation-count {
+  margin: 12px 2px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+/* Filter chips for the customer app; the admin desktop restyles its own. */
+.dineflow-app .my-reservation-filters > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dineflow-app .my-reservation-filters > button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.dineflow-app .my-reservation-filters .admin-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--neutral-soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Larger screens: the reference and its status share the title line. */
+.dineflow-app .my-reservation-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.dineflow-app .my-reservation-when {
+  color: var(--primary);
+  font-weight: 600;
 }

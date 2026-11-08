@@ -1,0 +1,1696 @@
+/*
+ * Admin desktop pages: Dashboard, Live delivery tracking, Restaurant outlets,
+ * Dispatch, Restaurant overview and Reports. Builds on ../adminDesktop.css.
+ */
+@media (min-width: 1024px) {
+  /* Dashboard and tracking -------------------------------------------------- */
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-overview-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-overview-bar
+    > :is(span, .admin-freshness) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    > *
+    > .admin-overview-bar {
+    margin-top: 14px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    > *
+    > .admin-overview-bar
+    + * {
+    margin-top: 14px;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-metric {
+    min-height: 136px;
+    padding: 20px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-metric
+    > small {
+    margin-top: auto;
+    padding: 12px 24px 0 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
+    align-items: start;
+    gap: var(--ad-gap);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-page--tracking
+    .admin-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-insight-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ad-gap);
+    min-width: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-priority-actions {
+    display: flex;
+    flex-direction: column;
+    padding: 0 var(--ad-card-pad);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-priority-action {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0;
+    padding: 18px 0;
+    border: 0;
+    border-bottom: 1px solid var(--ad-divider);
+    border-radius: 0;
+    background: none;
+    color: var(--ink);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-priority-action:last-child {
+    border-bottom: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-priority-action:hover
+    strong {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-priority-copy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-priority-copy
+    strong {
+    font-size: var(--ad-text);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-priority-copy
+    span {
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-priority-copy
+    small {
+    margin-top: 4px;
+    color: var(--ink);
+    font-size: var(--ad-text-xs);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-tracking-shortcut {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 var(--ad-card-pad) var(--ad-card-pad);
+    padding: 16px 20px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-tracking-shortcut
+    p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-summary-number {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    padding: 20px var(--ad-card-pad) 12px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-summary-number
+    strong {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-summary-number
+    span {
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-progress-track {
+    margin-inline: var(--ad-card-pad);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-summary-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 12px var(--ad-card-pad) 4px;
+    font-size: var(--ad-text-xs);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 var(--ad-card-pad);
+    padding-block: 14px;
+    border-top: 1px solid var(--ad-divider);
+    border-bottom: 1px solid var(--ad-divider);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-dispatch-summary {
+    padding-bottom: 12px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-dispatch-summary
+    > .admin-text-link {
+    margin: 8px var(--ad-card-pad) 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+    padding: var(--ad-card-pad);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-summary
+    h2 {
+    margin: 2px 0 4px;
+    font-size: var(--ad-text-lg);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-summary
+    p {
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-summary
+    .admin-eyebrow {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-summary-footer {
+    display: flex;
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin: 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--ad-divider);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-bottom-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 24px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    color: var(--muted);
+    font-size: var(--ad-text-xs);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-bottom-note
+    > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Live fleet map */
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-map-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+    margin: 0;
+    padding: 16px var(--ad-card-pad);
+    border: 0;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-map-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-fleet-panel
+    .admin-map-content {
+    padding: 0 var(--ad-card-pad);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-fleet-panel
+    .admin-map:not(.admin-map--fullscreen):not(:fullscreen),
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-fleet-panel
+    .admin-map-loading {
+    height: clamp(420px, 56dvh, 720px);
+    border: 1px solid var(--border);
+    border-radius: var(--ad-radius-card);
+    overflow: hidden;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-fleet-panel
+    .admin-map--with-roster:not(.admin-map--fullscreen):not(:fullscreen) {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-fleet-panel
+    .admin-map:not(.admin-map--fullscreen):not(:fullscreen)
+    .admin-map-roster {
+    padding: 16px;
+    border-top: 0;
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-roster-heading {
+    margin: 0 0 12px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-roster-heading
+    h3
+    span {
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-roster-search {
+    margin: 0 0 12px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-roster-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-roster-list
+    > button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 56px;
+    height: auto;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: none;
+    color: var(--ink);
+    text-align: start;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-roster-list
+    > button:hover {
+    background: var(--ad-hover);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-roster-list
+    > button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-roster-list
+    small {
+    display: block;
+    color: var(--muted);
+    font-size: var(--ad-text-xs);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-fleet-panel
+    .admin-map--with-roster:not(.admin-map--fullscreen):not(:fullscreen)
+    :is(.admin-map-caption, .admin-map-notice) {
+    right: 316px;
+    bottom: 16px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-fleet-panel
+    .admin-map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 20px;
+    margin: 0;
+    padding: 14px var(--ad-card-pad) 18px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: var(--muted);
+    font-size: var(--ad-text-xs);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-legend
+    > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-coverage-label {
+    margin-left: auto;
+  }
+
+  /* With the roster beside the map, the rider strip below repeats it. */
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-fleet-panel:has(.admin-map-roster)
+    .admin-map-rider-strip {
+    display: none;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-rider-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 var(--ad-card-pad) var(--ad-card-pad);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-small-avatar {
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: var(--ad-text-xs);
+    font-weight: 700;
+  }
+
+  /* Tables inside panels run edge to edge. */
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-table-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+    margin: 0;
+    padding: 14px var(--ad-card-pad);
+    border: 0;
+    border-bottom: 1px solid var(--ad-divider);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-table-toolbar
+    .admin-search {
+    flex: 0 1 360px;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-filter-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+    font-size: var(--ad-text-sm);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-filter-label
+    select {
+    min-width: 168px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-panel
+    .admin-table
+    :is(th, td):first-child {
+    padding-left: var(--ad-card-pad);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-panel
+    .admin-table
+    :is(th, td):last-child {
+    padding-right: var(--ad-card-pad);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-panel
+    .admin-table-scroll {
+    border-radius: 0 0 var(--ad-radius-card) var(--ad-radius-card);
+    overflow-x: auto;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-rider-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-table
+    .admin-icon-button {
+    width: var(--ad-control-sm);
+    min-width: var(--ad-control-sm);
+    height: var(--ad-control-sm);
+    min-height: var(--ad-control-sm);
+    border-color: transparent;
+    background: none;
+    color: var(--muted);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-table
+    .admin-icon-button:hover {
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--primary);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-table
+    .ui-button {
+    min-height: var(--ad-control-sm);
+    height: var(--ad-control-sm);
+    padding: 0 12px;
+    font-size: var(--ad-text-sm);
+  }
+
+  /* Restaurant outlets -------------------------------------------------------- */
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-outlet-strip {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-strip
+    > div {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-strip
+    strong {
+    display: block;
+    font-size: var(--ad-text);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-strip
+    small {
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-strip-radius {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--neutral-soft);
+    color: var(--ink);
+    font-size: var(--ad-text-sm);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* Map on the left; details with the coverage note on the right; the weekly
+     hours across the bottom. The map grows to match the right column. */
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-outlet-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 1fr);
+    grid-template-areas:
+      "map details"
+      "map note"
+      "hours hours";
+    align-items: stretch;
+    gap: var(--ad-gap);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-map-column {
+    display: contents;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-map-column
+    > .admin-panel {
+    display: flex;
+    flex-direction: column;
+    grid-area: map;
+    min-width: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-map-column
+    > .admin-coverage-note {
+    grid-area: note;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-form
+    .admin-panel:not(.admin-hours-panel) {
+    grid-area: details;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-grid
+    .admin-hours-panel {
+    grid-area: hours;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-map-column
+    .admin-map-frame {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-map-column
+    .admin-map:not(.admin-map--fullscreen):not(:fullscreen),
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-map-column
+    .admin-map-loading {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 340px;
+    margin: 0 var(--ad-card-pad);
+    border: 1px solid var(--border);
+    border-radius: var(--ad-radius-card);
+    overflow: hidden;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-search-wrap {
+    margin: 0;
+    padding: 16px var(--ad-card-pad);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-map-search {
+    display: flex;
+    gap: 8px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-search
+    > .admin-search {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-map-search
+    > .admin-button {
+    flex-shrink: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-map-column
+    .admin-map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 0;
+    padding: 12px var(--ad-card-pad) 0;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: var(--ad-text-xs);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-coordinate-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin: 12px var(--ad-card-pad) var(--ad-card-pad);
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--neutral-soft);
+    color: var(--ink);
+    font-size: var(--ad-text-sm);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-coordinate-note
+    span {
+    flex-basis: 100%;
+    color: var(--muted);
+    font-size: var(--ad-text-xs);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-coverage-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin: 0;
+    padding: 16px 20px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-coverage-note
+    h3 {
+    font-size: var(--ad-text);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-coverage-note
+    p {
+    margin: 4px 0 8px;
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-coverage-note
+    .admin-outlet-icon {
+    background: var(--surface);
+  }
+
+  /* The form and its fieldset stay transparent to the grid, so the weekly
+     hours span both columns while the details card matches the map column. */
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-grid
+    > .admin-outlet-form,
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-grid
+    > .admin-outlet-form
+    > fieldset {
+    display: contents;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-form
+    .admin-panel:not(.admin-hours-panel) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-form
+    .admin-form-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px var(--ad-card-pad) var(--ad-card-pad);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-form-body
+    > label:not(.admin-switch-row),
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-form-field,
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-field-pair
+    > label,
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-radius-row
+    > label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-field-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-radius-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-radius-row
+    label
+    span {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 4px;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--ad-divider);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-switch-row
+    strong {
+    display: block;
+    font-size: var(--ad-text);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-switch-row
+    small {
+    color: var(--muted);
+    font-size: var(--ad-text-xs);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-hours-panel {
+    grid-column: 1 / -1;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-hours-list {
+    padding: 4px var(--ad-card-pad);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-hours-day {
+    display: grid;
+    grid-template-columns: 120px minmax(160px, 0.6fr) minmax(0, 1.4fr);
+    align-items: center;
+    gap: 24px;
+    margin: 0;
+    padding: 14px 0;
+    border: 0;
+    border-bottom: 1px solid var(--ad-divider);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-hours-day-name {
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-hours-window {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-hours-window
+    > label {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+    font-weight: 600;
+  }
+
+  /* Dispatch queue ------------------------------------------------------------ */
+  .dineflow-app .admin-shell[data-workspace] #main-content .dispatch-queues {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    width: 100%;
+    min-height: 0;
+    height: 100%;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--ad-radius-card);
+    background: var(--surface);
+    box-shadow: var(--ad-shadow-card);
+    color: var(--ink);
+    font-weight: 400;
+    text-align: start;
+    white-space: normal;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button:hover {
+    border-color: var(--ad-border-strong);
+    background: var(--surface);
+    box-shadow: var(--ad-shadow-raised);
+  }
+
+  /* The open queue: the selected-chip colours, same tile shape. */
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    box-shadow: var(--ad-shadow-card);
+  }
+
+  /* Queues that need someone: the Dashboard's attention tile. */
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button[data-alert="true"] {
+    border-color: var(--df-status-pending-border);
+    background: var(--df-status-pending-bg);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button[data-alert="true"]
+    :is(strong, small, .dispatch-queue-label) {
+    color: var(--df-status-pending-text);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button[data-alert="true"][aria-pressed="true"] {
+    border-color: var(--df-status-pending-text);
+  }
+
+  /* Label on the left, the queue icon as a corner tile on the right. */
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queue-label {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queue-label
+    > svg {
+    flex: none;
+    box-sizing: content-box;
+    width: 16px;
+    height: 16px;
+    margin: -6px -8px 0 0;
+    padding: 8px;
+    border-radius: 9px;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button[aria-pressed="true"]
+    .dispatch-queue-label
+    > svg {
+    background: var(--surface);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button[data-alert="true"]
+    .dispatch-queue-label
+    > svg {
+    background: color-mix(
+      in srgb,
+      var(--df-status-pending-border) 45%,
+      transparent
+    );
+    color: var(--df-status-pending-text);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button
+    > strong {
+    margin: 8px 0 0;
+    color: var(--ink);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-queues
+    > .ui-button
+    > small {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: var(--ad-text-xs);
+    font-weight: 400;
+    line-height: 1.45;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .dispatch-toolbar {
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .dispatch-search {
+    display: flex;
+    flex: 1 1 420px;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 560px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-toolbar
+    .rider-data-freshness {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-results-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-results-heading
+    h2 {
+    margin: 0;
+    font-size: var(--ad-text-lg);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .dispatch-results-heading
+    > span {
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    > *
+    > .dispatch-results-heading
+    + * {
+    margin-top: 12px;
+  }
+
+  /* Restaurant overview and reports ------------------------------------------ */
+  .dineflow-app .admin-shell[data-workspace] #main-content .report-range {
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .report-range
+    > button {
+    margin-bottom: 2px;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .report-date-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 168px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .report-range
+    > .report-date-filter:first-of-type {
+    margin-left: 12px;
+    padding-left: 20px;
+    border-left: 1px solid var(--ad-divider);
+  }
+
+  /* Sales: the three headline figures, then the four money breakdowns. */
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-stats--sales {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-stats--sales
+    > .ops-stat {
+    grid-column: span 3;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-stats--sales
+    > .ops-stat:nth-child(-n + 3) {
+    grid-column: span 4;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-stats--sales
+    > .ops-stat:nth-child(n + 4)
+    > strong {
+    font-size: 22px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-stat
+    > small
+    .report-change {
+    font-weight: 500;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    :is(.ops-panel, .report-trend) {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-panel-head,
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-panel > h3,
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .report-trend
+    > figcaption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 16px;
+    margin: 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ad-divider);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    :is(.ops-panel-head, .report-trend > figcaption)
+    h3,
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-panel > h3 {
+    margin: 0;
+    font-size: var(--ad-text-lg);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .report-trend
+    > figcaption
+    small {
+    color: var(--muted);
+    font-size: var(--ad-text-xs);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-panel-head a {
+    color: var(--primary);
+    font-size: var(--ad-text-sm);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel-head
+    a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel
+    > :is(p, figure, .ops-inline-list),
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .report-trend
+    > .report-trend-plot {
+    margin: 0;
+    padding: 16px var(--ad-card-pad);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-panel > p {
+    color: var(--muted);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-inline-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel
+    > .ops-inline-list {
+    padding-block: 4px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-inline-list
+    > span {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ad-divider);
+    color: var(--ink);
+    font-size: var(--ad-text-sm);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-inline-list
+    > span:last-child {
+    border-bottom: 0;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel
+    .ops-table
+    :is(th, td) {
+    padding-inline: 12px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel
+    .ops-table
+    :is(th, td):first-child {
+    padding-left: var(--ad-card-pad);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel
+    .ops-table
+    :is(th, td):last-child {
+    padding-right: var(--ad-card-pad);
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-table
+    td:first-child::first-letter {
+    text-transform: uppercase;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel
+    > .ops-table-wrap {
+    overflow-x: auto;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel
+    > :is(.reports-more, button) {
+    margin: 0;
+    padding: 12px var(--ad-card-pad);
+    border-top: 1px solid var(--ad-divider);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-report-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    align-items: start;
+    gap: var(--ad-gap-sm);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .reports-more {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content > * > .reports-more {
+    margin-top: 10px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .reports-more
+    > button,
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel
+    button:not(.ui-button) {
+    min-height: var(--ad-control-sm);
+    height: var(--ad-control-sm);
+    padding: 0 10px;
+    border: 0;
+    background: none;
+    color: var(--primary);
+    font-size: var(--ad-text-sm);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .reports-more
+    > button:hover,
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-panel
+    button:not(.ui-button):hover {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .report-share-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: var(--ad-text-xs);
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .dineflow-app .admin-shell[data-workspace] #main-content .ops-shortcuts > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--ad-border-strong);
+    border-radius: var(--ad-radius);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: var(--ad-text-sm);
+    font-weight: 600;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .ops-shortcuts
+    > a:hover {
+    border-color: var(--control-border);
+    background: var(--ad-hover);
+  }
+
+  @media (min-width: 1200px) {
+    .dineflow-app
+      .admin-shell[data-workspace]
+      #main-content
+      .admin-outlet-grid {
+      grid-template-columns: minmax(0, 1.15fr) minmax(380px, 1fr);
+    }
+  }
+}
+
+/* Narrow desktops (1024-1199px): stack the two-column outlet layout. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-outlet-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "map"
+      "details"
+      "note"
+      "hours";
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-outlet-map-column
+    .admin-map:not(.admin-map--fullscreen):not(:fullscreen) {
+    flex: 0 0 auto;
+    height: 380px;
+  }
+
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .admin-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .dineflow-app .admin-shell[data-workspace] #main-content .admin-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

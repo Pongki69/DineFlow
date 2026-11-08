@@ -144,9 +144,9 @@
   .rider-next-progress
   :is([aria-current="step"], [data-complete="true"])
   .rider-step-number {
-  border-color: var(--primary);
+  border-color: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
 }
 .app-shell[data-workspace="delivery"] .rider-next-progress strong {
   display: block;
@@ -696,8 +696,8 @@
   .rider-content
   :is(.ui-button--primary, .workspace-action) {
   color: var(--df-color-on-brand, #fff);
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-fill, var(--primary));
+  border-color: var(--primary-fill, var(--primary));
 }
 .app-shell[data-workspace="delivery"]
   .rider-content

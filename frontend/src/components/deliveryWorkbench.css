@@ -326,11 +326,11 @@ fieldset:disabled {
 }
 .rider-selected-route-progress progress::-webkit-progress-value {
   border-radius: 999px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
 }
 .rider-selected-route-progress progress::-moz-progress-bar {
   border-radius: 999px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
 }
 .rider-selected-workbench {
   --rider-order-size: var(--text-body);
@@ -724,9 +724,8 @@ fieldset:disabled {
   .app-shell[data-workspace="delivery"][data-page="rider-deliveries"]
     .rider-route-planner:not(.is-expanded):not(:fullscreen)
     .rider-route-layout {
-    /* Match the selected-delivery card dimensions for both route views. */
-    height: min(88vh, 800px);
-    min-height: 620px;
+    height: clamp(440px, 66vh, 660px);
+    min-height: 0;
     grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
     grid-template-rows: minmax(0, 1fr);
   }
@@ -758,6 +757,24 @@ fieldset:disabled {
   align-items: start;
   gap: 18px;
   margin: 20px 0 4px;
+}
+.rider-delivery-support {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.rider-delivery-support .rider-current-outlet {
+  margin: 0;
+  padding: 14px 16px;
+  flex-wrap: wrap;
+}
+.rider-delivery-support .rider-current-outlet > div {
+  flex: 1 1 190px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rider-delivery-support .rider-current-outlet > a {
+  margin-inline-start: auto;
 }
 .rider-delivery-queue,
 .rider-before-pickup {

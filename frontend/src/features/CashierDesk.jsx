@@ -5,8 +5,10 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Coins,
   CreditCard,
   Printer,
+  ReceiptText,
   RefreshCw,
   Search,
   ShoppingBag,
@@ -32,6 +34,7 @@ import {
 } from "./cashierQueue";
 import { useMediaQuery } from "../components/useMediaQuery";
 import "./cashierDesk.css";
+import "./cashierDesktop.css";
 import {
   ThermalReceipt,
   printThermalReceipt,
@@ -43,11 +46,8 @@ const GROUPS = [
   ["counter", "Counter", ShoppingBag],
 ];
 
-function minutesAgo(value) {
-  const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
-  if (!Number.isFinite(minutes)) return "";
-  return minutes < 1 ? "just now" : `${minutes} min ago`;
-}
+const billPath = (entry) =>
+  `/cashier/bill?${entry.kind === "session" ? "session_id" : "order_id"}=${entry.id}`;
 
 /** The cashier's home: what to collect now, then a sheet to take the money. */
 export function CashierDesk() {
@@ -58,6 +58,8 @@ export function CashierDesk() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
+  const [inspectedKey, setInspectedKey] = useState("");
+  const [initialMethod, setInitialMethod] = useState("cash");
   const [notice, setNotice] = useState("");
   const [deliveryOpen, setDeliveryOpen] = useState(false);
   // Phones: slim rows, waiting times, and the total split into chips that
@@ -119,6 +121,195 @@ export function CashierDesk() {
     0,
   );
   const shown = GROUPS.reduce((count, [key]) => count + visible(key).length, 0);
+  const search = (
+    <label className="cashier-search">
+      <Search size={16} aria-hidden="true" />
+      <span className="sr-only">Find a table, order or name</span>
+      <input
+        type="search"
+        value={query}
+        placeholder="Table, order number or name"
+        onChange={(event) => setQuery(event.target.value)}
+      />
+    </label>
+  );
+  const currentSelection =
+    selected &&
+    Object.values(groups)
+      .flat()
+      .find((entry) => entry.key === selected.key);
+  const collection = selected && (
+    <CollectSheet
+      key={selected.key}
+      phone={phone}
+      entry={selected}
+      initialMethod={phone ? "cash" : initialMethod}
+      canStillPay={Boolean(
+        currentSelection && !currentSelection.paymentPending,
+      )}
+      onClose={() => setSelected(null)}
+      onPaid={(message) => {
+        setNotice(message);
+        load();
+      }}
+    />
+  );
+  if (!phone) {
+    const rows = GROUPS.map(([key, label, Icon]) => ({
+      key,
+      label,
+      Icon,
+      entries: visible(key),
+    }));
+    const counter = rows.flatMap(({ entries }) => entries);
+    const deliveries = visible("delivery");
+    const inspected =
+      [...counter, ...(deliveryOpen ? deliveries : [])].find(
+        (entry) => entry.key === inspectedKey,
+      ) || counter[0];
+    return (
+      <section
+        className="cashier-desk cashier-desk--desktop"
+        aria-labelledby="cashier-desk-title"
+      >
+        <header className="cashier-desktop-heading">
+          <div>
+            <h1 id="cashier-desk-title">Collect payments</h1>
+            <p>Review open bills and collect payment at the counter.</p>
+          </div>
+          <button
+            type="button"
+            className="cashier-secondary"
+            onClick={load}
+            disabled={refreshing}
+            aria-busy={refreshing}
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+        </header>
+        <div className="cashier-desktop-summary">
+          <div>
+            <Coins size={28} aria-hidden="true" />
+            <div>
+              <strong>{loading ? "—" : peso(toCollect)}</strong>
+              <span>Total open balance at the counter</span>
+            </div>
+          </div>
+          <div>
+            <ReceiptText size={28} aria-hidden="true" />
+            <div>
+              <strong>
+                {loading
+                  ? "—"
+                  : `${counterEntries.length} open ${counterEntries.length === 1 ? "bill" : "bills"}`}
+              </strong>
+              <span>
+                {groups.requested.length
+                  ? `${groups.requested.length} asked for the bill`
+                  : "Tables, orders and booking deposits"}
+              </span>
+            </div>
+          </div>
+        </div>
+        {notice && <Feedback tone="success">{notice}</Feedback>}
+        {error && <Feedback onRetry={load}>{error}</Feedback>}
+        <div className="cashier-desktop-workspace">
+          <section
+            className="cashier-desktop-queue"
+            aria-labelledby="cashier-queue-title"
+          >
+            <h2 id="cashier-queue-title">
+              Open bills{" "}
+              {!loading && <span>{counter.length + deliveries.length}</span>}
+            </h2>
+            {search}
+            {loading && <Skeleton cards={2} label="Loading bills to collect" />}
+            {!loading &&
+              rows.map(
+                ({ key, label, Icon, entries }) =>
+                  entries.length > 0 && (
+                    <section
+                      className="cashier-desktop-group"
+                      key={key}
+                      aria-label={label}
+                    >
+                      <h3>
+                        <Icon size={16} aria-hidden="true" />
+                        {label}
+                        <span>{entries.length}</span>
+                      </h3>
+                      <DesktopBillRows
+                        entries={entries}
+                        active={inspected?.key}
+                        onSelect={setInspectedKey}
+                      />
+                    </section>
+                  ),
+              )}
+            {!loading && deliveries.length > 0 && (
+              <details
+                className="cashier-desktop-group cashier-desktop-delivery"
+                open={deliveryOpen}
+                onToggle={(event) => setDeliveryOpen(event.currentTarget.open)}
+              >
+                <summary>
+                  <Truck size={16} aria-hidden="true" />
+                  Delivery orders <span>{deliveries.length}</span>
+                  <ChevronDown size={16} aria-hidden="true" />
+                </summary>
+                <p>Collect here only if the guest pays at the counter.</p>
+                <DesktopBillRows
+                  entries={deliveries}
+                  active={inspected?.key}
+                  onSelect={setInspectedKey}
+                />
+              </details>
+            )}
+            {!loading && !error && !counter.length && !deliveries.length && (
+              <EmptyState
+                compact
+                icon={Wallet}
+                title={
+                  query ? "No bills match" : "Nothing to collect right now"
+                }
+                description={
+                  query
+                    ? "Try a table number, order number or name."
+                    : "Balances appear here when they are due."
+                }
+              />
+            )}
+          </section>
+          {inspected ? (
+            <DesktopBillInspector
+              key={inspected.key}
+              entry={inspected}
+              refreshing={refreshing}
+              onRefresh={load}
+              onCollect={(method) => {
+                setNotice("");
+                setInitialMethod(method);
+                setSelected(inspected);
+              }}
+            />
+          ) : (
+            <section
+              className="cashier-desktop-inspector"
+              aria-label="Bill details"
+            >
+              <EmptyState
+                icon={ReceiptText}
+                title={loading ? "Loading bill details" : "Select a bill"}
+                description="The itemized bill and payment options appear here."
+              />
+            </section>
+          )}
+        </div>
+        {collection}
+      </section>
+    );
+  }
   return (
     <section className="cashier-desk" aria-labelledby="cashier-desk-title">
       <h1 id="cashier-desk-title" className="sr-only">
@@ -165,16 +356,7 @@ export function CashierDesk() {
           </div>
         )}
       </div>
-      <label className="cashier-search">
-        <Search size={16} aria-hidden="true" />
-        <span className="sr-only">Find a table, order or name</span>
-        <input
-          type="search"
-          value={query}
-          placeholder="Table, order number or name"
-          onChange={(event) => setQuery(event.target.value)}
-        />
-      </label>
+      {search}
       {notice && <Feedback tone="success">{notice}</Feedback>}
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {loading && <Skeleton cards={2} label="Loading bills to collect" />}
@@ -195,21 +377,18 @@ export function CashierDesk() {
                 <span>{entries.length}</span>
               </h2>
               <ul>
-                {entries.map((entry) => {
-                  const Row = phone ? PhoneQueueRow : QueueRow;
-                  return (
-                    <Row
-                      key={entry.key}
-                      entry={entry}
-                      refreshing={refreshing}
-                      onCollect={() => {
-                        setNotice("");
-                        setSelected(entry);
-                      }}
-                      onCheck={load}
-                    />
-                  );
-                })}
+                {entries.map((entry) => (
+                  <PhoneQueueRow
+                    key={entry.key}
+                    entry={entry}
+                    refreshing={refreshing}
+                    onCollect={() => {
+                      setNotice("");
+                      setSelected(entry);
+                    }}
+                    onCheck={load}
+                  />
+                ))}
               </ul>
             </section>
           );
@@ -245,103 +424,179 @@ export function CashierDesk() {
                 customer pays at the counter.
               </p>
               <ul>
-                {visible("delivery").map((entry) => {
-                  const Row = phone ? PhoneQueueRow : QueueRow;
-                  return (
-                    <Row
-                      key={entry.key}
-                      entry={entry}
-                      refreshing={refreshing}
-                      onCollect={() => setSelected(entry)}
-                      onCheck={load}
-                    />
-                  );
-                })}
+                {visible("delivery").map((entry) => (
+                  <PhoneQueueRow
+                    key={entry.key}
+                    entry={entry}
+                    refreshing={refreshing}
+                    onCollect={() => setSelected(entry)}
+                    onCheck={load}
+                  />
+                ))}
               </ul>
             </>
           )}
         </details>
       )}
-      {selected && (
-        <CollectSheet
-          phone={phone}
-          entry={selected}
-          onClose={() => setSelected(null)}
-          onPaid={(message) => {
-            setNotice(message);
-            load();
-          }}
-        />
+      {collection}
+    </section>
+  );
+}
+
+function queueIcon(entry) {
+  return entry.kind === "session"
+    ? Table2
+    : entry.kind === "reservation"
+      ? CalendarClock
+      : entry.orderType === "delivery"
+        ? Truck
+        : ShoppingBag;
+}
+
+function DesktopBillRows({ entries, active, onSelect }) {
+  return (
+    <ul>
+      {entries.map((entry) => (
+        <li key={entry.key}>
+          <button
+            type="button"
+            aria-pressed={entry.key === active}
+            onClick={() => onSelect(entry.key)}
+          >
+            <span>
+              <strong>{entry.title}</strong>
+              <small>{entry.detail}</small>
+              {entry.paymentPending && <small>Online checkout open</small>}
+            </span>
+            <b>{peso(entry.balance)}</b>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function DesktopBillInspector({ entry, refreshing, onRefresh, onCollect }) {
+  const [result, setResult] = useState(null);
+  const [method, setMethod] = useState("cash");
+  const itemized = entry.kind !== "reservation";
+  useEffect(() => {
+    if (!itemized) return;
+    const controller = new AbortController();
+    api(billPath(entry), { signal: controller.signal })
+      .then(({ data }) => {
+        if (!controller.signal.aborted) setResult({ entry, bill: data });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setResult({ entry, error: error.message });
+      });
+    return () => controller.abort();
+  }, [entry, itemized]);
+  const bill = result?.bill;
+  const error = result?.error;
+  const ready = !itemized || (result?.entry === entry && bill && !error);
+  const balance = bill?.balance_due ?? entry.balance;
+  const Icon = queueIcon(entry);
+  const opened =
+    entry.kind === "session" && entry.since ? new Date(entry.since) : null;
+  return (
+    <section
+      className="cashier-desktop-inspector"
+      aria-labelledby="cashier-bill-title"
+    >
+      <header>
+        <Icon size={24} aria-hidden="true" />
+        <div>
+          <h2 id="cashier-bill-title">{entry.title}</h2>
+          <p>{entry.detail}</p>
+        </div>
+        {entry.requestedAt && (
+          <span className="cashier-desk-alert">Bill requested</span>
+        )}
+        {!entry.requestedAt && opened && (
+          <time className="cashier-desktop-opened" dateTime={entry.since}>
+            Opened{" "}
+            {opened.toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </time>
+        )}
+      </header>
+      {error && <Feedback onRetry={onRefresh}>{error}</Feedback>}
+      {itemized && !bill && !error && (
+        <Skeleton cards={1} label="Loading the bill" />
+      )}
+      {bill && <BillLines bill={bill} desktopTable />}
+      <div className="cashier-due">
+        <span>{itemized ? "Balance due" : "Deposit due"}</span>
+        <strong>{peso(balance)}</strong>
+      </div>
+      {entry.paymentPending ? (
+        <div className="cashier-desktop-pending">
+          <p>
+            Online checkout is open. Check its status before collecting another
+            payment.
+          </p>
+          <button
+            type="button"
+            className="cashier-secondary"
+            onClick={onRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+            Check status
+          </button>
+        </div>
+      ) : (
+        <>
+          <fieldset className="cashier-desktop-methods">
+            <legend>Payment method</legend>
+            <label>
+              <Wallet size={18} aria-hidden="true" />
+              Cash
+              <input
+                type="radio"
+                name="cashier-desktop-method"
+                value="cash"
+                checked={method === "cash"}
+                onChange={() => setMethod("cash")}
+              />
+            </label>
+            {itemized && (
+              <label>
+                <CreditCard size={18} aria-hidden="true" />
+                Online checkout
+                <input
+                  type="radio"
+                  name="cashier-desktop-method"
+                  value="online"
+                  checked={method === "online"}
+                  onChange={() => setMethod("online")}
+                />
+              </label>
+            )}
+          </fieldset>
+          <div className="cashier-actions">
+            <button
+              type="button"
+              className="cashier-primary"
+              onClick={() => onCollect(method)}
+              disabled={!ready || refreshing || !(Number(balance) > 0)}
+            >
+              <CreditCard size={18} aria-hidden="true" />
+              Collect payment
+            </button>
+          </div>
+        </>
       )}
     </section>
   );
 }
 
-function QueueRow({ entry, onCollect, onCheck, refreshing }) {
-  const Icon =
-    entry.kind === "session"
-      ? Table2
-      : entry.kind === "reservation"
-        ? CalendarClock
-        : entry.orderType === "delivery"
-          ? Truck
-          : ShoppingBag;
-  return (
-    <li
-      className="cashier-row"
-      data-requested={entry.requestedAt ? true : undefined}
-    >
-      <span className="cashier-row-icon" aria-hidden="true">
-        <Icon size={18} />
-      </span>
-      <div className="cashier-row-main">
-        <strong>{entry.title}</strong>
-        <small>{entry.detail}</small>
-        {entry.requestedAt && (
-          <small className="cashier-row-flag">
-            Asked for the bill {minutesAgo(entry.requestedAt)}
-          </small>
-        )}
-        {entry.paymentPending && (
-          <small className="cashier-row-pending">Online checkout open</small>
-        )}
-      </div>
-      <div className="cashier-row-side">
-        <b>{peso(entry.balance)}</b>
-        {entry.paymentPending ? (
-          <button
-            type="button"
-            className="cashier-row-button cashier-row-button--quiet"
-            onClick={onCheck}
-            disabled={refreshing}
-          >
-            <RefreshCw size={14} aria-hidden="true" />
-            Check status
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="cashier-row-button"
-            onClick={onCollect}
-            aria-label={`Collect ${peso(entry.balance)} for ${entry.title}`}
-          >
-            Collect
-          </button>
-        )}
-      </div>
-    </li>
-  );
-}
-
 function PhoneQueueRow({ entry, onCollect, onCheck, refreshing }) {
-  const Icon =
-    entry.kind === "session"
-      ? Table2
-      : entry.kind === "reservation"
-        ? CalendarClock
-        : entry.orderType === "delivery"
-          ? Truck
-          : ShoppingBag;
+  const Icon = queueIcon(entry);
   const urgent = isUrgent(entry);
   const tag = entry.requestedAt
     ? {
@@ -408,10 +663,17 @@ function PhoneQueueRow({ entry, onCollect, onCheck, refreshing }) {
 }
 
 /** Itemised bill, Senior/PWD discount, cash with change or online, then a receipt. */
-function CollectSheet({ entry, onClose, onPaid, phone = false }) {
+function CollectSheet({
+  entry,
+  onClose,
+  onPaid,
+  phone = false,
+  initialMethod,
+  canStillPay,
+}) {
   const [bill, setBill] = useState(null);
   const [error, setError] = useState("");
-  const [method, setMethod] = useState("cash");
+  const [method, setMethod] = useState(initialMethod);
   const [split, setSplit] = useState(false);
   const [part, setPart] = useState("");
   const [received, setReceived] = useState("");
@@ -423,9 +685,7 @@ function CollectSheet({ entry, onClose, onPaid, phone = false }) {
   async function loadBill() {
     if (!itemised) return;
     try {
-      const result = await api(
-        `/cashier/bill?${entry.kind === "session" ? "session_id" : "order_id"}=${entry.id}`,
-      );
+      const result = await api(billPath(entry));
       setBill(result.data);
     } catch (failure) {
       setError(failure.message);
@@ -449,7 +709,8 @@ function CollectSheet({ entry, onClose, onPaid, phone = false }) {
   const amount = split ? Math.min(Number(part) || 0, balance) : balance;
   const cash = Number(received) || 0;
   const change = Math.round((cash - amount) * 100) / 100;
-  const canRecordCash = amount > 0 && cash >= amount && !busy;
+  const available = phone || (canStillPay && (!itemised || Boolean(bill)));
+  const canRecordCash = available && amount > 0 && cash >= amount && !busy;
   async function recordCash() {
     if (!canRecordCash) return;
     setBusy(true);
@@ -498,6 +759,7 @@ function CollectSheet({ entry, onClose, onPaid, phone = false }) {
     }
   }
   async function payOnline() {
+    if (!available || busy || balance <= 0 || (!phone && split)) return;
     setBusy(true);
     setError("");
     try {
@@ -537,7 +799,7 @@ function CollectSheet({ entry, onClose, onPaid, phone = false }) {
     <button
       type="button"
       className="cashier-primary"
-      disabled={busy || balance <= 0}
+      disabled={!available || busy || balance <= 0 || (!phone && split)}
       onClick={payOnline}
     >
       <CreditCard size={17} aria-hidden="true" />
@@ -600,6 +862,12 @@ function CollectSheet({ entry, onClose, onPaid, phone = false }) {
             />
           ) : (
             <>
+              {!phone && !canStillPay && (
+                <Feedback>
+                  This bill has changed. Close this review to check its current
+                  status.
+                </Feedback>
+              )}
               {itemised && !bill && !error && (
                 <Skeleton cards={1} label="Loading the bill" />
               )}
@@ -630,6 +898,7 @@ function CollectSheet({ entry, onClose, onPaid, phone = false }) {
                       onChange={(event) => {
                         setSplit(event.target.checked);
                         setPart("");
+                        if (!phone && event.target.checked) setMethod("cash");
                       }}
                     />
                     Pay part now (split the bill)
@@ -754,7 +1023,13 @@ function CollectSheet({ entry, onClose, onPaid, phone = false }) {
   );
 }
 
-function BillLines({ bill, compact = false }) {
+function itemOptions(item) {
+  return [item.variant, ...(item.addons || []).map((addon) => `+ ${addon}`)]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function BillLines({ bill, compact = false, desktopTable = false }) {
   const rows = [
     ["Subtotal", bill.subtotal],
     bill.item_discounts > 0 && ["Item discounts", -bill.item_discounts],
@@ -777,39 +1052,68 @@ function BillLines({ bill, compact = false }) {
       aria-label="Bill"
       data-compact={compact || undefined}
     >
-      {bill.orders.map((order) => (
-        <div key={order.id} className="cashier-bill-order">
-          {bill.orders.length > 1 && (
-            <h3>
-              {order.order_number}
-              <span>{order.status.replaceAll("_", " ")}</span>
-            </h3>
-          )}
-          <ul>
-            {order.items.map((item, index) => (
-              <li key={index}>
-                <span className="cashier-bill-qty">{item.quantity}×</span>
-                <span className="cashier-bill-name">
-                  {item.name}
-                  {(item.variant || item.addons?.length > 0) && (
-                    <small>
-                      {[
-                        item.variant,
-                        ...(item.addons || []).map((a) => `+ ${a}`),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </small>
-                  )}
-                </span>
-                <span className="cashier-bill-amount">
-                  {peso(item.line_total)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      {desktopTable ? (
+        <table
+          className="cashier-desktop-lines"
+          aria-label="Items on this bill"
+        >
+          <thead>
+            <tr>
+              <th scope="col">Item</th>
+              <th scope="col">Qty</th>
+              <th scope="col">Amount</th>
+            </tr>
+          </thead>
+          {bill.orders.map((order) => (
+            <tbody key={order.id}>
+              {bill.orders.length > 1 && (
+                <tr className="cashier-desktop-order-number">
+                  <th scope="rowgroup" colSpan={3}>
+                    {order.order_number}
+                  </th>
+                </tr>
+              )}
+              {order.items.map((item, index) => (
+                <tr key={index}>
+                  <td>
+                    {item.name}
+                    {itemOptions(item) && <small>{itemOptions(item)}</small>}
+                  </td>
+                  <td>{item.quantity}</td>
+                  <td>{peso(item.line_total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      ) : (
+        bill.orders.map((order) => (
+          <div key={order.id} className="cashier-bill-order">
+            {bill.orders.length > 1 && (
+              <h3>
+                {order.order_number}
+                <span>{order.status.replaceAll("_", " ")}</span>
+              </h3>
+            )}
+            <ul>
+              {order.items.map((item, index) => (
+                <li key={index}>
+                  <span className="cashier-bill-qty">{item.quantity}×</span>
+                  <span className="cashier-bill-name">
+                    {item.name}
+                    {(item.variant || item.addons?.length > 0) && (
+                      <small>{itemOptions(item)}</small>
+                    )}
+                  </span>
+                  <span className="cashier-bill-amount">
+                    {peso(item.line_total)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      )}
       {!(compact && plain) && (
         <dl className="cashier-bill-totals">
           {rows.map(([label, value, kind]) => (
@@ -888,7 +1192,12 @@ function DiscountPanel({ bill, entry, open, setOpen, onChanged }) {
           </small>
         </span>
         {bill.can_discount && (
-          <button type="button" onClick={remove} disabled={busy}>
+          <button
+            type="button"
+            className="ui-button ui-button--danger"
+            onClick={remove}
+            disabled={busy}
+          >
             Remove
           </button>
         )}

@@ -105,8 +105,8 @@
   .workspace-settings
   .workspace-toggle
   input[type="checkbox"]:checked {
-  background: var(--primary, #245440);
-  border-color: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
+  border-color: var(--primary-fill, var(--primary, #245440));
 }
 .app-content
   .workspace-settings
@@ -120,8 +120,8 @@
   margin-top: 16px;
 }
 .app-content .workspace-settings .ui-button--primary {
-  background: var(--primary, #245440);
-  border-color: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
+  border-color: var(--primary-fill, var(--primary, #245440));
   color: #fff;
   min-height: 44px;
   padding-inline: 20px;
@@ -163,11 +163,19 @@
   font-size: var(--text-xs);
   margin-bottom: 8px;
 }
-.workspace-settings .workspace-location-note {
-  margin: 20px 0 0;
-  padding: 16px;
-  background: #f5f7f3;
-  border-radius: 10px;
+.workspace-account-card--rider :is(.workspace-account-avatar, .workspace-role) {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.workspace-account-card--rider .workspace-settings-links > a {
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+@media (max-width: 850px) {
+  .workspace-settings .workspace-account-card--rider {
+    display: none;
+  }
 }
 .workspace-settings .workspace-form {
   gap: 22px;
@@ -208,6 +216,87 @@
     width: 100%;
   }
 }
+@media (min-width: 851px) {
+  .app-shell[data-page="rider-settings"]
+    .app-content.rider-content
+    .workspace-settings
+    > .page-heading {
+    min-height: 0;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+  }
+
+  .workspace-settings--rider .workspace-settings-grid {
+    gap: 16px;
+  }
+
+  .workspace-settings--rider .workspace-card {
+    padding: 20px;
+    margin-bottom: 0;
+  }
+
+  .workspace-settings--rider .workspace-preferences {
+    container: rider-preferences / inline-size;
+  }
+
+  .workspace-settings--rider .workspace-card-heading {
+    margin-bottom: 10px;
+  }
+
+  .workspace-settings--rider .workspace-start-page {
+    max-width: none;
+    margin: 0;
+    padding-block: 12px;
+    gap: 4px 16px;
+  }
+
+  .workspace-settings--rider .workspace-toggle {
+    min-height: 64px;
+    padding-block: 10px;
+  }
+
+  .workspace-settings--rider
+    :is(.workspace-toggle small, .workspace-start-page small) {
+    margin-top: 2px;
+  }
+
+  .workspace-settings--rider .workspace-form-actions {
+    margin-top: 4px;
+    padding-top: 12px;
+  }
+
+  .workspace-account-card--rider .workspace-account-identity {
+    margin: 16px 0;
+  }
+
+  .workspace-account-card--rider .workspace-role {
+    margin: 6px 0 0;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .workspace-settings--rider .workspace-settings-grid {
+    grid-template-columns: minmax(0, 1fr) clamp(15rem, 28%, 19rem);
+  }
+
+  @container rider-preferences (min-width: 29rem) {
+    .workspace-settings--rider .workspace-start-page {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: center;
+    }
+
+    .workspace-settings--rider .workspace-start-page select {
+      grid-area: 1 / 2 / span 2;
+    }
+
+    .workspace-settings--rider .workspace-start-page small {
+      grid-area: 2 / 1;
+    }
+  }
+}
+
 @media (forced-colors: active) {
   .app-content .workspace-settings .workspace-toggle input[type="checkbox"] {
     appearance: auto;

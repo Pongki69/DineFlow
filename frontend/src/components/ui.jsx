@@ -1,4 +1,6 @@
 import { cloneElement, useId } from "react";
+import { useAdminDesktop } from "./adminDesk";
+import { DeskSkeleton } from "./DeskSkeleton";
 import {
   AlertCircle,
   ArrowRight,
@@ -9,6 +11,12 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+/**
+ * The universal button. Pick the variant by meaning (see buttons.css):
+ * "primary" confirms or saves, "secondary" is any other action, "danger"
+ * cancels, refunds, removes or turns off, "danger-solid" confirms a
+ * destructive dialog, "ghost" is a quiet text action.
+ */
 export function Button({
   children,
   busy = false,
@@ -137,7 +145,10 @@ export function EmptyState({
   );
 }
 
-export function Skeleton({ label = "Loading content", cards = 3 }) {
+export function Skeleton({ label = "Loading content", cards = 3, layout }) {
+  // Admin desktop: a page-shaped placeholder when the page gives a layout.
+  const desk = useAdminDesktop();
+  if (desk && layout) return <DeskSkeleton label={label} layout={layout} />;
   return (
     <div className="skeleton-grid" role="status" aria-label={label}>
       <span className="sr-only">{label}</span>

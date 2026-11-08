@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { DatePicker } from "../components/DatePicker";
 import { EmptyState, Feedback } from "../components/ui";
+import { ReservationStatusPill } from "../components/OrderStatusPill";
 import { Pagination } from "../components/Pagination";
 import { CustomerScreenSkeleton } from "../components/CustomerScreenSkeleton";
 import { tableName } from "./waiterHelpers";
@@ -214,9 +215,10 @@ export function BookingsPhone({
                         <div className="bookings-phone-info">
                           <div className="bookings-phone-title">
                             <strong>{item.guest_name}</strong>
-                            <span className="bookings-phone-status">
-                              {BOOKING_STATUS_TEXT[item.status] || item.status}
-                            </span>
+                            <ReservationStatusPill
+                              status={item.status}
+                              className="bookings-phone-status"
+                            />
                           </div>
                           <p>
                             <Users size={14} aria-hidden="true" />
@@ -288,13 +290,13 @@ export function BookingsPhone({
                             type="button"
                             key={value}
                             className={
-                              index === 0
-                                ? "bookings-phone-primary"
-                                : // Red is kept for undoing a booking;
-                                  // a no-show is a neutral record.
-                                  value === "cancelled"
-                                  ? "bookings-phone-quiet"
-                                  : "bookings-phone-secondary"
+                              // Red is kept for undoing a booking; a no-show
+                              // is a neutral record; the next step is filled.
+                              value === "cancelled"
+                                ? "ui-button ui-button--danger"
+                                : index === 0
+                                  ? "ui-button ui-button--primary"
+                                  : "ui-button ui-button--secondary"
                             }
                             onClick={() => transition(item, value)}
                           >

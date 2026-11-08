@@ -12,14 +12,43 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  UserPlus,
   UserRound,
+  Users,
   X,
 } from "lucide-react";
 import { useMediaQuery } from "../components/useMediaQuery";
+import { useConfirm } from "../components/ConfirmProvider";
+import { CardHeading, useAdminDesktop } from "../components/adminDesk";
 import "./reservationAdmin.css";
 import "./adminCustomers.css";
 import "./teamPhone.css";
+const ACCOUNTS_PER_PAGE = 10;
+const roleOf = (person) => person.roles?.[0]?.name || "";
+const byName = (a, b) => a.name.localeCompare(b.name);
+// Admin desktop: how the accounts list can be ordered.
+const ACCOUNT_SORTS = [
+  ["name", "Name: A–Z", byName],
+  ["name-desc", "Name: Z–A", (a, b) => byName(b, a)],
+  [
+    "role",
+    "Role",
+    (a, b) => roleOf(a).localeCompare(roleOf(b)) || byName(a, b),
+  ],
+  [
+    "active",
+    "Active first",
+    (a, b) => b.is_active - a.is_active || byName(a, b),
+  ],
+  [
+    "inactive",
+    "Deactivated first",
+    (a, b) => a.is_active - b.is_active || byName(a, b),
+  ],
+];
+
 export function StaffAccounts() {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
 
   const [data, setData] = useState([]);
@@ -30,9 +59,21 @@ export function StaffAccounts() {
   const [errors, setErrors] = useState({});
   // Phones: a searchable list; details and the new-account form open in sheets.
   const phone = useMediaQuery("(max-width: 850px)");
+  const desk = useAdminDesktop();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [adding, setAdding] = useState(false);
+  // Admin desktop: the accounts list, ten people a page.
+  const [accountPage, setAccountPage] = useState(1);
+  const [accountSort, setAccountSort] = useState("name");
+  // Admin desktop: Add employee opens the staff form in a modal.
+  const staffDialog = useRef(null);
+  useEffect(() => {
+    const dialog = staffDialog.current;
+    if (!dialog) return;
+    if (desk && adding && !dialog.open) dialog.showModal();
+    if (!(desk && adding) && dialog.open) dialog.close();
+  }, [adding, desk]);
   async function load() {
     setError("");
     try {
@@ -88,6 +129,23 @@ export function StaffAccounts() {
       setError(e.message);
     }
   }
+  async function sendReset(person) {
+    setError("");
+    setNotice("");
+    if (
+      !(await confirm(
+        `${person.name} will get an email at ${person.email} with a link to choose a new password. Their current password keeps working until they do.`,
+        { title: "Send a password reset link?", confirmLabel: "Send link" },
+      ))
+    )
+      return;
+    try {
+      await api(`/admin/users/${person.id}/password-reset`, { method: "POST" });
+      setNotice(`Reset link sent to ${person.email}.`);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
   async function setRole(user, role) {
     try {
       await api(`/admin/users/${user.id}/role`, {
@@ -99,6 +157,27 @@ export function StaffAccounts() {
       setError(e.message);
     }
   }
+  const accountTerm = search.trim().toLowerCase();
+  const accounts = desk
+    ? data
+        .filter((person) =>
+          [person.name, person.email, roleOf(person)].some((value) =>
+            String(value || "")
+              .toLowerCase()
+              .includes(accountTerm),
+          ),
+        )
+        .sort(ACCOUNT_SORTS.find(([key]) => key === accountSort)[2])
+    : data;
+  const accountPages = Math.max(
+    1,
+    Math.ceil(accounts.length / ACCOUNTS_PER_PAGE),
+  );
+  const accountStatus = (person) => (
+    <span className={person.is_active ? "status-active" : "status-inactive"}>
+      {person.is_active ? "Active" : "Deactivated"}
+    </span>
+  );
   const staffForm = (
     <form
       className="staff-form"
@@ -106,7 +185,16 @@ export function StaffAccounts() {
       aria-busy={creating}
       aria-labelledby="staff-form-heading"
     >
-      <h2 id="staff-form-heading">Add a staff member</h2>
+      {desk ? (
+        <CardHeading
+          id="staff-form-heading"
+          icon={UserPlus}
+          title="Add a staff member"
+          description="Give someone on your team their own sign-in and role."
+        />
+      ) : (
+        <h2 id="staff-form-heading">Add a staff member</h2>
+      )}
       <label>
         Name
         <input name="name" required maxLength="120" />
@@ -245,8 +333,20 @@ export function StaffAccounts() {
             <div className="team-sheet-actions">
               <button
                 type="button"
-                className="team-sheet-toggle"
-                data-tone={selected.is_active ? "danger" : undefined}
+                className="ui-button ui-button--secondary"
+                disabled={!selected.is_active}
+                title={
+                  selected.is_active
+                    ? `Email ${selected.name} a link to choose a new password`
+                    : "Reactivate this account first"
+                }
+                onClick={() => sendReset(selected)}
+              >
+                Reset password
+              </button>
+              <button
+                type="button"
+                className={`team-sheet-toggle ui-button ui-button--${selected.is_active ? "danger" : "secondary"}`}
                 onClick={() => toggle(selected)}
               >
                 {selected.is_active ? "Deactivate" : "Reactivate"}
@@ -273,7 +373,12 @@ export function StaffAccounts() {
         Create and manage staff accounts. The API verifies every permission
         change.
       </p>
-      {loading && <Skeleton label="Loading your content" />}
+      {loading && (
+        <Skeleton
+          label="Loading your content"
+          layout={{ body: "table", rows: 8, toolbar: true }}
+        />
+      )}
       {!loading && !error && data.length === 0 && (
         <EmptyState
           title="Your team starts here"
@@ -282,13 +387,117 @@ export function StaffAccounts() {
       )}
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {notice && <Feedback tone="success">{notice}</Feedback>}
-      {!phone && staffForm}
+      {!phone && !desk && staffForm}
+      {desk && (
+        <dialog
+          ref={staffDialog}
+          className="staff-dialog"
+          onClose={() => setAdding(false)}
+        >
+          <button
+            type="button"
+            className="staff-dialog-close"
+            aria-label="Close"
+            disabled={creating}
+            onClick={() => setAdding(false)}
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+          {adding && staffForm}
+        </dialog>
+      )}
       <div className="staff-list">
-        <h2>Accounts</h2>
-        {data.map((person) => (
-          <article key={person.id}>
+        {desk ? (
+          <CardHeading
+            icon={Users}
+            title="Accounts"
+            description="Change a role or turn off access for anyone on your team."
+            actions={
+              <button
+                type="button"
+                className="sage-button staff-add-button"
+                onClick={() => {
+                  setNotice("");
+                  setAdding(true);
+                }}
+              >
+                <UserPlus size={16} aria-hidden="true" />
+                Add employee
+              </button>
+            }
+          />
+        ) : (
+          <h2>Accounts</h2>
+        )}
+        {desk && data.length > 0 && (
+          <div className="staff-toolbar">
+            <label className="staff-search">
+              <Search size={16} aria-hidden="true" />
+              <span className="sr-only">Search team</span>
+              <input
+                type="search"
+                placeholder="Search by name, email or role"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setAccountPage(1);
+                }}
+              />
+            </label>
+            <select
+              className="staff-sort"
+              aria-label="Sort accounts"
+              value={accountSort}
+              onChange={(event) => {
+                setAccountSort(event.target.value);
+                setAccountPage(1);
+              }}
+            >
+              {ACCOUNT_SORTS.map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {desk && data.length > 0 && accounts.length === 0 && (
+          <p className="staff-no-match">No one matches “{search.trim()}”.</p>
+        )}
+        {(desk
+          ? accounts.slice(
+              (Math.min(accountPage, accountPages) - 1) * ACCOUNTS_PER_PAGE,
+              Math.min(accountPage, accountPages) * ACCOUNTS_PER_PAGE,
+            )
+          : accounts
+        ).map((person) => (
+          <article
+            key={person.id}
+            data-inactive={!person.is_active || undefined}
+          >
+            {desk && (
+              <span
+                className="staff-avatar"
+                data-role={person.roles?.[0]?.slug}
+                aria-hidden="true"
+              >
+                {String(person.name || "?")
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((part) => part[0])
+                  .join("")
+                  .toUpperCase()}
+              </span>
+            )}
             <div>
-              <strong>{person.name}</strong>
+              {desk ? (
+                <span className="staff-name-line">
+                  <strong>{person.name}</strong>
+                  {accountStatus(person)}
+                </span>
+              ) : (
+                <strong>{person.name}</strong>
+              )}
               <small>{person.email}</small>
             </div>
             <select
@@ -302,16 +511,44 @@ export function StaffAccounts() {
                 </option>
               ))}
             </select>
-            <span
-              className={person.is_active ? "status-active" : "status-inactive"}
+            {!desk && accountStatus(person)}
+            <button
+              type="button"
+              className="ui-button ui-button--secondary"
+              disabled={!person.is_active}
+              title={
+                person.is_active
+                  ? `Email ${person.name} a link to choose a new password`
+                  : "Reactivate this account first"
+              }
+              onClick={() => sendReset(person)}
             >
-              {person.is_active ? "Active" : "Deactivated"}
-            </span>
-            <button type="button" onClick={() => toggle(person)}>
+              Reset password
+            </button>
+            <button
+              type="button"
+              className={`ui-button ui-button--${person.is_active ? "danger" : "secondary"}`}
+              onClick={() => toggle(person)}
+            >
               {person.is_active ? "Deactivate" : "Reactivate"}
             </button>
           </article>
         ))}
+        {desk && accounts.length > ACCOUNTS_PER_PAGE && (
+          <Pagination
+            page={Math.min(accountPage, accountPages)}
+            lastPage={accountPages}
+            total={accounts.length}
+            from={
+              (Math.min(accountPage, accountPages) - 1) * ACCOUNTS_PER_PAGE + 1
+            }
+            to={Math.min(
+              Math.min(accountPage, accountPages) * ACCOUNTS_PER_PAGE,
+              accounts.length,
+            )}
+            onChange={setAccountPage}
+          />
+        )}
       </div>
     </section>
   );
@@ -390,7 +627,12 @@ export function AuditLogView() {
         Review account activity, settings changes, and restaurant operations.
       </p>
       {error && <Feedback onRetry={load}>{error}</Feedback>}
-      {loading && <Skeleton label="Loading audit history" />}
+      {loading && (
+        <Skeleton
+          label="Loading audit history"
+          layout={{ body: "list", rows: 8 }}
+        />
+      )}
       {!loading && !error && !events.length && (
         <EmptyState
           title="A clear record, from day one"

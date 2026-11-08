@@ -1,3 +1,4 @@
+import { AutoTextarea } from "../components/AutoTextarea";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -455,7 +456,13 @@ function DeliveryTable({ deliveries, total, loading, unavailable }) {
           </tbody>
         </table>
       </div>
-      {loading && <Skeleton cards={1} label="Loading active deliveries" />}
+      {loading && (
+        <Skeleton
+          cards={1}
+          label="Loading active deliveries"
+          layout={{ body: "list", rows: 5 }}
+        />
+      )}
       {!loading && !unavailable && !filtered.length && (
         <EmptyState
           compact
@@ -939,8 +946,7 @@ function RiderTeamPanel({ user, resource }) {
                 {canManage && (
                   <Button
                     className="admin-fleet-toggle"
-                    variant="secondary"
-                    data-tone={rider.is_active ? "danger" : undefined}
+                    variant={rider.is_active ? "danger" : "secondary"}
                     busy={pending === rider.id}
                     disabled={
                       pending != null ||
@@ -1022,8 +1028,7 @@ function RiderTeamPanel({ user, resource }) {
                     {user.permissions.includes("users.manage") && (
                       <td>
                         <Button
-                          className="admin-button admin-button--secondary"
-                          variant="secondary"
+                          variant={rider.is_active ? "danger" : "secondary"}
                           busy={pending === rider.id}
                           disabled={
                             pending != null ||
@@ -1042,7 +1047,11 @@ function RiderTeamPanel({ user, resource }) {
           </div>
         )}
         {resource.loading ? (
-          <Skeleton cards={1} label="Loading rider fleet" />
+          <Skeleton
+            cards={1}
+            label="Loading rider fleet"
+            layout={{ body: "list", rows: 5 }}
+          />
         ) : (
           !visible.length && (
             <EmptyState
@@ -1316,7 +1325,10 @@ export function OutletManager() {
         <Feedback tone={feedback.tone}>{feedback.message}</Feedback>
       )}
       {resource.loading ? (
-        <Skeleton label="Loading outlet configuration" />
+        <Skeleton
+          label="Loading outlet configuration"
+          layout={{ body: "form", rows: 3 }}
+        />
       ) : (
         location && (
           <>
@@ -1500,7 +1512,7 @@ export function OutletManager() {
                         <label htmlFor="admin-outlet-address">
                           Store address
                         </label>
-                        <textarea
+                        <AutoTextarea
                           id="admin-outlet-address"
                           aria-describedby="admin-outlet-address-status"
                           aria-busy={resolvingAddress}

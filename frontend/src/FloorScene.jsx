@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Maximize2, Minimize2 } from "lucide-react";
 import "./features/flyLift.css";
 import {
   CanvasTexture,
@@ -928,6 +928,8 @@ function FloorCanvas({
   bookingOverlay,
   bookingOpen = false,
   resumeControls,
+  // Floor plan editor (admin desktop): a Full screen switch in the toolbar.
+  fullscreenToggle = false,
 }) {
   const sceneRef = useRef(null);
   const nativeFullscreen = useRef(false);
@@ -984,10 +986,19 @@ function FloorCanvas({
   }, []);
   useEffect(() => {
     if (!immersive) return undefined;
+    // The page's scrollbar, and the gutter kept for it, would leave a
+    // strip beside the full view.
+    const root = document.documentElement;
     const previousOverflow = document.body.style.overflow;
+    const previousRoot = root.style.overflow;
+    const previousGutter = root.style.scrollbarGutter;
     document.body.style.overflow = "hidden";
+    root.style.overflow = "hidden";
+    root.style.scrollbarGutter = "auto";
     return () => {
       document.body.style.overflow = previousOverflow;
+      root.style.overflow = previousRoot;
+      root.style.scrollbarGutter = previousGutter;
     };
   }, [immersive]);
   async function enterPov() {
@@ -1001,6 +1012,32 @@ function FloorCanvas({
     }
     setNavigationMode("pov");
   }
+  // Full screen without changing how the camera moves: the browser's own
+  // fullscreen where it is allowed, the full-window view otherwise.
+  async function enterFullscreen() {
+    setImmersive(true);
+    try {
+      await sceneRef.current.requestFullscreen?.();
+    } catch {
+      /* The full-window view stays when native fullscreen is unavailable. */
+    }
+  }
+  function exitFullscreen() {
+    if (document.fullscreenElement === sceneRef.current)
+      document.exitFullscreen().catch(() => {});
+    setImmersive(false);
+  }
+  useEffect(() => {
+    if (!fullscreenToggle || !immersive || navigationMode !== "orbit")
+      return undefined;
+    // Native fullscreen handles Escape itself; the full-window view needs it.
+    const leave = (event) => {
+      if (event.key === "Escape" && !document.fullscreenElement)
+        setImmersive(false);
+    };
+    window.addEventListener("keydown", leave);
+    return () => window.removeEventListener("keydown", leave);
+  }, [fullscreenToggle, immersive, navigationMode]);
   function exitNavigation() {
     if (document.pointerLockElement) document.exitPointerLock();
     if (document.fullscreenElement === sceneRef.current)
@@ -1074,6 +1111,22 @@ function FloorCanvas({
               >
                 Reset view
               </button>
+              {fullscreenToggle && (
+                <button
+                  type="button"
+                  className="scene-fullscreen-toggle"
+                  aria-pressed={immersive}
+                  onClick={immersive ? exitFullscreen : enterFullscreen}
+                  title={immersive ? "Exit full screen (Esc)" : "Full screen"}
+                >
+                  {immersive ? (
+                    <Minimize2 size={15} aria-hidden="true" />
+                  ) : (
+                    <Maximize2 size={15} aria-hidden="true" />
+                  )}
+                  {immersive ? "Exit full screen" : "Full screen"}
+                </button>
+              )}
             </>
           ) : (
             <button

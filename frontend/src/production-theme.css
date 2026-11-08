@@ -126,8 +126,8 @@
     .order-action-button
   ) {
   color: var(--df-color-on-brand);
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-fill, var(--primary));
+  border-color: var(--primary-fill, var(--primary));
 }
 .dineflow-app
   :is(
@@ -162,11 +162,11 @@
   border-color: var(--border);
 }
 .dineflow-app .customer-menu .category-tabs button[aria-pressed="true"] {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-fill, var(--primary));
+  border-color: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand);
 }
-.dineflow-app :is(.order-action-button--cancel, .danger-button) {
+.dineflow-app .danger-button {
   color: var(--danger);
   background: var(--danger-soft);
   border: 1px solid var(--df-status-danger-border);
@@ -286,7 +286,7 @@
 }
 .dineflow-app .brand-mark {
   color: var(--df-color-on-brand);
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   border-radius: 12px;
   width: 40px;
   height: 40px;
@@ -494,9 +494,9 @@
   padding: 32px;
 }
 .dineflow-app .admin-button:not(.admin-button--secondary) {
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand);
-  border-color: var(--primary);
+  border-color: var(--primary-fill, var(--primary));
 }
 .dineflow-app .admin-button--secondary {
   background: var(--surface);
@@ -786,5 +786,68 @@
       .admin-navigation a.active
     ) {
     border: 1px solid ButtonText;
+  }
+}
+
+/* Startup: the app doesn't know which page is next, so a calm brand splash. */
+.dineflow-app .boot-screen--splash {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 24px;
+  background: var(--canvas);
+}
+.dineflow-app .boot-screen--splash > [role="status"] {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+.dineflow-app .boot-screen--splash .brand-mark {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+}
+.dineflow-app .boot-screen--splash .boot-brand {
+  margin: 0;
+  font-size: 30px;
+}
+.dineflow-app .boot-screen--splash .boot-brand span {
+  color: var(--primary);
+}
+.dineflow-app .boot-progress {
+  position: relative;
+  display: block;
+  width: 148px;
+  height: 3px;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--neutral-soft, #eef1ec);
+}
+.dineflow-app .boot-progress > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--primary-fill, var(--primary));
+  animation: boot-progress 1.2s ease-in-out infinite;
+}
+@keyframes boot-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dineflow-app .boot-progress > i {
+    animation: none;
   }
 }

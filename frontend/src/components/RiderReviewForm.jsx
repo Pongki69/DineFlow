@@ -1,3 +1,4 @@
+import { AutoTextarea } from "./AutoTextarea";
 import { useState } from "react";
 import { Star } from "lucide-react";
 import { api } from "../api";
@@ -165,7 +166,7 @@ export function RiderReviewForm({ deliveryId, review, rating, user, onSaved }) {
           </fieldset>
           <label className="review-comment-input">
             Comment <span>Optional · visible on the rider’s profile</span>
-            <textarea
+            <AutoTextarea
               maxLength={1000}
               rows={3}
               value={draft.comment}

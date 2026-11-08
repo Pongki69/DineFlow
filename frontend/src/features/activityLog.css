@@ -27,8 +27,8 @@
   font-weight: 650;
 }
 .dineflow-app #main-content .activity-chips button[aria-pressed="true"] {
-  border-color: var(--primary);
-  background: var(--primary);
+  border-color: var(--primary-fill, var(--primary));
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
 }
 .activity-filter-row {
@@ -169,5 +169,292 @@
   }
   .activity-person {
     max-width: none;
+  }
+}
+
+/* The summary is the entry itself: theme ink, readable in light and dark (an
+   older ".welcome p" rule would otherwise paint it a fixed light-mode grey). */
+.dineflow-app #main-content .activity-group li > div > p {
+  color: var(--ink);
+}
+
+/* Admin desktop: each entry starts with its time - bold clock time and
+   "12 min ago" (or the date) - in a fixed column, like a timeline. */
+@media (min-width: 1024px) {
+  .dineflow-app .admin-shell .activity-group li:has(> .activity-stamp) {
+    align-items: center;
+    gap: 14px;
+  }
+  .dineflow-app .admin-shell .activity-stamp {
+    display: grid;
+    flex: 0 0 76px;
+    gap: 2px;
+    align-self: center;
+    text-align: right;
+  }
+  .dineflow-app .admin-shell .activity-stamp strong {
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .dineflow-app .admin-shell .activity-stamp small {
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+}
+
+/* Time of day: "From [  ] to [  ]" beside the day picker. */
+.activity-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.activity-time label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.dineflow-app #main-content .activity-time input {
+  width: 118px;
+  min-height: 0;
+  height: 40px;
+  margin: 0;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+.dineflow-app #main-content .activity-time input:focus-visible {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* Audit log person picker: one quiet filled field (the label is the box,
+   the select inside it is see-through), matching the other dropdowns. */
+@media (min-width: 1024px) {
+  .dineflow-app .admin-shell[data-workspace] #main-content .activity-person {
+    padding: 0 6px 0 12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--neutral-soft);
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-person:hover {
+    border-color: var(--border);
+    background: var(--surface);
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-person:focus-within {
+    border-color: var(--primary);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-filter-row
+    .activity-person
+    select,
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-filter-row
+    .activity-person
+    select:hover,
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-filter-row
+    .activity-person
+    select:focus-visible {
+    border: 0;
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+/* Admin desktop filter card: the area chips on their own line (they scroll
+   sideways and can be dragged), then one row of person, day, time and a
+   Clear that resets them all. */
+@media (min-width: 1024px) {
+  .dineflow-app .admin-shell[data-workspace] #main-content .activity-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .dineflow-app .admin-shell[data-workspace] #main-content .activity-chips {
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    cursor: grab;
+    user-select: none;
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-chips[data-dragging] {
+    cursor: grabbing;
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-chips
+    > button {
+    flex: none;
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ad-divider, var(--border));
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-filter-row
+    > .activity-person {
+    flex: 0 1 280px;
+  }
+  .dineflow-app .admin-shell[data-workspace] #main-content .activity-day {
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+  .dineflow-app .admin-shell[data-workspace] #main-content .activity-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    margin-left: 4px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--ink);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-clear:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-clear:disabled {
+    color: var(--muted);
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Clear: a light text button at the end of the row - quiet grey when
+     nothing is set, brand green when it can clear, a soft tint on hover. */
+  .dineflow-app .admin-shell[data-workspace] #main-content .activity-clear {
+    height: 36px;
+    margin-left: 2px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--primary);
+    font-size: var(--ad-text-sm, 14px);
+    font-weight: 600;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-clear:hover:not(:disabled) {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-clear:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-clear:disabled {
+    background: transparent;
+    color: var(--muted);
+    opacity: 0.7;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* One row: area chips on the left (they shrink and scroll sideways when
+     space runs short), then the person, day, time and Clear on the right. */
+  .dineflow-app .admin-shell[data-workspace] #main-content .activity-filters {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 16px;
+  }
+  .dineflow-app .admin-shell[data-workspace] #main-content .activity-chips {
+    flex: 0 1 auto;
+    min-width: 0;
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-filter-row {
+    flex: none;
+    flex-wrap: nowrap;
+    margin-left: auto;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .dineflow-app .admin-shell[data-workspace] #main-content .activity-day {
+    flex-wrap: nowrap;
+  }
+  .dineflow-app
+    .admin-shell[data-workspace]
+    #main-content
+    .activity-filter-row
+    > .activity-person {
+    flex: 0 0 220px;
   }
 }

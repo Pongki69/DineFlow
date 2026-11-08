@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   CalendarDays,
   ChevronRight,
@@ -13,7 +14,11 @@ import { api } from "../api";
 import { subscribeToLiveChanges } from "../liveUpdates";
 import { EmptyState, Feedback, Skeleton } from "../components/ui";
 import { Pagination } from "../components/Pagination";
-import { OrderStatusPill } from "../components/OrderStatusPill";
+import {
+  OrderStatusPill,
+  ReservationStatusPill,
+} from "../components/OrderStatusPill";
+import { useAdminDesktop } from "../components/adminDesk";
 import { useConfirm, usePrompt } from "../components/ConfirmProvider";
 import "./adminCustomers.css";
 
@@ -123,6 +128,24 @@ export function AdminCustomers() {
     }
   }
 
+  async function sendReset(customer) {
+    if (
+      !(await confirm(
+        `${customer.name} will get an email at ${customer.email} with a link to choose a new password. Their current password keeps working until they do.`,
+        { title: "Send a password reset link?", confirmLabel: "Send link" },
+      ))
+    )
+      return null;
+    try {
+      await api(`/admin/users/${customer.id}/password-reset`, {
+        method: "POST",
+      });
+      return { ok: true, text: `Reset link sent to ${customer.email}.` };
+    } catch (failure) {
+      return { ok: false, text: failure.message };
+    }
+  }
+
   // Cannot be undone, so the administrator types DELETE to go ahead.
   async function deleteAccount(customer) {
     const typed = await prompt(`Delete ${customer.name}'s account?`, "", {
@@ -199,7 +222,12 @@ export function AdminCustomers() {
 
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {notice && <Feedback tone="success">{notice}</Feedback>}
-      {loading && <Skeleton label="Loading customers" />}
+      {loading && (
+        <Skeleton
+          label="Loading customers"
+          layout={{ body: "table", rows: 8 }}
+        />
+      )}
       {!loading && !error && rows.length === 0 && (
         <EmptyState
           title={query || status ? "No customers match" : "No customers yet"}
@@ -280,6 +308,7 @@ export function AdminCustomers() {
           id={openId}
           onClose={() => setOpenId(null)}
           onToggle={toggleAccess}
+          onReset={sendReset}
           onDelete={async (customer) => {
             if (await deleteAccount(customer)) setOpenId(null);
           }}
@@ -289,7 +318,11 @@ export function AdminCustomers() {
   );
 }
 
-function CustomerSheet({ id, onClose, onToggle, onDelete }) {
+function CustomerSheet({ id, onClose, onToggle, onDelete, onReset }) {
+  const [resetNote, setResetNote] = useState(null);
+  // Admin desktop: orders and bookings as tabs, status pills on both.
+  const desk = useAdminDesktop();
+  const [tab, setTab] = useState("orders");
   const [customer, setCustomer] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -315,8 +348,8 @@ function CustomerSheet({ id, onClose, onToggle, onDelete }) {
     setBusy(false);
   }
 
-  return (
-    <div className="admin-customer-layer">
+  return createPortal(
+    <div className="admin-customer-layer" data-desk={desk || undefined}>
       <button
         type="button"
         className="admin-customer-scrim"
@@ -356,7 +389,11 @@ function CustomerSheet({ id, onClose, onToggle, onDelete }) {
               <ul className="admin-customer-contact">
                 <li>
                   <Mail size={16} aria-hidden="true" />
-                  {customer.email}
+                  {desk ? (
+                    <a href={`mailto:${customer.email}`}>{customer.email}</a>
+                  ) : (
+                    customer.email
+                  )}
                 </li>
                 {customer.phone && (
                   <li>
@@ -380,7 +417,31 @@ function CustomerSheet({ id, onClose, onToggle, onDelete }) {
                 </div>
               </dl>
 
-              <section>
+              {desk && (
+                <div
+                  className="admin-customer-tabs"
+                  role="tablist"
+                  aria-label="Customer history"
+                >
+                  {[
+                    ["orders", "Orders", customer.recent_orders.length],
+                    ["bookings", "Bookings", customer.reservations.length],
+                    ["addresses", "Addresses", customer.addresses.length],
+                  ].map(([key, text, count]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === key}
+                      onClick={() => setTab(key)}
+                    >
+                      {text}
+                      <span className="admin-count">{count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <section hidden={(desk && tab !== "orders") || undefined}>
                 <h3>
                   <ShoppingBag size={15} aria-hidden="true" />
                   Recent orders
@@ -406,7 +467,7 @@ function CustomerSheet({ id, onClose, onToggle, onDelete }) {
                 )}
               </section>
 
-              <section>
+              <section hidden={(desk && tab !== "bookings") || undefined}>
                 <h3>
                   <CalendarDays size={15} aria-hidden="true" />
                   Bookings
@@ -422,9 +483,13 @@ function CustomerSheet({ id, onClose, onToggle, onDelete }) {
                             {booking.guest_count === 1 ? "guest" : "guests"}
                           </small>
                         </span>
-                        <span className="admin-customer-tag">
-                          {readable(booking.status)}
-                        </span>
+                        {desk ? (
+                          <ReservationStatusPill status={booking.status} />
+                        ) : (
+                          <span className="admin-customer-tag">
+                            {readable(booking.status)}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -433,7 +498,7 @@ function CustomerSheet({ id, onClose, onToggle, onDelete }) {
                 )}
               </section>
 
-              <section>
+              <section hidden={(desk && tab !== "addresses") || undefined}>
                 <h3>
                   <MapPin size={15} aria-hidden="true" />
                   Saved addresses
@@ -457,6 +522,11 @@ function CustomerSheet({ id, onClose, onToggle, onDelete }) {
                 )}
               </section>
 
+              {resetNote && (
+                <Feedback tone={resetNote.ok ? "success" : undefined}>
+                  {resetNote.text}
+                </Feedback>
+              )}
               <div className="admin-customer-actions">
                 <button
                   type="button"
@@ -465,6 +535,22 @@ function CustomerSheet({ id, onClose, onToggle, onDelete }) {
                   onClick={() => onDelete(customer)}
                 >
                   Delete account
+                </button>
+                <button
+                  type="button"
+                  className="admin-customer-reset"
+                  disabled={busy || !customer.is_active}
+                  title={
+                    customer.is_active
+                      ? "Email a link to choose a new password"
+                      : "Reactivate this account first"
+                  }
+                  onClick={async () => {
+                    const note = await onReset(customer);
+                    if (note) setResetNote(note);
+                  }}
+                >
+                  Reset password
                 </button>
                 <button
                   type="button"
@@ -485,6 +571,7 @@ function CustomerSheet({ id, onClose, onToggle, onDelete }) {
           )}
         </div>
       </section>
-    </div>
+    </div>,
+    document.querySelector(".dineflow-app") || document.body,
   );
 }

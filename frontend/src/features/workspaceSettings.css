@@ -176,7 +176,7 @@
   gap: 10px;
   min-height: 44px;
   padding: 10px 16px;
-  background: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
   color: #fff;
   text-decoration: none;
   border-radius: 9px;
@@ -798,8 +798,8 @@
   color: var(--primary, #245440);
 }
 .rider-route-destination {
-  background: var(--primary, #245440);
-  border-color: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
+  border-color: var(--primary-fill, var(--primary, #245440));
   color: #fff;
 }
 .rider-detail-label {
@@ -901,7 +901,7 @@
   display: none;
 }
 .rider-order-events li:last-child::after {
-  background: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
   box-shadow: 0 0 0 4px #edf3e8;
 }
 .rider-order-events time {

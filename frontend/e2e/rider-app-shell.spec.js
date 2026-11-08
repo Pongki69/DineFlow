@@ -15,11 +15,31 @@ test("rider mobile app navigation reaches work, activity and profile without des
   const nav = page.getByRole("navigation", { name: "Rider app navigation" });
   if (page.viewportSize().width > 850) {
     await expect(nav).toBeHidden();
-    await expect(page.locator(".app-sidebar")).toBeVisible();
+    const sidebar = page.locator(".app-sidebar");
+    await expect(sidebar).toBeVisible();
+    await sidebar.getByRole("link", { name: "Settings", exact: true }).click();
+    const profile = page.getByRole("region", { name: "Your account" });
+    await expect(profile).toBeVisible();
+    await expect(profile.getByText("rider@example.test")).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Your profile" }),
+    ).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: "Save preferences", exact: true }),
+    ).toBeInViewport({ ratio: 1 });
+    await page.screenshot({
+      path: info.outputPath("desktop-settings.png"),
+      animations: "disabled",
+    });
+    await profile.getByRole("link", { name: "Manage account" }).click();
+    await expect(page).toHaveURL(/\/account$/);
     return;
   }
   await expect(nav).toBeVisible();
-  await expect(nav.getByRole("link")).toHaveCount(5);
+  await expect(nav.getByRole("link")).toHaveCount(4);
+  await expect(
+    nav.getByRole("button", { name: "Notifications" }),
+  ).toBeVisible();
   await expect(
     nav.getByRole("link", { name: "Home", exact: true }),
   ).toHaveAttribute("aria-current", "page");
@@ -54,6 +74,7 @@ test("rider mobile app navigation reaches work, activity and profile without des
     name: "Rider profile shortcuts",
   });
   await expect(shortcuts).toBeVisible();
+  await expect(page.getByRole("region", { name: "Your account" })).toBeHidden();
   // Sign out is its own full-width button in the profile card.
   await expect(
     page

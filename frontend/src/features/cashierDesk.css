@@ -205,7 +205,7 @@
   padding: 0 14px;
   border: 0;
   border-radius: 999px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
   font: inherit;
   font-size: 13px;
@@ -578,25 +578,10 @@
   gap: 6px;
   min-height: 44px;
   padding: 0 18px;
-  border-radius: 12px;
   font: inherit;
   font-size: 14px;
-  font-weight: 700;
+  /* Colours, shape and states come from the universal buttons. */
   cursor: pointer;
-}
-.dineflow-app .cashier-primary {
-  border: 0;
-  background: var(--primary);
-  color: var(--df-color-on-brand, #fff);
-}
-.dineflow-app .cashier-primary:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-.dineflow-app .cashier-secondary {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--ink);
 }
 
 /* Receipt. */
@@ -617,7 +602,7 @@
   height: 48px;
   place-items: center;
   border-radius: 50%;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
 }
 .cashier-receipt-done strong {
@@ -815,7 +800,7 @@
   .cashier-prow-collect {
     padding: 4px 12px;
     border-radius: 999px;
-    background: var(--primary);
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
     font-size: 12.5px;
     font-weight: 700;
@@ -834,7 +819,7 @@
     font-weight: 700;
   }
   .cashier-tag[data-tone="ready"] {
-    background: var(--primary);
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
   }
   .cashier-tag[data-tone="late"] {
@@ -931,7 +916,7 @@
     transition: transform 0.15s ease;
   }
   .cashier-split[data-switch] input:checked {
-    background: var(--primary);
+    background: var(--primary-fill, var(--primary));
   }
   .cashier-split[data-switch] input:checked::after {
     transform: translateX(18px);

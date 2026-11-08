@@ -49,5 +49,6 @@ it('rejects failed or inactive logins without creating remembered access', funct
     $name = Auth::guard('web')->getRecallerName();
     $this->postJson('/api/v1/login', ['email' => 'remember@example.test', 'password' => 'Wrong-password', 'remember' => true])->assertUnprocessable()->assertCookieMissing($name);
     User::where('email', 'remember@example.test')->update(['is_active' => false]);
-    $this->postJson('/api/v1/login', ['email' => 'remember@example.test', 'password' => 'Remember-Test-Password-123!', 'remember' => true])->assertUnprocessable()->assertCookieMissing($name);
+    // The right password on a deactivated account: told why, still no access.
+    $this->postJson('/api/v1/login', ['email' => 'remember@example.test', 'password' => 'Remember-Test-Password-123!', 'remember' => true])->assertForbidden()->assertJsonPath('code', 'account_deactivated')->assertCookieMissing($name);
 });

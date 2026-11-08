@@ -411,7 +411,7 @@
   min-height: 36px;
   padding: 0 14px;
   border-radius: 999px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
   font-size: 13px;
   font-weight: 700;

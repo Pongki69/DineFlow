@@ -592,7 +592,7 @@ export function RiderDispatchPanel({
             {busy ? "Please wait…" : actionLabel}
           </span>
         </button>
-        {presenceState === "paused" && (
+        {phone && presenceState === "paused" && (
           <Button
             variant="secondary"
             disabled={busy}
@@ -657,7 +657,7 @@ export function RiderDispatchPanel({
               {active
                 ? "Available for delivery offers"
                 : data?.profile?.is_online
-                  ? "Select Reconnect GPS in the availability controls"
+                  ? "Open delivery offers to reconnect GPS"
                   : "You won’t receive new offers until you go online"}
             </small>
           </div>
@@ -713,13 +713,13 @@ export function RiderDispatchPanel({
             </button>
           ) : (
             <Button
-              onClick={() => toggle()}
+              onClick={() => toggle(presenceState === "paused")}
               busy={busy}
               disabled={!connected || statusUnavailable || !data}
               variant={online ? "secondary" : "primary"}
             >
               <LocateFixed size={17} aria-hidden="true" />
-              {online || data?.profile?.is_online ? "Go offline" : "Go online"}
+              {presenceState === "paused" ? "Reconnect GPS" : actionLabel}
             </Button>
           )}
         </div>
@@ -738,7 +738,7 @@ export function RiderDispatchPanel({
                   : active
                     ? "Online · location is up to date"
                     : online || data?.profile?.is_online
-                      ? "Select Reconnect GPS in the availability controls to resume updates."
+                      ? "Select Reconnect GPS to resume updates."
                       : "Offline · new offers are paused"}
           </p>
         )}
@@ -959,7 +959,7 @@ export function RiderDispatchPanel({
                 : !connected
                   ? "Reconnect to the internet to receive delivery offers."
                   : online || data?.profile?.is_online
-                    ? "Select Reconnect GPS in the availability controls to resume location updates."
+                    ? "Select Reconnect GPS to resume location updates."
                     : "Go online and allow location access to receive nearby delivery offers."}
             </p>
             <span className="offers-auto-chip">

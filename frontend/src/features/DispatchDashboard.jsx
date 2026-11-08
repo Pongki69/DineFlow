@@ -30,11 +30,20 @@ const queueIcons = {
   road: Truck,
   finished: CheckCheck,
 };
+// One line under each queue count on desktop, like the Dashboard tiles.
+const queueHints = {
+  attention: "Failed or out of riders",
+  waiting: "No rider assigned yet",
+  pickup: "Rider heading to the restaurant",
+  road: "Picked up, on the way",
+  finished: "Delivered or cancelled",
+};
 const terminal = ["delivered", "failed", "cancelled"];
 const title = (value) => String(value || "").replaceAll("_", " ");
 import { dispatchQueue, dispatchQueues } from "../components/dispatchQueues";
 import { usePollingResource } from "../components/usePollingResource";
 import { useMediaQuery } from "../components/useMediaQuery";
+import { useAdminDesktop } from "../components/adminDesk";
 import "./dispatchPhone.css";
 
 export function DispatchDashboard() {
@@ -175,6 +184,7 @@ export function DispatchDashboard() {
   }
   // Phones: queue chips, a plain search pill and tighter delivery cards.
   const phone = useMediaQuery("(max-width: 850px)");
+  const desk = useAdminDesktop();
   const plural = (count) =>
     `${count} ${Number(count) === 1 ? "delivery" : "deliveries"}`;
   const arrival = (value) =>
@@ -211,6 +221,7 @@ export function DispatchDashboard() {
               data-alert={
                 key === "attention" && countFor(key) > 0 ? true : undefined
               }
+              aria-describedby={desk ? `dispatch-hint-${key}` : undefined}
               onClick={() => selectQueue(key)}
             >
               <span className="dispatch-queue-label">
@@ -218,6 +229,12 @@ export function DispatchDashboard() {
                 {label}
               </span>
               <strong>{loading && !result ? "—" : countFor(key)}</strong>
+              {/* The hint describes the queue; the name stays "Label count". */}
+              {desk && (
+                <small id={`dispatch-hint-${key}`} aria-hidden="true">
+                  {queueHints[key]}
+                </small>
+              )}
             </Button>
           );
         })}
@@ -258,7 +275,12 @@ export function DispatchDashboard() {
               )}
         </span>
       </div>
-      {loading && <Skeleton label="Loading your content" />}
+      {loading && (
+        <Skeleton
+          label="Loading your content"
+          layout={{ stats: 4, body: "table", rows: 6 }}
+        />
+      )}
       {!loading && !refreshError && deliveries.length === 0 && (
         <EmptyState
           compact

@@ -4,6 +4,7 @@ import { api } from "./api";
 import { NewPasswordFields } from "./components/NewPasswordFields";
 import { validateNewPasswordForm } from "./components/passwordValidation";
 import "./account.css";
+import { CardHeading, useAdminDesktop } from "./components/adminDesk";
 import {
   Button,
   Feedback,
@@ -28,6 +29,7 @@ export function Account({
   embedded = false,
   showAddresses = true,
 }) {
+  const desk = useAdminDesktop();
   const [error, setError] = useState(""),
     [errors, setErrors] = useState({}),
     [notice, setNotice] = useState(""),
@@ -91,13 +93,21 @@ export function Account({
         )}
         <form className="account-form" onSubmit={save} aria-busy={busy}>
           <section className="account-personal-details">
-            <div>
-              <h2>
-                <UserRound size={18} aria-hidden="true" />
-                Personal details
-              </h2>
-              <p>This is how your name appears on orders and reservations.</p>
-            </div>
+            {desk ? (
+              <CardHeading
+                icon={UserRound}
+                title="Personal details"
+                description="This is how your name appears on orders and reservations."
+              />
+            ) : (
+              <div>
+                <h2>
+                  <UserRound size={18} aria-hidden="true" />
+                  Personal details
+                </h2>
+                <p>This is how your name appears on orders and reservations.</p>
+              </div>
+            )}
             <Field
               label="Name"
               name="name"

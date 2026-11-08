@@ -136,7 +136,7 @@
     height: 20px;
     padding: 0 6px;
     border-radius: 10px;
-    background: var(--primary);
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
     font-size: 12px;
     font-weight: 700;
@@ -1024,8 +1024,8 @@
     .workspace-settings
     .workspace-toggle
     input[type="checkbox"]:checked {
-    border-color: var(--primary);
-    background: var(--primary);
+    border-color: var(--primary-fill, var(--primary));
+    background: var(--primary-fill, var(--primary));
   }
   .dineflow-app
     .admin-content
@@ -1156,7 +1156,7 @@
     height: auto;
     min-height: 40px;
     padding: 0 14px;
-    border-radius: 10px;
+    border-radius: var(--df-button-radius, 999px);
     font-size: 13.5px;
     font-weight: 600;
     white-space: nowrap;
@@ -1374,18 +1374,10 @@
     height: 36px;
     min-height: 36px;
     padding: 0 14px;
-    border-radius: 999px;
+    border-radius: var(--df-button-radius, 999px);
     font-size: 13px;
     font-weight: 700;
     white-space: nowrap;
-  }
-  .dineflow-app
-    .admin-shell
-    #main-content
-    .admin-fleet-card
-    > .admin-fleet-toggle[data-tone="danger"]:not(:disabled) {
-    border-color: #e3b4aa;
-    color: #a33a2c;
   }
   .dineflow-app
     .admin-shell
@@ -1536,7 +1528,7 @@
     .admin-map-toolbar
     > .admin-segmented
     > button[aria-pressed="true"] {
-    background: var(--primary);
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
   }
   .dineflow-app #main-content .admin-map-toolbar > .admin-map-count {

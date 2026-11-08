@@ -62,3 +62,18 @@ it('shows staff only their own actions, and administrators everyone’s with fil
         ->assertJsonCount(1, 'data')->assertJsonPath('data.0.actor.name', 'Ben');
     $this->getJson('/api/v1/admin/activity/people')->assertOk()->assertJsonFragment(['name' => 'Carla']);
 });
+
+it('narrows a day to a time window', function () {
+    $admin = activityUser('administrator', 'Window Admin');
+    $zone = config('app.timezone');
+    $day = now($zone)->subDay()->toDateString();
+    foreach (['08:30', '12:15', '18:45'] as $time) {
+        $log = AuditLog::create(['actor_id' => $admin->id, 'event' => 'auth.login', 'metadata' => []]);
+        $log->forceFill(['created_at' => \Illuminate\Support\Carbon::parse($day.' '.$time, $zone)->utc()])->save();
+    }
+
+    $this->actingAs($admin)->getJson("/api/v1/activity?from={$day}&to={$day}")->assertOk()->assertJsonPath('total', 3);
+    $this->getJson("/api/v1/activity?from={$day}&to={$day}&from_time=12:00&to_time=13:00")->assertOk()->assertJsonPath('total', 1);
+    $this->getJson("/api/v1/activity?from={$day}&to={$day}&from_time=12:00")->assertOk()->assertJsonPath('total', 2);
+    $this->getJson("/api/v1/activity?from={$day}&to={$day}&to_time=9:00")->assertUnprocessable();
+});

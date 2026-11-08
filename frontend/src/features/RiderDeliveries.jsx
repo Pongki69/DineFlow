@@ -794,7 +794,7 @@ export function RiderDeliveries() {
           </>
         }
       />
-      {outletCard}
+      {phone && outletCard}
       {outletResource.error && (
         <Feedback onRetry={outletResource.refresh}>
           Restaurant details could not refresh.{" "}
@@ -865,6 +865,7 @@ export function RiderDeliveries() {
             onMobileViewChange={chooseMobileView}
           />
         )}
+      {!phone && deliveries.length === 0 && outletCard}
       {deliveries.length > 0 && (
         <>
           <RiderRoutePlanner
@@ -939,7 +940,14 @@ export function RiderDeliveries() {
               }
               {...stopsListProps}
             />
-            <BeforePickup online={presence.state === "online"} />
+            {phone ? (
+              <BeforePickup online={presence.state === "online"} />
+            ) : (
+              <div className="rider-delivery-support">
+                <BeforePickup online={presence.state === "online"} />
+                {outletCard}
+              </div>
+            )}
           </div>
         </>
       )}

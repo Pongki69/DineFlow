@@ -11,6 +11,7 @@ import { api } from "../api";
 import { defaultStartPath, visibleNavigation } from "../navigation";
 import { Button, Feedback, PageHeader, Skeleton } from "../components/ui";
 import { DeleteCustomerAccount } from "../components/DeleteCustomerAccount";
+import { CardHeading, useAdminDesktop } from "../components/adminDesk";
 import "./workspaceSettings.css";
 import "./settingsPage.css";
 
@@ -25,6 +26,7 @@ const defaults = {
 };
 
 export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
+  const desk = useAdminDesktop();
   const links = visibleNavigation(user.permissions, user.roles);
   // With no saved choice, show the page this role lands on (same rule as
   // the app's "/" redirect) instead of a vague "Role default" option.
@@ -67,8 +69,15 @@ export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
   }
   // Riders manage identity, password and rider details on the Account page.
   const isRider = user.roles.includes("rider");
+  const role = (
+    <span className="workspace-role">
+      {user.roles.join(" · ").replaceAll("_", " ")}
+    </span>
+  );
   return (
-    <section className="workspace-settings">
+    <section
+      className={`workspace-settings${isRider ? " workspace-settings--rider" : ""}`}
+    >
       <PageHeader
         title="Settings"
         description="Your account, preferences and workspace controls."
@@ -79,15 +88,24 @@ export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
           onSubmit={save}
           aria-labelledby="preferences-heading"
         >
-          <div className="workspace-card-heading">
-            <div>
-              <h2 id="preferences-heading">
-                <Settings2 size={19} aria-hidden="true" />
-                Workspace preferences
-              </h2>
-              <p>Choose how your workspace looks and feels.</p>
+          {desk ? (
+            <CardHeading
+              id="preferences-heading"
+              icon={Settings2}
+              title="Workspace preferences"
+              description="Choose how your workspace looks and feels."
+            />
+          ) : (
+            <div className="workspace-card-heading">
+              <div>
+                <h2 id="preferences-heading">
+                  <Settings2 size={19} aria-hidden="true" />
+                  Workspace preferences
+                </h2>
+                <p>Choose how your workspace looks and feels.</p>
+              </div>
             </div>
-          </div>
+          )}
           {error && <Feedback>{error}</Feedback>}
           {notice && <Feedback tone="success">{notice}</Feedback>}
           <label className="workspace-start-page">
@@ -144,49 +162,58 @@ export function WorkspaceSettings({ user, onUpdated, onDeleted }) {
             </Button>
           </div>
         </form>
-        {!isRider && (
-          <section
-            className="workspace-card workspace-account-card"
-            aria-labelledby="account-controls-heading"
-          >
+        <section
+          className={`workspace-card workspace-account-card${isRider ? " workspace-account-card--rider" : ""}`}
+          aria-labelledby="account-controls-heading"
+        >
+          {desk ? (
+            <CardHeading
+              id="account-controls-heading"
+              icon={ShieldCheck}
+              title="Your account"
+              description="Your sign-in and the restaurant controls you can open."
+            />
+          ) : (
             <h2 id="account-controls-heading">
               <ShieldCheck size={19} aria-hidden="true" />
               Your account
             </h2>
-            <div className="workspace-account-identity">
-              <span className="workspace-account-avatar" aria-hidden="true">
-                {user.name.slice(0, 1)}
-              </span>
-              <div>
-                <strong>{user.name}</strong>
-                <p className="workspace-muted">{user.email}</p>
-              </div>
-            </div>
-            <span className="workspace-role">
-              {user.roles.join(" · ").replaceAll("_", " ")}
+          )}
+          <div className="workspace-account-identity">
+            <span className="workspace-account-avatar" aria-hidden="true">
+              {user.name.slice(0, 1)}
             </span>
+            <div>
+              <strong>{user.name}</strong>
+              <p className="workspace-muted">{user.email}</p>
+              {isRider && role}
+            </div>
+          </div>
+          {!isRider && role}
+          {isRider ? (
+            <div className="workspace-settings-links">
+              <Link to="/account">
+                Manage account
+                <ArrowUpRight size={15} aria-hidden="true" />
+              </Link>
+            </div>
+          ) : (
             <p>Update your name or password in Profile & security below.</p>
-            {user.roles.includes("rider") && (
-              <p className="workspace-location-note">
-                Going online shares your GPS for offers and accepted deliveries.
-                Use the availability bar to stop sharing.
-              </p>
-            )}
-            {management.length > 0 && (
-              <>
-                <h3>Restaurant controls</h3>
-                <div className="workspace-settings-links">
-                  {management.map(([label, , to]) => (
-                    <Link key={to} to={to}>
-                      {label}
-                      <ArrowUpRight size={15} aria-hidden="true" />
-                    </Link>
-                  ))}
-                </div>
-              </>
-            )}
-          </section>
-        )}
+          )}
+          {!isRider && management.length > 0 && (
+            <>
+              <h3>Restaurant controls</h3>
+              <div className="workspace-settings-links">
+                {management.map(([label, , to]) => (
+                  <Link key={to} to={to}>
+                    {label}
+                    <ArrowUpRight size={15} aria-hidden="true" />
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
       </div>
       {user.roles.includes("customer") && (
         <Suspense

@@ -103,20 +103,6 @@
   .dineflow-app #main-content .calendar-booking-actions > button {
     min-height: 34px;
     padding: 0 12px;
-    border-radius: 999px;
-  }
-  .dineflow-app #main-content .calendar-booking-actions > button.secondary {
-    border-color: transparent;
-    background: transparent;
-    box-shadow: none;
-    color: var(--muted, #5b695e);
-  }
-  .dineflow-app
-    #main-content
-    .calendar-booking-actions
-    > button.secondary:hover {
-    background: var(--neutral-soft, #eef1ec);
-    color: var(--ink, #1d2b23);
   }
 
   /* Payments queue: one quiet outlined Review payment per card. */
@@ -136,7 +122,7 @@
     #main-content
     article
     > button.sage-button:has(> .lucide-arrow-right):hover:not(:disabled) {
-    background: var(--primary, #1f4d3a);
+    background: var(--primary-fill, var(--primary, #1f4d3a));
     color: var(--df-color-on-brand, #fff);
   }
 

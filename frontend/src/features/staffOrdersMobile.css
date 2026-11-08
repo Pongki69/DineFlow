@@ -77,7 +77,7 @@
     height: 20px;
     padding: 0 6px;
     border-radius: 10px;
-    background: var(--primary);
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
     font-size: 12px;
     font-weight: 700;
@@ -172,8 +172,8 @@
     font-weight: 650;
   }
   .dineflow-app #main-content .orders-type-chips button[aria-pressed="true"] {
-    border-color: var(--primary);
-    background: var(--primary);
+    border-color: var(--primary-fill, var(--primary));
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
   }
 

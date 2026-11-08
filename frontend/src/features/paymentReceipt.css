@@ -46,7 +46,7 @@
   place-items: center;
   margin-bottom: 4px;
   border-radius: 14px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
 }
 .receipt-brand strong {
@@ -188,7 +188,7 @@
 }
 .dineflow-app .receipt-actions .receipt-print {
   border: 0;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
 }
 
@@ -223,4 +223,98 @@
   border-radius: 0;
   background: none;
   box-shadow: none;
+}
+
+/* Printing the receipt card: only the card, as it looks on screen. */
+@media print {
+  body.printing-card * {
+    visibility: hidden;
+  }
+  body.printing-card .receipt-paper,
+  body.printing-card .receipt-paper * {
+    visibility: visible;
+  }
+  body.printing-card .receipt-paper {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Receipt width on paper, whatever the screen layout made it. */
+    width: 105mm !important;
+    max-width: 100%;
+    box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Receipt actions: Back on the left; Save PDF, Print and ⋮ on the right. */
+.receipt-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.dineflow-app .receipt-actions .receipt-save {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+.dineflow-app
+  .receipt-actions
+  :is(.receipt-save, .receipt-print):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* The ⋮ menu keeps the app's menu look, not the receipt's pill buttons. */
+.dineflow-app .receipt-actions .row-menu .row-menu-trigger {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  min-height: 0;
+  height: 40px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+}
+.dineflow-app .receipt-actions .row-menu .row-menu-trigger:hover,
+.dineflow-app .receipt-actions .row-menu[data-open] .row-menu-trigger {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+.dineflow-app .receipt-actions .row-menu .row-menu-list {
+  min-width: 230px;
+  padding: 6px;
+}
+.dineflow-app .receipt-actions .row-menu .row-menu-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.dineflow-app .receipt-actions .row-menu .row-menu-list button:hover,
+.dineflow-app .receipt-actions .row-menu .row-menu-list button:focus-visible {
+  outline: none;
+  background: var(--neutral-soft);
+}
+.dineflow-app .receipt-actions .row-menu .row-menu-list button svg {
+  flex: none;
+  color: var(--muted);
 }

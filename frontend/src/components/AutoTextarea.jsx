@@ -19,10 +19,7 @@ export const AutoTextarea = forwardRef(function AutoTextarea(
       parseFloat(style.minHeight) || 0,
       element.rows * lineHeight + padding + border,
     );
-    const maximum = Math.min(
-      parseFloat(style.maxHeight) || 240,
-      window.innerHeight * 0.4,
-    );
+    const maximum = parseFloat(style.maxHeight) || 300;
     element.style.height = "auto";
     const height = Math.max(minimum, element.scrollHeight + border);
     element.style.height = `${Math.min(height, maximum)}px`;
@@ -36,14 +33,17 @@ export const AutoTextarea = forwardRef(function AutoTextarea(
     const element = field.current;
     let lastWidth = -1;
     let resizeFrame;
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.width !== lastWidth) {
-        lastWidth = entry.contentRect.width;
-        cancelAnimationFrame(resizeFrame);
-        resizeFrame = requestAnimationFrame(resize);
-      }
-    });
-    observer.observe(element);
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(([entry]) => {
+            if (entry.contentRect.width !== lastWidth) {
+              lastWidth = entry.contentRect.width;
+              cancelAnimationFrame(resizeFrame);
+              resizeFrame = requestAnimationFrame(resize);
+            }
+          });
+    observer?.observe(element);
     let resetFrame;
     const reset = () => {
       resetFrame = requestAnimationFrame(resize);
@@ -52,7 +52,7 @@ export const AutoTextarea = forwardRef(function AutoTextarea(
     form?.addEventListener("reset", reset);
     window.addEventListener("resize", resize);
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
       cancelAnimationFrame(resizeFrame);
       cancelAnimationFrame(resetFrame);
       form?.removeEventListener("reset", reset);

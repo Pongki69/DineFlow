@@ -299,7 +299,7 @@ it("blocks repeat acceptance and keeps the pending card through background updat
   ).toBeVisible();
 });
 
-it("reconnects stale GPS directly without taking the rider offline", async () => {
+it("keeps desktop GPS reconnection on the offers page and reconnects without going offline", async () => {
   profile = {
     user_id: 3,
     is_online: true,
@@ -308,12 +308,18 @@ it("reconnects stale GPS directly without taking the rider offline", async () =>
   render(
     <MemoryRouter>
       <div id="rider-presence-slot" />
-      <RiderDispatchPanel compact headerOnly />
+      <RiderDispatchPanel />
     </MemoryRouter>,
   );
   const reconnect = await screen.findByRole("button", {
     name: "Reconnect GPS",
   });
+  expect(reconnect.closest("#rider-presence-slot")).toBeNull();
+  expect(
+    screen.getByRole("button", {
+      name: "Rider status: GPS paused. Go offline",
+    }),
+  ).toBeVisible();
   fireEvent.click(reconnect);
   await act(async () =>
     gps({ coords: { latitude: 14.18, longitude: 121.23, accuracy: 10 } }),

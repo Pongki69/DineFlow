@@ -31,21 +31,33 @@ class OrderController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $filters = $request->validate(['order_type' => ['nullable','in:dine_in,pickup,delivery'], 'status' => ['nullable','in:pending,confirmed,preparing,ready_to_serve,served,completed,cancelled'], 'payment_status' => ['nullable','in:paid,pending,unpaid'], 'from' => ['nullable','date'], 'to' => ['nullable','date','after_or_equal:from'], 'per_page' => ['nullable','integer','min:1','max:100']]);
-        $query = Order::query()->with(['items.addons', 'table:id,table_number', 'statusHistory','delivery.rider:id,name','payments:id,order_id,status,amount,method,reference_number','paymentAllocations.payment:id,status']);
+        $filters = $request->validate(['order_type' => ['nullable','in:dine_in,pickup,delivery'], 'status' => ['nullable','in:pending,confirmed,preparing,ready_to_serve,served,completed,cancelled'], 'payment_status' => ['nullable','in:paid,pending,unpaid'], 'from' => ['nullable','date'], 'to' => ['nullable','date','after_or_equal:from'], 'per_page' => ['nullable','integer','min:1','max:100'], 'search' => ['nullable','string','max:100']]);
+        $query = Order::query()->with(['items.addons', 'table:id,table_number', 'statusHistory','delivery.rider:id,name','payments:id,order_id,status,amount,method,reference_number','paymentAllocations.payment:id,status,method']);
         if (! $request->user()->hasPermission('orders.view') && ! $request->user()->hasPermission('orders.manage')) {
             $query->where('customer_id', $request->user()->id);
         }
         if (isset($filters['order_type'])) $query->where('order_type', $filters['order_type']);
-        if (isset($filters['status'])) $query->where('status', $filters['status']);
         if (isset($filters['from'])) $query->where('created_at', '>=', $filters['from'].' 00:00:00');
         if (isset($filters['to'])) $query->where('created_at', '<=', $filters['to'].' 23:59:59');
         if (($filters['payment_status'] ?? null) === 'paid') $query->where(fn ($q) => $q->whereHas('payments', fn ($p) => $p->where('status','paid'))->orWhereHas('paymentAllocations.payment', fn ($p) => $p->where('status','paid')));
         if (($filters['payment_status'] ?? null) === 'pending') $query->whereHas('payments', fn ($p) => $p->where('status','pending'));
         if (($filters['payment_status'] ?? null) === 'unpaid') $query->whereDoesntHave('payments', fn ($p) => $p->where('status','paid'))->whereDoesntHave('paymentAllocations.payment', fn ($p) => $p->where('status','paid'));
+        if (filled($filters['search'] ?? null)) {
+            // Order number, customer or delivery recipient; case-insensitive on SQLite and PostgreSQL.
+            // "!" escapes LIKE wildcards so "%" and "_" are searched for as typed.
+            $term = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower(trim($filters['search']))).'%';
+            $query->where(fn ($q) => $q
+                ->whereRaw("LOWER(order_number) LIKE ? ESCAPE '!'", [$term])
+                ->orWhereRaw("LOWER(COALESCE(customer_name_snapshot, '')) LIKE ? ESCAPE '!'", [$term])
+                ->orWhereRaw("LOWER(COALESCE(customer_email_snapshot, '')) LIKE ? ESCAPE '!'", [$term])
+                ->orWhereRaw("LOWER(COALESCE(delivery_recipient_name, '')) LIKE ? ESCAPE '!'", [$term]));
+        }
+        // How many orders each status has in this view, for the status tabs.
+        $statusCounts = (clone $query)->toBase()->select('status')->selectRaw('COUNT(*) as total')->groupBy('status')->pluck('total', 'status')->map(fn ($total) => (int) $total);
+        if (isset($filters['status'])) $query->where('status', $filters['status']);
         $page = $query->latest()->paginate((int) ($filters['per_page'] ?? 20));
         $page->getCollection()->each(function (Order $order): void { $order->setAttribute('payment_summary', app(\App\Services\PaymentService::class)->orderSummary($order)); $order->unsetRelation('payments'); $order->unsetRelation('paymentAllocations'); });
-        return response()->json($page);
+        return response()->json($page->toArray() + ['status_counts' => (object) $statusCounts->all()]);
     }
 
     public function store(CreateOrderRequest $request, OrderService $orders, DeliveryQuoteService $deliveryQuotes): JsonResponse
@@ -56,7 +68,7 @@ class OrderController extends Controller
     public function show(Request $request, Order $order): JsonResponse
     {
         abort_unless($order->customer_id === $request->user()->id || $request->user()->hasPermission('orders.view') || $request->user()->hasPermission('orders.manage'), 404);
-        $order->load(['items.addons', 'table:id,table_number', 'statusHistory','delivery.rider:id,name','payments:id,order_id,status,amount,method,reference_number','paymentAllocations.payment:id,status']);
+        $order->load(['items.addons', 'table:id,table_number', 'statusHistory','delivery.rider:id,name','payments:id,order_id,status,amount,method,reference_number','paymentAllocations.payment:id,status,method']);
         $order->setAttribute('payment_summary', app(\App\Services\PaymentService::class)->orderSummary($order));
         $order->unsetRelation('payments'); $order->unsetRelation('paymentAllocations');
         return response()->json(['data' => $order]);

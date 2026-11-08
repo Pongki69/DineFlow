@@ -133,6 +133,9 @@ export async function api(path, options = {}) {
       error.code = details.code;
       error.errors = details.errors || {};
       // Another device signed in to this account; the app returns to sign-in.
+      // The account was turned off: the app shows the deactivated page.
+      if (details.code === "account_deactivated")
+        window.dispatchEvent(new CustomEvent("dineflow:account-deactivated"));
       if (details.code === "session_replaced")
         window.dispatchEvent(
           new CustomEvent("dineflow:session-replaced", {

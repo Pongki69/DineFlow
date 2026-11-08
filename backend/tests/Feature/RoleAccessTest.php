@@ -56,7 +56,7 @@ it('blocks unauthenticated access and deactivated users', function () {
     $this->getJson('/api/v1/rider/assignments')->assertUnauthorized();
     $rider = roleUser('rider');
     $rider->forceFill(['is_active' => false])->save();
-    $this->actingAs($rider)->getJson('/api/v1/rider/assignments')->assertForbidden();
+    $this->actingAs($rider)->getJson('/api/v1/rider/assignments')->assertForbidden()->assertJsonPath('code', 'account_deactivated');
 });
 
 it('returns JSON for unauthenticated API requests even when the client accepts HTML', function () {

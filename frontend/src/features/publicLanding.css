@@ -61,7 +61,7 @@
 }
 .public-brand i {
   font-style: normal;
-  color: #9c6f36;
+  color: var(--primary, #9c6f36);
 }
 .public-header nav {
   display: flex;
@@ -180,7 +180,7 @@
   gap: 12px;
   border: 1px solid var(--df-color-brand, #1e4d3a);
   border-radius: 12px;
-  background: var(--df-color-brand, #1e4d3a);
+  background: var(--primary-fill, var(--df-color-brand, #1e4d3a));
   color: var(--df-color-on-brand, #fff) !important;
   text-decoration: none;
   font-size: 14px;
@@ -212,7 +212,7 @@
   height: 7px;
   width: 7px;
   border-radius: 50%;
-  background: var(--df-color-brand, #1e4d3a);
+  background: var(--primary-fill, var(--df-color-brand, #1e4d3a));
 }
 .public-service-status > span:first-child.is-paused {
   background: var(--df-status-pending-text, #704000);
@@ -391,8 +391,8 @@
 }
 .public-category-pills button[aria-pressed="true"] {
   color: var(--df-color-on-brand, #fff);
-  background: var(--df-color-brand, #1e4d3a);
-  border-color: var(--df-color-brand, #1e4d3a);
+  background: var(--primary-fill, var(--df-color-brand, #1e4d3a));
+  border-color: var(--primary-fill, var(--df-color-brand, #1e4d3a));
 }
 .public-search {
   min-width: 0;
@@ -954,4 +954,16 @@
   .public-button {
     transition: none;
   }
+}
+
+.public-brand > .brand-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--df-color-on-brand, #fff);
+}
+.public-footer .public-brand > .brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
 }

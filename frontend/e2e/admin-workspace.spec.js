@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { switchToDarkMode } from "./theme.js";
 
 test("reservation settings explains timing, protects drafts and saves booking controls in both themes", async ({
   page,
@@ -81,7 +82,7 @@ test("reservation settings explains timing, protects drafts and saves booking co
     path: info.outputPath("reservation-settings-light.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await audit(page);
   await page.screenshot({
     path: info.outputPath("reservation-settings-dark.png"),
@@ -171,7 +172,7 @@ test("delivery settings groups location, fees and independent schedules in both 
     path: info.outputPath("delivery-settings-light.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await audit(page);
   await page.screenshot({
     path: info.outputPath("delivery-settings-dark.png"),
@@ -207,11 +208,31 @@ async function navigate(page, name) {
       .getByRole("dialog", { name: "Navigation", exact: true })
       .getByRole("link", { name, exact: true })
       .click();
-  } else
-    await page
-      .locator(".admin-sidebar")
-      .getByRole("link", { name, exact: true })
-      .click();
+    return;
+  }
+  const sidebar = page
+    .locator(".admin-sidebar")
+    .getByRole("link", { name, exact: true });
+  if (await sidebar.isVisible()) {
+    await sidebar.click();
+    return;
+  }
+  // Phones: the bottom bar holds the main places; the rest are in the
+  // workspace menu.
+  const bar = page
+    .getByRole("navigation", { name: "App navigation" })
+    .getByRole("link", { name, exact: true });
+  if (await bar.isVisible()) {
+    await bar.click();
+    return;
+  }
+  await page
+    .getByRole("button", { name: "More tools and account", exact: true })
+    .click();
+  await page
+    .getByRole("navigation", { name: "All workspace tools" })
+    .getByRole("link", { name, exact: true })
+    .click();
 }
 
 async function audit(page, fullscreen = false) {
@@ -305,20 +326,36 @@ test("admin dashboard, dark mode, profile drawer and fleet work across screen si
     exact: true,
   });
   if (await mobileMenu.isVisible()) await mobileMenu.click();
-  await page
-    .getByRole("button", { name: "More restaurant tools", exact: true })
-    .click();
-  const tools = page.getByRole("dialog", {
-    name: "Restaurant tools",
+  const moreTools = page.getByRole("button", {
+    name: "More restaurant tools",
     exact: true,
   });
-  await expect(tools).toBeVisible();
-  await tools.getByRole("searchbox").fill("reports");
-  await expect(
-    tools.getByRole("link", { name: "Reports", exact: true }),
-  ).toHaveAttribute("href", "/reports");
-  await page.keyboard.press("Escape");
-  await expect(tools).not.toBeVisible();
+  const sidebarGroups = page.getByRole("navigation", {
+    name: "Workspace tools",
+  });
+  if (await sidebarGroups.isVisible()) {
+    // Desktop: the sidebar groups list every tool, so "More tools" is gone.
+    await expect(moreTools).toHaveCount(0);
+    await sidebarGroups
+      .getByRole("button", { name: "Payments & reports", exact: true })
+      .click();
+    await expect(
+      sidebarGroups.getByRole("link", { name: "Reports", exact: true }),
+    ).toHaveAttribute("href", "/reports");
+  } else {
+    await moreTools.click();
+    const tools = page.getByRole("dialog", {
+      name: "Restaurant tools",
+      exact: true,
+    });
+    await expect(tools).toBeVisible();
+    await tools.getByRole("searchbox").fill("reports");
+    await expect(
+      tools.getByRole("link", { name: "Reports", exact: true }),
+    ).toHaveAttribute("href", "/reports");
+    await page.keyboard.press("Escape");
+    await expect(tools).not.toBeVisible();
+  }
   await audit(page);
   await page.screenshot({
     path: info.outputPath("admin-dashboard.png"),
@@ -330,9 +367,11 @@ test("admin dashboard, dark mode, profile drawer and fleet work across screen si
     await expect(page.locator(".admin-shell")).toHaveClass(
       /admin-shell--collapsed/,
     );
+    // Collapsed, the groups are hidden: "More tools" is the way in again.
+    await expect(moreTools).toBeVisible();
     await page.getByRole("button", { name: "Expand sidebar" }).click();
   }
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await expect(page.locator(".admin-shell")).toHaveAttribute(
     "data-theme",
     "dark",
@@ -652,6 +691,12 @@ test("order management keeps preparation and payment controls inside responsive 
   await expect(
     card.getByRole("button", { name: /Record cash.*610\.00/ }),
   ).toBeVisible();
+  // Wide desktops show a queue beside one order at a time: open the
+  // cancelled order from the queue, then come back to the open one.
+  const queueRow = (number) =>
+    page.locator(".orders-triage-row").filter({ hasText: number });
+  const triage = (await queueRow("DF-UI-CANCELLED").count()) > 0;
+  if (triage) await queueRow("DF-UI-CANCELLED").click();
   const cancelledCard = page.getByRole("article", {
     name: "Order DF-UI-CANCELLED",
     exact: true,
@@ -661,6 +706,12 @@ test("order management keeps preparation and payment controls inside responsive 
     cancelledCard.getByRole("button", { name: /Record cash/ }),
   ).toHaveCount(0);
   await expect(cancelledCard.locator(".order-card-workbench")).toHaveCount(0);
+  if (triage) {
+    await queueRow("DF-UI-610").click();
+    await expect(
+      card.getByRole("button", { name: /Record cash.*610\.00/ }),
+    ).toBeVisible();
+  }
   await card
     .getByRole("spinbutton", { name: "Prep time for DF-UI-610" })
     .fill("18");
@@ -681,8 +732,11 @@ test("order management keeps preparation and payment controls inside responsive 
     }),
   ).toBe(true);
   if (info.project.name === "desktop") {
+    // Search is meant to be the wide field; the other filters stay compact.
     for (const filter of await page
-      .locator(".order-filters input, .order-filters select")
+      .locator(
+        ".order-filters > :not(.orders-search) input, .order-filters select",
+      )
       .all()) {
       expect((await filter.boundingBox()).width).toBeLessThanOrEqual(200);
     }
@@ -693,7 +747,7 @@ test("order management keeps preparation and payment controls inside responsive 
     path: info.outputPath("admin-order-management.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await card.getByRole("button", { name: /Record cash/ }).hover();
   await audit(page);
   await page.screenshot({
@@ -765,7 +819,7 @@ test("dispatch queues show selection, guide empty states and clear searches", as
     page.getByText("DF-DISPATCH-701", { exact: true }),
   ).toBeVisible();
   await audit(page);
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await page
     .getByRole("button", { name: "Needs attention 0", exact: true })
     .click();
@@ -852,7 +906,7 @@ test("reservation picker fits the room and keeps table selection clear", async (
     path: info.outputPath("admin-reservation-picker.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await audit(page);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
@@ -904,7 +958,7 @@ test("profile and security keeps account fields clear in both themes", async ({
     path: info.outputPath("admin-profile-security.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await audit(page);
   await page.screenshot({
     path: info.outputPath("admin-profile-security-dark.png"),
@@ -944,7 +998,7 @@ test("system settings has readable disabled actions, contextual links and a pers
     path: info.outputPath("admin-system-settings.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await readableDisabledButton(save);
   await audit(page);
   await page.screenshot({
@@ -1014,6 +1068,9 @@ for (const fallback of [false, true]) {
           const map = element
             .querySelector(".leaflet-container")
             .getBoundingClientRect();
+          // Desktop keeps the rider list beside the map, fullscreen too.
+          const roster = element.querySelector(":scope > .admin-map-roster");
+          const side = roster ? roster.getBoundingClientRect().width : 0;
           return {
             viewportWidth: Math.round(
               bounds.width - document.documentElement.clientWidth,
@@ -1021,7 +1078,7 @@ for (const fallback of [false, true]) {
             viewportHeight: Math.round(
               bounds.height - document.documentElement.clientHeight,
             ),
-            mapWidth: Math.round(map.width - bounds.width),
+            mapWidth: Math.round(map.width + side - bounds.width),
             mapHeight: Math.round(map.height - bounds.height),
           };
         }),

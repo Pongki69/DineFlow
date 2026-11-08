@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\SingleDeviceSession;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,8 +46,13 @@ class AuthController extends Controller
     {
         abort_unless($request->hasSession(), 419, 'Sign-in requires a first-party SPA session.');
         $user = User::where('email', mb_strtolower((string) $request->input('email')))->first();
-        if (! $user || ! $user->is_active || ! Hash::check((string) $request->input('password'), $user->password)) {
+        if (! $user || ! Hash::check((string) $request->input('password'), $user->password)) {
             return response()->json(['message' => 'The provided credentials are incorrect.'], 422);
+        }
+        // Only someone who knows the password learns the account is turned off,
+        // so this cannot be used to find out which emails have accounts.
+        if (! $user->is_active) {
+            return response()->json(['message' => 'This account is deactivated.', 'code' => 'account_deactivated'], 403);
         }
 
         $guard = Auth::guard('web');
@@ -116,7 +120,6 @@ class AuthController extends Controller
     {
         $data = $request->validate(['email' => ['required', 'email']]);
         $data['email'] = mb_strtolower(trim($data['email']));
-        ResetPassword::createUrlUsing(fn (User $user, string $token): string => rtrim((string) config('app.frontend_url'), '/').'/reset-password?token='.urlencode($token).'&email='.urlencode($user->email));
         Password::sendResetLink($data);
 
         // Same response avoids disclosing whether an address has an account.

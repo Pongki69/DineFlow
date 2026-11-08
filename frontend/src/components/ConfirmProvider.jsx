@@ -1,3 +1,4 @@
+import { AutoTextarea } from "./AutoTextarea";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Button, Field } from "./ui";
 
@@ -106,7 +107,7 @@ export function ConfirmProvider({ children }) {
                 maxLength={request?.maxLength}
                 autoFocus
               >
-                {request?.multiline ? <textarea rows={3} /> : undefined}
+                {request?.multiline ? <AutoTextarea rows={3} /> : undefined}
               </Field>
             )}
             {request?.confirmationLabel && (

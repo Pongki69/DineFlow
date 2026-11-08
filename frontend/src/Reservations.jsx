@@ -2,6 +2,9 @@ import { useLiveSettings } from "./components/useLiveSettings";
 import { subscribeToLiveChanges } from "./liveUpdates";
 import { AutoTextarea } from "./components/AutoTextarea";
 import { EmptyState, Feedback, Skeleton } from "./components/ui";
+import { ReservationStatusPill } from "./components/OrderStatusPill";
+import { RowMenu } from "./components/RowMenu";
+import { DatePicker } from "./components/DatePicker";
 import { usePrompt } from "./components/ConfirmProvider";
 import { useConfirm } from "./components/ConfirmProvider";
 import { bookingTime } from "./bookingTime";
@@ -30,9 +33,27 @@ import {
   Plus,
   X,
   Search,
+  Ban,
+  CalendarClock,
+  Box,
+  ChevronDown,
+  Keyboard,
+  LayoutTemplate,
+  Grid3x3,
+  Shapes,
+  Upload,
+  CircleCheck,
+  TriangleAlert,
+  Sparkles,
+  ArrowRight,
+  Users,
+  LayoutGrid,
+  List,
+  Receipt,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMediaQuery } from "./components/useMediaQuery";
+import { StatIcon, useAdminDesktop } from "./components/adminDesk";
 import { CustomerScreenSkeleton } from "./components/CustomerScreenSkeleton";
 import { playSound } from "./uiSound";
 import {
@@ -390,6 +411,7 @@ function ReservationFloorPlan2D({
   availability,
   selectedId,
   onSelect,
+  keepOverview = false,
 }) {
   const boardRef = useRef(null);
   const layerRef = useRef(null);
@@ -495,7 +517,7 @@ function ReservationFloorPlan2D({
       ((Number(selectedObject.position?.z) || 0) - centerZ) * unitPx +
       panNow.current.y;
     if (
-      touchPlan &&
+      (touchPlan || keepOverview) &&
       Math.abs(dx) < boardSize.width / 2 - 48 &&
       Math.abs(dy) < boardSize.height / 2 - 48
     )
@@ -511,6 +533,7 @@ function ReservationFloorPlan2D({
     centerX,
     centerZ,
     touchPlan,
+    keepOverview,
     boardSize.width,
     boardSize.height,
   ]);
@@ -853,6 +876,10 @@ function ReservationFloorPlan2D({
 
 export function ReservationBooking({ user }) {
   const compactScreen = useMediaQuery("(max-width: 850px)");
+  // Admin desktop: tables panel with the auto-assign option, and guest details
+  // beside a booking summary. Phones and the customer app keep their layout.
+  const desk = useAdminDesktop();
+  const guestName = useRef(null);
   const bookingDialog = useRef(null);
   const povControls = useRef(null);
   const [bookingModal, setBookingModal] = useState(false);
@@ -948,14 +975,14 @@ export function ReservationBooking({ user }) {
     0,
   );
   useEffect(() => {
-    if (bookingModal && selectedTables.length) {
+    if (bookingModal && (selectedTables.length || autoAssign)) {
       if (bookingDialog.current && !bookingDialog.current.open)
         bookingDialog.current.showModal();
     } else {
       bookingDialog.current?.close();
       if (bookingModal) setBookingModal(false);
     }
-  }, [bookingModal, selectedTables.length]);
+  }, [bookingModal, selectedTables.length, autoAssign]);
   function interactWithTable(id) {
     if (
       !availability.some(
@@ -1043,34 +1070,19 @@ export function ReservationBooking({ user }) {
       setError(e.message);
     }
   }
-  const reservationForm = floor && (
-    <form className="reservation-form" onSubmit={book}>
-      <div className="reservation-form-heading">
-        <span className="reservation-step-caption">GUEST DETAILS</span>
-        <h2 id="reservation-booking-title">
-          {autoAssign
-            ? "Confirm your reservation"
-            : selectedTables.length === 1
-              ? `Confirm ${selectedTable.table_number}`
-              : `Confirm ${selectedTables.length} tables`}
-        </h2>
-        <p>
-          {guests} guests · {formatBookingDate(date)} at {formatTime12(time)} ·{" "}
-          {floor.name}
-          {autoAssign
-            ? " · table assigned when confirmed"
-            : ` · ${selectedCapacity} combined seats`}
-        </p>
-        {!autoAssign && (
-          <p className="reservation-confirm-tables">
-            <strong>Selected:</strong>{" "}
-            {selectedTables.map((table) => table.table_number).join(", ")}
-          </p>
-        )}
-      </div>
+  // Live seat check: the chosen tables must seat the whole party.
+  const seatsShort =
+    !autoAssign &&
+    selectedTables.length > 0 &&
+    selectedCapacity < Number(guests);
+  const seatsMissing = Math.max(0, Number(guests) - selectedCapacity);
+  const tablesChosen = autoAssign || (selectedTables.length > 0 && !seatsShort);
+  const guestFields = (
+    <>
       <label>
         Name
         <input
+          ref={guestName}
           name="guest_name"
           defaultValue={user.name}
           required
@@ -1113,17 +1125,115 @@ export function ReservationBooking({ user }) {
           Up to 1,500 characters. Requests are subject to availability.
         </small>
       </div>
-      <div className="reservation-form-footer">
-        <p>
-          <Check size={16} aria-hidden="true" /> Availability is checked again
-          when you confirm.
-        </p>
-        <button
-          disabled={busy || (!autoAssign && selectedCapacity < Number(guests))}
-        >
-          {busy ? "Checking availability…" : "Confirm reservation"}
-        </button>
+    </>
+  );
+  const formFooter = (
+    <div className="reservation-form-footer">
+      <p>
+        <Check size={16} aria-hidden="true" /> Availability is checked again
+        when you confirm.
+      </p>
+      <button
+        disabled={busy || (!autoAssign && selectedCapacity < Number(guests))}
+      >
+        {busy ? "Checking availability…" : "Confirm reservation"}
+      </button>
+    </div>
+  );
+  const reservationForm = floor && (
+    <form
+      className="reservation-form"
+      data-desk={desk || undefined}
+      onSubmit={book}
+    >
+      <div className="reservation-form-heading">
+        <span className="reservation-step-caption">GUEST DETAILS</span>
+        <h2 id="reservation-booking-title">
+          {autoAssign
+            ? "Confirm your reservation"
+            : selectedTables.length === 1
+              ? `Confirm ${selectedTable.table_number}`
+              : `Confirm ${selectedTables.length} tables`}
+        </h2>
+        {!desk && (
+          <>
+            <p>
+              {guests} guests · {formatBookingDate(date)} at{" "}
+              {formatTime12(time)} · {floor.name}
+              {autoAssign
+                ? " · table assigned when confirmed"
+                : ` · ${selectedCapacity} combined seats`}
+            </p>
+            {!autoAssign && (
+              <p className="reservation-confirm-tables">
+                <strong>Selected:</strong>{" "}
+                {selectedTables.map((table) => table.table_number).join(", ")}
+              </p>
+            )}
+          </>
+        )}
       </div>
+      {desk ? (
+        <>
+          <div className="reservation-form-fields">{guestFields}</div>
+          <aside
+            className="reservation-form-summary"
+            aria-label="Booking summary"
+          >
+            <dl>
+              <div>
+                <dt>Date</dt>
+                <dd>{formatBookingDate(date)}</dd>
+              </div>
+              <div>
+                <dt>Time</dt>
+                <dd>{formatTime12(time)}</dd>
+              </div>
+              <div>
+                <dt>Guests</dt>
+                <dd>
+                  {guests} {Number(guests) === 1 ? "guest" : "guests"}
+                </dd>
+              </div>
+              <div>
+                <dt>Floor</dt>
+                <dd>{floor.name}</dd>
+              </div>
+              <div data-short={seatsShort || undefined}>
+                <dt>{selectedTables.length > 1 ? "Tables" : "Table"}</dt>
+                <dd>
+                  {autoAssign
+                    ? "Assigned when you confirm"
+                    : `${selectedTables.map((table) => table.table_number).join(", ")} · ${selectedCapacity} seats`}
+                </dd>
+              </div>
+            </dl>
+            {!autoAssign && selectedTables.length > 0 && (
+              <p
+                className="reservation-seat-check"
+                data-tone={seatsShort ? "danger" : "success"}
+              >
+                {seatsShort ? (
+                  <TriangleAlert size={16} aria-hidden="true" />
+                ) : (
+                  <CircleCheck size={16} aria-hidden="true" />
+                )}
+                <span>
+                  {seatsShort
+                    ? `${selectedCapacity} seats for ${guests} guests. Add tables for ${seatsMissing} more seat${seatsMissing === 1 ? "" : "s"}.`
+                    : `${selectedCapacity} seats for ${guests} guests. Everyone has a seat.`}
+                </span>
+              </p>
+            )}
+            {formFooter}
+          </aside>
+        </>
+      ) : (
+        <>
+          {guestFields}
+          {formFooter}
+        </>
+      )}
     </form>
   );
   const bookingOverlay = (
@@ -1161,6 +1271,56 @@ export function ReservationBooking({ user }) {
     </dialog>
   );
   const objects = floor?.objects || [];
+  const sortedTables = availability.slice().sort((a, b) =>
+    String(a.table_number).localeCompare(String(b.table_number), undefined, {
+      numeric: true,
+    }),
+  );
+  const renderTableOption = (table) => (
+    <button
+      type="button"
+      key={table.id}
+      disabled={!table.available}
+      aria-pressed={selected.some((id) => String(id) === String(table.id))}
+      className={`reservation-table-option status-${table.status || "unavailable"} ${selected.some((id) => String(id) === String(table.id)) ? "is-selected" : ""}`}
+      onClick={() => {
+        setAutoAssign(false);
+        toggleTable(table.id);
+      }}
+    >
+      <strong>
+        <Table2 size={18} aria-hidden="true" />
+        {table.table_number}
+      </strong>
+      <span>
+        {table.capacity} seats · {table.status || "Unavailable"}
+      </span>
+      <small>
+        {selected.some((id) => String(id) === String(table.id)) ? (
+          <>
+            <Check size={14} aria-hidden="true" /> Added
+          </>
+        ) : table.available ? (
+          "＋ Add"
+        ) : (
+          "Unavailable"
+        )}
+      </small>
+    </button>
+  );
+  const autoAssignOption = policy.automatic_table_assignment && (
+    <label className="auto-assign-option" data-desk={desk || undefined}>
+      <input
+        type="checkbox"
+        checked={autoAssign}
+        onChange={(e) => {
+          setAutoAssign(e.target.checked);
+          if (e.target.checked) setSelected([]);
+        }}
+      />{" "}
+      Assign one suitable table for me
+    </label>
+  );
   return (
     <section className="welcome reservation-page">
       <header className="reservation-page-heading">
@@ -1171,8 +1331,12 @@ export function ReservationBooking({ user }) {
           your tables.
         </p>
       </header>
-      <ol className="reservation-steps" aria-label="Booking steps">
-        <li>
+      <ol
+        className="reservation-steps"
+        aria-label="Booking steps"
+        data-desk={desk || undefined}
+      >
+        <li data-done={desk || undefined}>
           <span>
             <Check size={14} aria-hidden="true" />
           </span>{" "}
@@ -1180,14 +1344,26 @@ export function ReservationBooking({ user }) {
         </li>
         <li
           aria-current={
-            !selectedTables.length && !autoAssign ? "step" : undefined
+            (desk ? !tablesChosen : !selectedTables.length && !autoAssign)
+              ? "step"
+              : undefined
           }
+          data-done={(desk && tablesChosen) || undefined}
         >
-          <span>2</span> Choose tables
+          <span>
+            {desk && tablesChosen ? (
+              <Check size={14} aria-hidden="true" />
+            ) : (
+              "2"
+            )}
+          </span>{" "}
+          Choose tables
         </li>
         <li
           aria-current={
-            selectedTables.length || autoAssign ? "step" : undefined
+            (desk ? tablesChosen : selectedTables.length || autoAssign)
+              ? "step"
+              : undefined
           }
         >
           <span>3</span> Guest details
@@ -1234,11 +1410,21 @@ export function ReservationBooking({ user }) {
               <CalendarDays size={15} aria-hidden="true" />
               Date
             </span>
-            <ReservationDatePicker
-              value={date}
-              min={tomorrow()}
-              onChange={setDate}
-            />
+            {/* Admin desktop: the same calendar as the Reservations page. */}
+            {desk ? (
+              <DatePicker
+                label="Booking date"
+                value={date}
+                min={tomorrow()}
+                onChange={(value) => value && setDate(value)}
+              />
+            ) : (
+              <ReservationDatePicker
+                value={date}
+                min={tomorrow()}
+                onChange={setDate}
+              />
+            )}
           </label>
           <label>
             <span>
@@ -1343,6 +1529,7 @@ export function ReservationBooking({ user }) {
                   availability={availability}
                   selectedId={selected}
                   onSelect={toggleTable}
+                  keepOverview={desk}
                 />
               )}
             </div>
@@ -1361,60 +1548,62 @@ export function ReservationBooking({ user }) {
                 Select one or more available tables. Their seats combine for
                 your party.
               </p>
+              {desk && autoAssignOption}
               <div className="reservation-table-options">
-                {availability
-                  .slice()
-                  .sort((a, b) =>
-                    String(a.table_number).localeCompare(
-                      String(b.table_number),
-                      undefined,
-                      { numeric: true },
-                    ),
-                  )
-                  .map((table) => (
-                    <button
-                      type="button"
-                      key={table.id}
-                      disabled={!table.available}
-                      aria-pressed={selected.some(
-                        (id) => String(id) === String(table.id),
-                      )}
-                      className={`reservation-table-option status-${table.status || "unavailable"} ${selected.some((id) => String(id) === String(table.id)) ? "is-selected" : ""}`}
-                      onClick={() => {
-                        setAutoAssign(false);
-                        toggleTable(table.id);
-                      }}
-                    >
-                      <strong>
-                        <Table2 size={18} aria-hidden="true" />
-                        {table.table_number}
-                      </strong>
-                      <span>
-                        {table.capacity} seats · {table.status || "Unavailable"}
-                      </span>
-                      <small>
-                        {selected.some(
-                          (id) => String(id) === String(table.id),
-                        ) ? (
-                          <>
-                            <Check size={14} aria-hidden="true" /> Added
-                          </>
-                        ) : table.available ? (
-                          "＋ Add"
-                        ) : (
-                          "Unavailable"
-                        )}
-                      </small>
-                    </button>
-                  ))}
+                {desk ? (
+                  <>
+                    {sortedTables
+                      .filter((table) => table.available)
+                      .map(renderTableOption)}
+                    {sortedTables.some((table) => !table.available) && (
+                      <p className="reservation-table-group">
+                        Not available ·{" "}
+                        {
+                          sortedTables.filter((table) => !table.available)
+                            .length
+                        }
+                      </p>
+                    )}
+                    {sortedTables
+                      .filter((table) => !table.available)
+                      .map(renderTableOption)}
+                  </>
+                ) : (
+                  sortedTables.map(renderTableOption)
+                )}
                 {!availability.length && (
                   <small className="reservation-table-empty">
                     No tables are available for this party size and time.
                   </small>
                 )}
               </div>
-              {selectedTables.length > 0 && (
+              {desk && autoAssign && selectedTables.length === 0 && (
                 <div className="reservation-selected-summary" role="status">
+                  <strong>A table will be assigned</strong>
+                  <span>
+                    The best free table for {guests}{" "}
+                    {Number(guests) === 1 ? "guest" : "guests"} is chosen when
+                    you confirm.
+                  </span>
+                  <button
+                    type="button"
+                    className="ui-button ui-button--primary reservation-continue"
+                    onClick={() => {
+                      setError("");
+                      setBookingModal(true);
+                    }}
+                  >
+                    Continue to guest details
+                    <ArrowRight size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+              {selectedTables.length > 0 && (
+                <div
+                  className="reservation-selected-summary"
+                  role="status"
+                  data-short={(desk && seatsShort) || undefined}
+                >
                   <strong>
                     {selectedTables.length} table
                     {selectedTables.length === 1 ? "" : "s"} selected
@@ -1433,29 +1622,41 @@ export function ReservationBooking({ user }) {
                       {Number(guests) - selectedCapacity === 1 ? "" : "s"}.
                     </span>
                   )}
+                  {desk && selectedCapacity >= Number(guests) && (
+                    <button
+                      type="button"
+                      className="ui-button ui-button--primary reservation-continue"
+                      onClick={() => {
+                        setError("");
+                        setBookingModal(true);
+                      }}
+                    >
+                      Continue to guest details
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </button>
+                  )}
                 </div>
+              )}
+              {desk && (
+                <p className="reservation-panel-hint">
+                  Occupied tables without an expected departure cannot be
+                  booked.
+                </p>
               )}
             </aside>
           </div>
-          <p className="availability-note">
-            Availability is checked again when you confirm. Occupied tables
-            without an expected departure cannot be booked.
-          </p>
-          {policy.automatic_table_assignment && (
-            <label className="auto-assign-option">
-              <input
-                type="checkbox"
-                checked={autoAssign}
-                onChange={(e) => {
-                  setAutoAssign(e.target.checked);
-                  if (e.target.checked) setSelected([]);
-                }}
-              />{" "}
-              Assign one suitable table for me
-            </label>
+          {!desk && (
+            <>
+              <p className="availability-note">
+                Availability is checked again when you confirm. Occupied tables
+                without an expected departure cannot be booked.
+              </p>
+              {autoAssignOption}
+            </>
           )}
           {(selectedTables.length > 0 || autoAssign) &&
             !bookingModal &&
+            !desk &&
             reservationForm}
         </>
       ) : (
@@ -1474,7 +1675,12 @@ export function ReservationBooking({ user }) {
 
 export function MyReservations() {
   const compactScreen = useMediaQuery("(max-width: 850px)");
+  // Admin desktop: Reschedule and Cancel booking sit in each row's menu.
+  const desk = useAdminDesktop();
   const [loading, setLoading] = useState(true);
+  // Larger screens: find a booking by reference, table or date; filter by state.
+  const [query, setQuery] = useState("");
+  const [view, setView] = useState("all");
   const ask = usePrompt();
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
@@ -1546,17 +1752,71 @@ export function MyReservations() {
     !finished.includes(item.status) &&
     new Date(item.ends_at || item.starts_at).getTime() >= Date.now();
   const byStart = (a, b) => new Date(a.starts_at) - new Date(b.starts_at);
-  const groups = compactScreen
-    ? [
-        ["Upcoming", items.filter(isUpcoming).sort(byStart)],
-        [
-          "Past",
-          items
-            .filter((item) => !isUpcoming(item))
-            .sort((a, b) => byStart(b, a)),
-        ],
-      ].filter(([, list]) => list.length)
-    : [["", items]];
+  const views = [
+    ["all", "All", () => true],
+    ["upcoming", "Upcoming", isUpcoming],
+    ["pending", "Pending", (item) => item.status === "pending"],
+    ["confirmed", "Confirmed", (item) => item.status === "confirmed"],
+    [
+      "visit",
+      "Checked in",
+      (item) => ["checked_in", "seated"].includes(item.status),
+    ],
+    ["completed", "Completed", (item) => item.status === "completed"],
+    [
+      "cancelled",
+      "Cancelled",
+      (item) => ["cancelled", "no_show"].includes(item.status),
+    ],
+  ];
+  const term = query.trim().toLowerCase();
+  const searched = items.filter(
+    (item) =>
+      !term ||
+      [
+        item.reference,
+        item.guest_name,
+        item.guest_phone,
+        item.table?.table_number,
+        ...(item.tables || []).map((table) => table.table_number),
+        new Date(item.starts_at).toLocaleDateString([], {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        }),
+        `${item.guest_count} guests`,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(term),
+  );
+  const inView = views.find(([key]) => key === view)?.[2] || (() => true);
+  const filtered = searched.filter(inView);
+  const filtering = Boolean(term) || view !== "all";
+  // Upcoming visits first (soonest on top), then past ones (latest first).
+  const upcomingFirst = (list) =>
+    [
+      ["Upcoming", list.filter(isUpcoming).sort(byStart)],
+      [
+        "Past",
+        list.filter((item) => !isUpcoming(item)).sort((a, b) => byStart(b, a)),
+      ],
+    ].filter(([, group]) => group.length);
+  const groups = upcomingFirst(compactScreen ? items : filtered);
+  // "Today", "Tomorrow", "In 5 days" for visits still to come.
+  const relativeDay = (item) => {
+    if (!isUpcoming(item)) return null;
+    const day = (date) =>
+      new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const days = Math.round(
+      (day(new Date(item.starts_at)) - day(new Date())) / 86400000,
+    );
+    if (days <= 0) return "Today";
+    if (days === 1) return "Tomorrow";
+    if (days < 14) return `In ${days} days`;
+    return `In ${Math.round(days / 7)} weeks`;
+  };
   return (
     <section className="welcome my-reservations-workspace">
       <span className="eyebrow">YOUR BOOKINGS</span>
@@ -1580,6 +1840,60 @@ export function MyReservations() {
         />
       )}
       {error && <Feedback onRetry={load}>{error}</Feedback>}
+      {!compactScreen && !loading && items.length > 0 && (
+        <div
+          className="my-reservation-tools"
+          role="search"
+          aria-label="Find a booking"
+        >
+          <label className="my-reservation-search">
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Reference, table or date"
+              aria-label="Search bookings"
+            />
+          </label>
+          <div
+            className="sage-filter-chips my-reservation-filters"
+            role="group"
+            aria-label="Show bookings"
+          >
+            {views.map(([key, text, match]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={view === key}
+                onClick={() => setView(key)}
+              >
+                {text}
+                <span className="admin-count">
+                  {searched.filter(match).length}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {!compactScreen && !loading && items.length > 0 && !filtered.length && (
+        <EmptyState
+          title="No bookings match"
+          description="Try another reference, table or date, or show all bookings."
+          action="Show all bookings"
+          onAction={() => {
+            setQuery("");
+            setView("all");
+          }}
+        />
+      )}
+      {!compactScreen && filtering && filtered.length > 0 && (
+        <p className="my-reservation-count" role="status">
+          {filtered.length} of {items.length}{" "}
+          {items.length === 1 ? "booking" : "bookings"}
+        </p>
+      )}
       {compactScreen && !loading && items.length > 0 && (
         <div className="my-reservation-book">
           <Link to="/reserve">
@@ -1591,7 +1905,15 @@ export function MyReservations() {
       <div className="my-reservation-list">
         {groups.map(([group, list]) => (
           <Fragment key={group || "all"}>
-            {group && <h2 className="my-reservation-group">{group}</h2>}
+            {group && (
+              <h2
+                className="my-reservation-group"
+                data-group={group.toLowerCase()}
+              >
+                {group}
+                {!compactScreen && <span>{list.length}</span>}
+              </h2>
+            )}
             {list.map((item) => (
               <article
                 key={item.id}
@@ -1600,6 +1922,13 @@ export function MyReservations() {
               >
                 <div className="my-reservation-date">
                   <CalendarDays size={20} aria-hidden="true" />
+                  {!compactScreen && (
+                    <small className="my-reservation-weekday">
+                      {new Date(item.starts_at).toLocaleDateString([], {
+                        weekday: "short",
+                      })}
+                    </small>
+                  )}
                   <strong>
                     {new Date(item.starts_at).toLocaleDateString([], {
                       month: "short",
@@ -1614,7 +1943,18 @@ export function MyReservations() {
                   </span>
                 </div>
                 <div>
-                  <strong>{item.reference}</strong>
+                  {/* Larger screens: the status reads first, beside the reference. */}
+                  {compactScreen ? (
+                    <strong>{item.reference}</strong>
+                  ) : (
+                    <div className="my-reservation-title">
+                      <strong>{item.reference}</strong>
+                      <ReservationStatusPill
+                        status={item.status}
+                        className="reservation-list-status"
+                      />
+                    </div>
+                  )}
                   <small>
                     <Table2 size={14} aria-hidden="true" />
                     {(item.tables?.length
@@ -1625,9 +1965,22 @@ export function MyReservations() {
                     <span>·</span>
                     <UsersRound size={14} aria-hidden="true" />
                     {item.guest_count} guests
+                    {!compactScreen && relativeDay(item) && (
+                      <>
+                        <span>·</span>
+                        <b className="my-reservation-when">
+                          {relativeDay(item)}
+                        </b>
+                      </>
+                    )}
                   </small>
                   {item.deposit_required && (
-                    <small>
+                    <small
+                      className={
+                        compactScreen ? undefined : "my-reservation-deposit"
+                      }
+                      data-paid={item.deposit_paid || undefined}
+                    >
                       Deposit{" "}
                       {item.deposit_paid
                         ? "paid"
@@ -1636,35 +1989,67 @@ export function MyReservations() {
                   )}
                 </div>
                 <div className="my-reservation-actions">
-                  <span
-                    className={`reservation-list-status status-${item.status}`}
-                  >
-                    {item.status.replaceAll("_", " ")}
-                  </span>
+                  {compactScreen && (
+                    <ReservationStatusPill
+                      status={item.status}
+                      className="reservation-list-status"
+                    />
+                  )}
                   <div className="my-reservation-buttons">
                     {item.deposit_required &&
                       !item.deposit_paid &&
-                      item.status === "pending" && (
+                      item.status === "pending" &&
+                      new Date(item.starts_at) > new Date() && (
                         <button
-                          className="is-primary"
+                          type="button"
+                          className="ui-button ui-button--primary is-primary"
                           onClick={() => payDeposit(item)}
                         >
                           Pay deposit
                         </button>
                       )}
-                    {["pending", "confirmed"].includes(item.status) && (
-                      <>
-                        <button onClick={() => reschedule(item)}>
-                          Reschedule
-                        </button>
-                        <button
-                          className="is-danger"
-                          onClick={() => cancel(item)}
-                        >
-                          Cancel booking
-                        </button>
-                      </>
-                    )}
+                    {["pending", "confirmed"].includes(item.status) &&
+                      new Date(item.starts_at) > new Date() &&
+                      desk && (
+                        <RowMenu
+                          label={`More actions for ${item.reference}`}
+                          items={[
+                            {
+                              key: "reschedule",
+                              label: "Reschedule",
+                              icon: CalendarClock,
+                              onSelect: () => reschedule(item),
+                            },
+                            {
+                              key: "cancel",
+                              label: "Cancel booking",
+                              icon: Ban,
+                              tone: "danger",
+                              onSelect: () => cancel(item),
+                            },
+                          ]}
+                        />
+                      )}
+                    {["pending", "confirmed"].includes(item.status) &&
+                      new Date(item.starts_at) > new Date() &&
+                      !desk && (
+                        <>
+                          <button
+                            type="button"
+                            className="ui-button ui-button--secondary"
+                            onClick={() => reschedule(item)}
+                          >
+                            Reschedule
+                          </button>
+                          <button
+                            type="button"
+                            className="ui-button ui-button--danger is-danger"
+                            onClick={() => cancel(item)}
+                          >
+                            Cancel booking
+                          </button>
+                        </>
+                      )}
                   </div>
                 </div>
               </article>
@@ -1725,7 +2110,12 @@ export function ReservationDesk({ user = { permissions: [] } }) {
     <section className="welcome">
       <span className="eyebrow">SERVICE DESK</span>
       <h1>Reservations</h1>
-      {loading && <Skeleton label="Loading your content" />}
+      {loading && (
+        <Skeleton
+          label="Loading your content"
+          layout={{ body: "list", rows: 6 }}
+        />
+      )}
       {!loading && !error && items.length === 0 && (
         <EmptyState
           title="No reservations to show"
@@ -1778,6 +2168,19 @@ export function ReservationDesk({ user = { permissions: [] } }) {
   );
 }
 
+const SERVICE_VIEW_KEY = "dineflow.serviceTablesView";
+
+// A party seated longer than this is probably a session left open.
+const STALE_SEATED_MINUTES = 240;
+
+/** How long a party has been seated: "45 min", "2 h 05 min", "3 d 4 h". */
+function seatedFor(minutes) {
+  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 1440)
+    return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+  return `${Math.floor(minutes / 1440)} d ${Math.floor((minutes % 1440) / 60)} h`;
+}
+
 export function TableOccupancy() {
   const ask = usePrompt();
   const [loading, setLoading] = useState(true);
@@ -1793,11 +2196,32 @@ export function TableOccupancy() {
   // Phones also filter by seats and by tables waiting on their bill.
   const [seats, setSeats] = useState(0);
   const [billOnly, setBillOnly] = useState(false);
+  // Admin desktop: only the tables that need someone (see tableFlags).
+  const [attentionOnly, setAttentionOnly] = useState(false);
+  const navigate = useNavigate();
   const [pending, setPending] = useState({});
   const [now, setNow] = useState(Date.now);
   // Phones: one slim row per table; tapping a row shows its actions.
   const phone = useMediaQuery("(max-width: 850px)");
   const [openId, setOpenId] = useState(null);
+  // Admin desktop: tables as cards or as one table, remembered per screen.
+  const desk = useAdminDesktop();
+  const [deskView, setDeskView] = useState(() => {
+    try {
+      return localStorage.getItem(SERVICE_VIEW_KEY) === "table"
+        ? "table"
+        : "cards";
+    } catch {
+      return "cards";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(SERVICE_VIEW_KEY, deskView);
+    } catch {
+      // The layout still applies for this visit.
+    }
+  }, [deskView]);
   const locks = useRef(new Set());
   const mounted = useRef(true);
   const requestVersion = useRef(0);
@@ -1922,8 +2346,61 @@ export function TableOccupancy() {
     ["cleaning", "Cleaning"],
     ["unavailable", "Unavailable"],
   ];
+  const TABLE_STATE_ICONS = {
+    available: CircleCheck,
+    occupied: Users,
+    cleaning: Sparkles,
+    unavailable: Ban,
+  };
+  // What a table needs: more guests than seats, a party seated for hours
+  // (likely a session left open), a passed "free again" estimate, or an
+  // inactive table still holding a dining session.
+  const tableFlags = (table) => {
+    const session = table.current_session || table.currentSession;
+    const opened = session?.opened_at
+      ? new Date(session.opened_at).getTime()
+      : NaN;
+    const seatedMinutes = Number.isFinite(opened)
+      ? Math.max(0, Math.floor((now - opened) / 60000))
+      : null;
+    const freeAt = table.expected_available_at
+      ? new Date(table.expected_available_at).getTime()
+      : NaN;
+    const inactive = table.is_active === false;
+    const over =
+      Boolean(session) && Number(session.guest_count) > Number(table.capacity);
+    const stale =
+      seatedMinutes !== null && seatedMinutes > STALE_SEATED_MINUTES;
+    const overdue =
+      table.operational_status === "occupied" &&
+      Number.isFinite(freeAt) &&
+      freeAt < now;
+    const strayBill = inactive && Boolean(session);
+    return {
+      session,
+      seatedMinutes,
+      freeAt,
+      inactive,
+      over,
+      stale,
+      overdue,
+      strayBill,
+      attention: over || stale || overdue || strayBill,
+      billRequested: Boolean(session?.bill_requested_at),
+    };
+  };
+  const attentionCount = tables.filter(
+    (table) => tableFlags(table).attention,
+  ).length;
+  const areaOf = (table) =>
+    table.zone ||
+    (table.floor_id != null
+      ? table.floor?.name || "Floor " + table.floor_id
+      : "Dining room");
+  const multiArea = new Set(tables.map(areaOf)).size > 1;
   const visible = tables.filter(
     (table) =>
+      (!attentionOnly || tableFlags(table).attention) &&
       (!zone || table.zone === zone) &&
       (!floor || String(table.floor_id) === floor) &&
       (!status || table.operational_status === status) &&
@@ -1939,7 +2416,34 @@ export function TableOccupancy() {
           .toLowerCase()
           .includes(query.toLowerCase())),
   );
-  const filtered = query || zone || floor || status || seats > 0 || billOnly;
+  const rank = (table) => {
+    const flags = tableFlags(table);
+    if (flags.attention) return 0;
+    if (flags.billRequested) return 1;
+    if (flags.inactive) return 6;
+    return (
+      { occupied: 2, cleaning: 3, unavailable: 4, available: 5 }[
+        table.operational_status
+      ] ?? 5
+    );
+  };
+  const shown = desk
+    ? [...visible].sort(
+        (a, b) =>
+          (deskView === "table" ? rank(a) - rank(b) : 0) ||
+          String(a.table_number).localeCompare(
+            String(b.table_number),
+            undefined,
+            {
+              numeric: true,
+              sensitivity: "base",
+            },
+          ),
+      )
+    : visible;
+  const tableView = desk && deskView === "table";
+  const filtered =
+    query || zone || floor || status || seats > 0 || billOnly || attentionOnly;
   const clearFilters = filtered ? (
     <button
       className="sage-button sage-button--secondary sage-clear-filters"
@@ -1950,17 +2454,166 @@ export function TableOccupancy() {
         setStatus("");
         setSeats(0);
         setBillOnly(false);
+        setAttentionOnly(false);
       }}
     >
       Clear filters
     </button>
   ) : null;
+  // Admin desktop: one filter card - search, status chips with counts,
+  // area and floor when there are several, and the Cards / Table switch;
+  // a small count line under it with Clear filters while filtering.
+  const statusCount = (value) =>
+    tables.filter(
+      (table) =>
+        table.operational_status === value && table.is_active !== false,
+    ).length;
+  const deskFilters = (
+    <div className="service-filter-card">
+      <div className="service-filter-row">
+        <label className="cal-search service-search">
+          <Search size={16} aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Table number or area"
+            aria-label="Find a table"
+          />
+        </label>
+        <div
+          className="sage-filter-chips service-status-chips"
+          role="group"
+          aria-label="Table status"
+        >
+          {[["", "All"], ...statuses].map(([value, label]) => (
+            <button
+              key={value || "all"}
+              type="button"
+              aria-pressed={status === value}
+              onClick={() => setStatus(value)}
+            >
+              {label}
+              <span className="admin-count">
+                {loading || !hasLoaded
+                  ? "—"
+                  : value
+                    ? statusCount(value)
+                    : tables.length}
+              </span>
+            </button>
+          ))}
+        </div>
+        {(attentionCount > 0 || attentionOnly) && (
+          <button
+            type="button"
+            className="service-attention-chip"
+            aria-pressed={attentionOnly}
+            onClick={() => setAttentionOnly((on) => !on)}
+          >
+            <TriangleAlert size={14} aria-hidden="true" />
+            Needs attention
+            <span className="admin-count">{attentionCount}</span>
+          </button>
+        )}
+        <div
+          className="service-view-toggle"
+          role="group"
+          aria-label="Table layout"
+        >
+          <button
+            type="button"
+            aria-pressed={deskView === "cards"}
+            onClick={() => setDeskView("cards")}
+          >
+            <LayoutGrid size={16} aria-hidden="true" />
+            Cards
+          </button>
+          <button
+            type="button"
+            aria-pressed={deskView === "table"}
+            onClick={() => setDeskView("table")}
+          >
+            <List size={16} aria-hidden="true" />
+            Table
+          </button>
+        </div>
+      </div>
+      <p className="service-filter-count" role="status">
+        {loading
+          ? "Connecting to table service…"
+          : !hasLoaded
+            ? "Table status unavailable. Refresh to reconnect."
+            : `${visible.length} of ${tables.length} ${tables.length === 1 ? "table" : "tables"}`}
+        {filtered && (
+          <button
+            type="button"
+            className="service-clear"
+            onClick={() => {
+              setQuery("");
+              setZone("");
+              setFloor("");
+              setStatus("");
+              setSeats(0);
+              setBillOnly(false);
+              setAttentionOnly(false);
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+        <span className="service-filter-more">
+          {zones.length > 0 && (
+            <select
+              className="service-filter-select"
+              aria-label="Dining area"
+              value={zone}
+              onChange={(event) => setZone(event.target.value)}
+            >
+              <option value="">All areas</option>
+              {zones.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          )}
+          {(floors.length > 1 || floor) && (
+            <select
+              className="service-filter-select"
+              aria-label="Floor"
+              value={floor}
+              onChange={(event) => setFloor(event.target.value)}
+            >
+              <option value="">All floors</option>
+              {floors.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          )}
+        </span>
+      </p>
+    </div>
+  );
+  const countLine = (
+    <p className="sage-freshness" hidden={phone || undefined}>
+      {loading
+        ? "Connecting to table service…"
+        : !hasLoaded
+          ? "Table status unavailable. Refresh to reconnect."
+          : visible.length +
+            " of " +
+            tables.length +
+            (tables.length === 1 ? " table" : " tables") +
+            ""}
+    </p>
+  );
   return (
     <section className="welcome sage-staff sage-service">
       <header className="sage-page-heading">
         <div>
           <span className="eyebrow">DINING ROOM SERVICE</span>
-          <h1>Every table, well looked after.</h1>
+          <h1>Service tables</h1>
           <p>
             Follow the room at a glance. Seat your guests and keep the next
             table ready.
@@ -2013,7 +2666,25 @@ export function TableOccupancy() {
         hidden={phone || undefined}
       >
         {statuses.map(([value, label]) => (
-          <article key={value}>
+          <article
+            key={value}
+            {...(desk
+              ? {
+                  role: "button",
+                  tabIndex: 0,
+                  "aria-pressed": status === value,
+                  "data-active": status === value || undefined,
+                  title: `Show ${label.toLowerCase()} tables`,
+                  onClick: () =>
+                    setStatus((current) => (current === value ? "" : value)),
+                  onKeyDown: (event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    setStatus((current) => (current === value ? "" : value));
+                  },
+                }
+              : {})}
+          >
             <span>{label}</span>
             <strong>
               {loading || !hasLoaded
@@ -2025,104 +2696,109 @@ export function TableOccupancy() {
                   ).length}
             </strong>
             <small>Active tables</small>
+            <StatIcon icon={TABLE_STATE_ICONS[value]} />
           </article>
         ))}
       </div>
-      <div className="sage-toolbar">
-        <label
-          className={`sage-field sage-field--search${phone ? " service-phone-search" : ""}`}
-        >
-          {phone ? (
-            <>
-              <Search size={17} aria-hidden="true" />
-              <span className="sr-only">Find a table</span>
-            </>
-          ) : (
-            "Find a table"
-          )}
-          <input
-            type={phone ? "search" : undefined}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Table number or area"
-          />
-        </label>
-        {zones.length > 0 && (
-          <label className="sage-field">
-            Dining area
-            <select
-              value={zone}
-              onChange={(event) => setZone(event.target.value)}
-            >
-              <option value="">All areas</option>
-              {zones.map((value) => (
-                <option key={value}>{value}</option>
-              ))}
-            </select>
+      {desk ? (
+        deskFilters
+      ) : (
+        <div className="sage-toolbar">
+          <label
+            className={`sage-field sage-field--search${phone ? " service-phone-search" : ""}`}
+          >
+            {phone ? (
+              <>
+                <Search size={17} aria-hidden="true" />
+                <span className="sr-only">Find a table</span>
+              </>
+            ) : (
+              "Find a table"
+            )}
+            <input
+              type={phone ? "search" : undefined}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Table number or area"
+            />
           </label>
-        )}
-        {(floors.length > 1 || floor) && (
-          <label className="sage-field">
-            Floor
-            <select
-              value={floor}
-              onChange={(event) => setFloor(event.target.value)}
+          {zones.length > 0 && (
+            <label className="sage-field">
+              Dining area
+              <select
+                value={zone}
+                onChange={(event) => setZone(event.target.value)}
+              >
+                <option value="">All areas</option>
+                {zones.map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {(floors.length > 1 || floor) && (
+            <label className="sage-field">
+              Floor
+              <select
+                value={floor}
+                onChange={(event) => setFloor(event.target.value)}
+              >
+                <option value="">All floors</option>
+                {floors.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {phone && (
+            <div
+              className="service-phone-filters"
+              role="group"
+              aria-label="More filters"
             >
-              <option value="">All floors</option>
-              {floors.map(([value, label]) => (
+              {[
+                [0, "Any seats"],
+                [2, "2+ seats"],
+                [4, "4+ seats"],
+                [6, "6+ seats"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={seats === value}
+                  onClick={() => setSeats(value)}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                aria-pressed={billOnly}
+                onClick={() => setBillOnly((on) => !on)}
+              >
+                Bill requested
+              </button>
+            </div>
+          )}
+          <label className="sage-field" hidden={phone || undefined}>
+            Status
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+            >
+              <option value="">All statuses</option>
+              {statuses.map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
             </select>
           </label>
-        )}
-        {phone && (
-          <div
-            className="service-phone-filters"
-            role="group"
-            aria-label="More filters"
-          >
-            {[
-              [0, "Any seats"],
-              [2, "2+ seats"],
-              [4, "4+ seats"],
-              [6, "6+ seats"],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={seats === value}
-                onClick={() => setSeats(value)}
-              >
-                {label}
-              </button>
-            ))}
-            <button
-              type="button"
-              aria-pressed={billOnly}
-              onClick={() => setBillOnly((on) => !on)}
-            >
-              Bill requested
-            </button>
-          </div>
-        )}
-        <label className="sage-field" hidden={phone || undefined}>
-          Status
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-          >
-            <option value="">All statuses</option>
-            {statuses.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        {!phone && clearFilters}
-      </div>
+          {!phone && clearFilters}
+        </div>
+      )}
       {phone && (
         <div className="service-phone-countrow">
           <p className="sage-freshness">
@@ -2133,18 +2809,13 @@ export function TableOccupancy() {
           {clearFilters}
         </div>
       )}
-      <p className="sage-freshness" hidden={phone || undefined}>
-        {loading
-          ? "Connecting to table service…"
-          : !hasLoaded
-            ? "Table status unavailable. Refresh to reconnect."
-            : visible.length +
-              " of " +
-              tables.length +
-              (tables.length === 1 ? " table" : " tables") +
-              ""}
-      </p>
-      {loading && <Skeleton label="Loading dining room tables" />}
+      {!desk && countLine}
+      {loading && (
+        <Skeleton
+          label="Loading dining room tables"
+          layout={{ body: "table", rows: 8 }}
+        />
+      )}
       {error && (
         <Feedback onRetry={load}>
           {error}
@@ -2189,13 +2860,7 @@ export function TableOccupancy() {
             const line = session
               ? [
                   `${session.guest_count || "—"} guests`,
-                  elapsed === null
-                    ? null
-                    : elapsed < 60
-                      ? `${elapsed} min`
-                      : elapsed < 1440
-                        ? `${Math.floor(elapsed / 60)} h ${elapsed % 60} min`
-                        : `${Math.floor(elapsed / 1440)} d ${Math.floor((elapsed % 1440) / 60)} h`,
+                  elapsed === null ? null : seatedFor(elapsed),
                   session.bill_requested_at ? "bill requested" : null,
                 ]
                   .filter(Boolean)
@@ -2262,9 +2927,186 @@ export function TableOccupancy() {
           })}
         </ul>
       )}
-      <div className="sage-service-grid" hidden={phone || undefined}>
+      {tableView && !loading && shown.length > 0 && (
+        <div className="catalog-desktop-table-wrap">
+          <table
+            className="catalog-desktop-table service-desk-table"
+            aria-label="Dining room tables"
+          >
+            <thead>
+              <tr>
+                <th scope="col">Table</th>
+                {multiArea && <th scope="col">Area</th>}
+                <th scope="col">Status</th>
+                <th scope="col" className="catalog-table-num">
+                  Guests / seats
+                </th>
+                <th scope="col">Seated</th>
+                <th scope="col">Bill</th>
+                <th scope="col">Free again</th>
+                <th scope="col" className="catalog-table-end">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((table) => {
+                const flags = tableFlags(table);
+                const { session } = flags;
+                const busy = !!pending[table.id];
+                const state = flags.inactive
+                  ? "inactive"
+                  : table.operational_status;
+                const name = String(table.table_number);
+                const number = name.replace(/^table\s+/i, "");
+                // "Table 4" reads as its badge alone; other names stay.
+                const plainName = number !== name && /^\d+$/.test(number);
+                const items = busy
+                  ? []
+                  : [
+                      session &&
+                        !session.bill_requested_at && {
+                          key: "bill",
+                          label: "Request bill",
+                          icon: Receipt,
+                          onSelect: () => requestBill(table, session),
+                        },
+                      ...(flags.inactive
+                        ? []
+                        : statuses
+                            .filter(([value]) => value !== state)
+                            .map(([value, label]) => ({
+                              key: value,
+                              label: `Mark ${label.toLowerCase()}`,
+                              icon: TABLE_STATE_ICONS[value],
+                              onSelect: () => change(table, value),
+                            }))),
+                      flags.inactive && {
+                        key: "floor",
+                        label: "Open floor plan",
+                        icon: Grid3x3,
+                        onSelect: () => navigate("/admin/floor-plan"),
+                      },
+                    ].filter(Boolean);
+                return (
+                  <tr
+                    key={table.id}
+                    data-state={state}
+                    data-attention={flags.attention || undefined}
+                    aria-busy={busy}
+                  >
+                    <th scope="row">
+                      <div className="service-table-name">
+                        <span
+                          className="service-table-number"
+                          data-status={state}
+                          aria-hidden={plainName ? undefined : "true"}
+                        >
+                          {number}
+                          {plainName && (
+                            <span className="sr-only">{" " + name}</span>
+                          )}
+                        </span>
+                        {!plainName && <strong>{name}</strong>}
+                      </div>
+                    </th>
+                    {multiArea && (
+                      <td className="service-table-muted">{areaOf(table)}</td>
+                    )}
+                    <td>
+                      <span className="service-status-cell">
+                        <span className="sage-table-state" data-status={state}>
+                          {flags.inactive
+                            ? "Inactive"
+                            : statuses.find(
+                                ([value]) => value === state,
+                              )?.[1] || state}
+                        </span>
+                        {flags.strayBill && (
+                          <b className="service-flag" data-tone="danger">
+                            Open session
+                          </b>
+                        )}
+                      </span>
+                    </td>
+                    <td className="catalog-table-num">
+                      <span
+                        className="service-occupancy"
+                        data-over={flags.over || undefined}
+                      >
+                        {flags.over && (
+                          <TriangleAlert size={14} aria-hidden="true" />
+                        )}
+                        <strong>
+                          {session ? session.guest_count || "—" : "—"}
+                        </strong>
+                        <span> / {table.capacity}</span>
+                        {flags.over && (
+                          <span className="sr-only"> (over capacity)</span>
+                        )}
+                      </span>
+                    </td>
+                    <td className="service-table-muted">
+                      {flags.seatedMinutes === null ? (
+                        <span className="service-table-none">—</span>
+                      ) : flags.stale ? (
+                        <b className="service-flag" data-tone="pending">
+                          {seatedFor(flags.seatedMinutes)} · Check
+                        </b>
+                      ) : (
+                        seatedFor(flags.seatedMinutes)
+                      )}
+                    </td>
+                    <td>
+                      {!session ? (
+                        <span className="service-table-none">—</span>
+                      ) : session.bill_requested_at ? (
+                        <span className="service-bill-tag" data-tone="pending">
+                          Requested
+                        </span>
+                      ) : (
+                        <span className="service-bill-tag">Open</span>
+                      )}
+                    </td>
+                    <td>
+                      {flags.overdue ? (
+                        <b className="service-flag" data-tone="danger">
+                          Overdue
+                        </b>
+                      ) : Number.isFinite(flags.freeAt) ? (
+                        new Date(flags.freeAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      ) : (
+                        <span className="service-table-none">—</span>
+                      )}
+                    </td>
+                    <td className="catalog-table-end">
+                      <div className="service-table-actions">
+                        {busy && (
+                          <span className="service-table-none">Updating…</span>
+                        )}
+                        <RowMenu
+                          label={`More actions for ${name}`}
+                          items={items}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div
+        className="sage-service-grid"
+        hidden={phone || tableView || undefined}
+      >
         {!phone &&
-          visible.map((table) => {
+          !tableView &&
+          shown.map((table) => {
             const session = table.current_session || table.currentSession;
             const opened = session?.opened_at
               ? new Date(session.opened_at)
@@ -2315,22 +3157,53 @@ export function TableOccupancy() {
                         {session.guest_count || "—"} guests
                         {elapsed === null
                           ? ""
-                          : " · " + elapsed + " min seated"}
+                          : desk
+                            ? " · " + seatedFor(elapsed) + " seated"
+                            : " · " + elapsed + " min seated"}
                       </strong>
-                      <span>
-                        {session.bill_requested_at
-                          ? "Bill requested · cashier notified"
-                          : "Open dining session"}
-                      </span>
-                      {!session.bill_requested_at && (
-                        <button
-                          type="button"
-                          className="sage-button sage-button--secondary sage-request-bill"
-                          disabled={busy}
-                          onClick={() => requestBill(table, session)}
-                        >
-                          Request bill
-                        </button>
+                      {desk ? (
+                        // Admin desktop: the bill action ends the session
+                        // line, so the card keeps its height.
+                        <div className="service-session-line">
+                          <span
+                            data-billed={
+                              Boolean(session.bill_requested_at) || undefined
+                            }
+                          >
+                            {session.bill_requested_at
+                              ? "Bill requested · cashier notified"
+                              : "Open session"}
+                          </span>
+                          {!session.bill_requested_at && (
+                            <button
+                              type="button"
+                              className="service-bill-button"
+                              disabled={busy}
+                              onClick={() => requestBill(table, session)}
+                            >
+                              <Receipt size={14} aria-hidden="true" />
+                              Request bill
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <span>
+                            {session.bill_requested_at
+                              ? "Bill requested · cashier notified"
+                              : "Open dining session"}
+                          </span>
+                          {!session.bill_requested_at && (
+                            <button
+                              type="button"
+                              className="sage-button sage-button--secondary sage-request-bill"
+                              disabled={busy}
+                              onClick={() => requestBill(table, session)}
+                            >
+                              Request bill
+                            </button>
+                          )}
+                        </>
                       )}
                     </>
                   ) : (
@@ -2399,6 +3272,8 @@ export function TableOccupancy() {
 }
 
 export function FloorPlanEditor() {
+  // Admin desktop: icons on the toolbar buttons (phones keep text only).
+  const desk = useAdminDesktop();
   const [loading, setLoading] = useState(true);
   const ask = usePrompt();
   const confirm = useConfirm();
@@ -3862,7 +4737,9 @@ export function FloorPlanEditor() {
         Drag objects on the 2D editor to position. Rotate and resize selected
         objects, save the draft, preview, then publish.
       </p>
-      {loading && <Skeleton label="Loading your content" />}
+      {loading && (
+        <Skeleton label="Loading your content" layout={{ body: "plan" }} />
+      )}
       {!loading && !error && floors.length === 0 && (
         <EmptyState
           title="Create your restaurant layout"
@@ -3897,6 +4774,7 @@ export function FloorPlanEditor() {
             onClick={addFloor}
             disabled={Boolean(busyAction)}
           >
+            {desk && <Plus size={16} aria-hidden="true" />}
             Add floor
           </button>
           {floor && (
@@ -3914,6 +4792,7 @@ export function FloorPlanEditor() {
                     : `Delete draft floor ${floor.name}`
               }
             >
+              {desk && <Trash2 size={16} aria-hidden="true" />}
               Delete draft floor
             </button>
           )}
@@ -3930,6 +4809,7 @@ export function FloorPlanEditor() {
                 onClick={() => setPreview(!preview)}
                 disabled={pendingAdds > 0 || Boolean(busyAction)}
               >
+                {desk && <Box size={16} aria-hidden="true" />}
                 {preview ? "Edit layout" : "Preview 3D"}
               </button>
               <button
@@ -3942,6 +4822,7 @@ export function FloorPlanEditor() {
                     : "Save this draft"
                 }
               >
+                {desk && <Save size={16} aria-hidden="true" />}
                 Save draft
               </button>
               <button
@@ -3954,6 +4835,7 @@ export function FloorPlanEditor() {
                     : "Publish this layout"
                 }
               >
+                {desk && <Upload size={16} aria-hidden="true" />}
                 Publish layout
               </button>
             </div>
@@ -3964,7 +4846,17 @@ export function FloorPlanEditor() {
             >
               <span className="floor-toolbar-label">Add to layout</span>
               <details className="builder-menu" name="floor-editor-popover">
-                <summary>Object library</summary>
+                <summary>
+                  {desk && <Shapes size={16} aria-hidden="true" />}
+                  Object library
+                  {desk && (
+                    <ChevronDown
+                      size={15}
+                      className="builder-chevron"
+                      aria-hidden="true"
+                    />
+                  )}
+                </summary>
                 <div className="builder-menu-popover">
                   <strong className="builder-popover-title">
                     Add an object
@@ -4010,7 +4902,15 @@ export function FloorPlanEditor() {
                 name="floor-editor-popover"
               >
                 <summary>
+                  {desk && <LayoutTemplate size={16} aria-hidden="true" />}
                   Table templates{presets.length ? ` · ${presets.length}` : ""}
+                  {desk && (
+                    <ChevronDown
+                      size={15}
+                      className="builder-chevron"
+                      aria-hidden="true"
+                    />
+                  )}
                 </summary>
                 <div className="builder-menu-popover">
                   <strong className="builder-popover-title">
@@ -4070,6 +4970,7 @@ export function FloorPlanEditor() {
                 }
                 title="Align every object to the nearest grid block"
               >
+                {desk && <Grid3x3 size={16} aria-hidden="true" />}
                 Align objects
               </button>
               <button
@@ -4082,13 +4983,24 @@ export function FloorPlanEditor() {
                 }
                 title="Undo the last floor-plan edit (Ctrl+Z)"
               >
+                {desk && <Undo2 size={16} aria-hidden="true" />}
                 Undo
               </button>
               <details
                 className="builder-menu floor-shortcuts"
                 name="floor-editor-popover"
               >
-                <summary>Shortcuts</summary>
+                <summary>
+                  {desk && <Keyboard size={16} aria-hidden="true" />}
+                  Shortcuts
+                  {desk && (
+                    <ChevronDown
+                      size={15}
+                      className="builder-chevron"
+                      aria-hidden="true"
+                    />
+                  )}
+                </summary>
                 <div className="builder-menu-popover">
                   <strong className="builder-popover-title">
                     Keyboard shortcuts
@@ -4449,6 +5361,7 @@ export function FloorPlanEditor() {
             objects={objects}
             selectedId={previewSelectedId}
             selectLayoutObjects
+            fullscreenToggle={desk}
             onSelect={(id) => {
               // Tapping the selected object again lets it go.
               if (String(previewSelectedId) === String(id)) {
@@ -4923,7 +5836,10 @@ export function ReservationSettings() {
       <section className="welcome">
         <h1>Reservation settings</h1>
         {loading ? (
-          <Skeleton label="Loading reservation settings" />
+          <Skeleton
+            label="Loading reservation settings"
+            layout={{ body: "form", rows: 3 }}
+          />
         ) : (
           <Feedback onRetry={() => setAttempt((value) => value + 1)}>
             {initialError}

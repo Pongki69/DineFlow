@@ -7,6 +7,8 @@ import { useConfirm } from "../components/ConfirmProvider";
 import { useEffect, useState } from "react";
 import {
   Ellipsis,
+  LayoutGrid,
+  List,
   Pencil,
   Plus,
   Search,
@@ -15,6 +17,7 @@ import {
 } from "lucide-react";
 import { useMediaQuery } from "../components/useMediaQuery";
 import { Pagination } from "../components/Pagination";
+import { CategoryRail, DeskDishCard, MenuDeskLayout } from "./MenuDesk";
 import "./catalogAdminPhone.css";
 import { api } from "../api";
 import { Modal } from "../components/Modal";
@@ -268,8 +271,6 @@ function ItemEditor({ item, categories, onSaved, onClose }) {
           error={errors.servings?.[0]}
           hint="Number of servings included in one order."
         />
-      </div>
-      <div className="form-columns">
         <Field
           label="SKU (optional)"
           name="sku"
@@ -310,8 +311,85 @@ function ItemEditor({ item, categories, onSaved, onClose }) {
   );
 }
 
-export function MenuAdmin() {
+function DesktopDishActions({
+  item,
+  busy,
+  onEdit,
+  onAvailability,
+  onToggle,
+  onDelete,
+  showAvailability = true,
+}) {
+  function runAction(event, action) {
+    const disclosure = event.currentTarget.closest("details");
+    disclosure.open = false;
+    disclosure.querySelector("summary").focus();
+    action();
+  }
+  return (
+    <div className="catalog-dish-actions catalog-desktop-actions">
+      <Button variant="secondary" onClick={onEdit} disabled={busy}>
+        <Pencil size={16} aria-hidden="true" />
+        Edit dish
+      </Button>
+      {showAvailability && (
+        <Button variant="secondary" onClick={onAvailability} disabled={busy}>
+          {item.is_sold_out ? "Mark available" : "Mark sold out"}
+        </Button>
+      )}
+      <details
+        className="catalog-dish-more"
+        name="catalog-dish-actions"
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || !event.currentTarget.open) return;
+          event.preventDefault();
+          event.stopPropagation();
+          event.currentTarget.open = false;
+          event.currentTarget.querySelector("summary").focus();
+        }}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget))
+            event.currentTarget.open = false;
+        }}
+      >
+        <summary
+          aria-label={`More actions for ${item.name}`}
+          aria-disabled={busy || undefined}
+          onClick={(event) => {
+            if (busy) event.preventDefault();
+          }}
+        >
+          <Ellipsis size={18} aria-hidden="true" />
+          More
+        </summary>
+        <div className="catalog-dish-more-options">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={(event) => runAction(event, onToggle)}
+          >
+            {item.is_active ? "Deactivate" : "Activate"}
+          </button>
+          <button
+            type="button"
+            className="dish-delete"
+            disabled={busy}
+            onClick={(event) => runAction(event, onDelete)}
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            Delete dish
+          </button>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+export function MenuAdmin({ user } = {}) {
   const confirm = useConfirm();
+  const desktopScreen = useMediaQuery("(min-width: 1024px)");
+  const desktopAdmin = desktopScreen && user?.roles?.includes("administrator");
+  const [desktopView, setDesktopView] = useState("cards");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [sortBy, setSortBy] = useState("category-asc");
   const [deletionReview, setDeletionReview] = useState(null);
@@ -509,15 +587,22 @@ export function MenuAdmin() {
   const pickedCategory = sortedCategories.find(
     (category) => String(category.id) === String(categoryFilter),
   );
-  // Phones page the dishes; a new search, category or sort starts at page 1.
+  // Phones and the admin desktop page the dishes: 12 cards (a tidy grid) or
+  // 20 table rows. A new search, category, sort or view starts at page 1.
   const PER_PAGE = 12;
+  const perPage = desktopAdmin && desktopView === "table" ? 20 : PER_PAGE;
+  const paged = phone || desktopAdmin;
   const [page, setPage] = useState(1);
-  useEffect(() => setPage(1), [query, categoryFilter, sortBy]);
-  const lastPage = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  useEffect(() => setPage(1), [query, categoryFilter, sortBy, desktopView]);
+  const lastPage = Math.max(1, Math.ceil(filtered.length / perPage));
   const currentPage = Math.min(page, lastPage);
-  const shown = phone
-    ? filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE)
+  const shown = paged
+    ? filtered.slice((currentPage - 1) * perPage, currentPage * perPage)
     : filtered;
+  const changePage = (value) => {
+    setPage(value);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const openNewCategory = () => {
     setCategoryError("");
     setCategoryEditor({});
@@ -528,7 +613,9 @@ export function MenuAdmin() {
     setCategoryFilter("");
   };
   return (
-    <section className="catalog-admin">
+    <section
+      className={`catalog-admin${desktopAdmin ? " catalog-admin--desktop" : ""}`}
+    >
       <PageHeader
         title="Menu management"
         description="A menu worth coming back for. Manage dishes, categories and the little extras."
@@ -581,7 +668,11 @@ export function MenuAdmin() {
           ))}
         </div>
       )}
-      <div className="catalog-categories" hidden={phone || undefined}>
+      {/* Desktop admins manage categories in the rail beside the dishes. */}
+      <div
+        className="catalog-categories"
+        hidden={phone || desktopAdmin || undefined}
+      >
         {categories.map((category) => (
           <button
             key={category.id}
@@ -596,130 +687,368 @@ export function MenuAdmin() {
           </button>
         ))}
       </div>
-      <div className="catalog-filter-bar">
-        <div className="search-field">
-          <Search size={18} aria-hidden="true" />
-          <input
-            aria-label="Search menu management"
-            placeholder="Find a dish or category"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-        <label className="catalog-filter-field" hidden={phone || undefined}>
-          Category
-          <select
+      <MenuDeskLayout
+        enabled={desktopAdmin}
+        rail={
+          <CategoryRail
+            categories={sortedCategories}
+            items={items}
             value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-          >
-            <option value="">All categories</option>
-            {sortedCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="catalog-filter-field">
-          Sort by
-          <select
-            value={sortBy}
-            onChange={(event) => setSortBy(event.target.value)}
-          >
-            <option value="category-asc">Category: A–Z</option>
-            <option value="category-desc">Category: Z–A</option>
-            <option value="name-asc">Dish name: A–Z</option>
-            <option value="price-asc">Price: low to high</option>
-            <option value="price-desc">Price: high to low</option>
-          </select>
-        </label>
-        {phone && (
-          <div className="catalog-phone-add">
-            <button type="button" onClick={openNewCategory}>
-              <Plus size={15} aria-hidden="true" />
-              Category
-            </button>
-            <button
-              type="button"
-              className="catalog-phone-add-dish"
-              disabled={!canAddDish}
-              onClick={() => setEditing({})}
-            >
-              <Plus size={15} aria-hidden="true" />
-              Dish
-            </button>
+            onPick={setCategoryFilter}
+            onEdit={(category) => {
+              setCategoryError("");
+              setCategoryEditor(category);
+            }}
+            onAdd={openNewCategory}
+          />
+        }
+      >
+        <div className="catalog-filter-bar">
+          <div className="search-field">
+            <Search size={18} aria-hidden="true" />
+            <input
+              aria-label="Search menu management"
+              placeholder="Find a dish or category"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
           </div>
-        )}
-        {hasFilters && !phone && (
-          <Button variant="secondary" onClick={clearFilters}>
-            Clear filters
-          </Button>
-        )}
-      </div>
-      {!loading && (
-        <div className="catalog-result-row">
-          <p className="catalog-result-count" role="status">
-            Showing {filtered.length} of {items.length} dishes
-          </p>
-          {phone && (pickedCategory || hasFilters) && (
-            <span className="catalog-phone-result-actions">
-              {pickedCategory && (
-                <button
-                  type="button"
-                  className="catalog-phone-edit-category"
-                  onClick={() => {
-                    setCategoryError("");
-                    setCategoryEditor(pickedCategory);
-                  }}
-                >
-                  <Pencil size={14} aria-hidden="true" />
-                  Edit
-                </button>
-              )}
-              {hasFilters && (
-                <button
-                  type="button"
-                  className="catalog-phone-edit-category"
-                  onClick={clearFilters}
-                >
-                  Clear filters
-                </button>
-              )}
-            </span>
+          <label
+            className="catalog-filter-field"
+            hidden={phone || desktopAdmin || undefined}
+          >
+            Category
+            <select
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+            >
+              <option value="">All categories</option>
+              {sortedCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="catalog-filter-field">
+            Sort by
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+            >
+              <option value="category-asc">Category: A–Z</option>
+              <option value="category-desc">Category: Z–A</option>
+              <option value="name-asc">Dish name: A–Z</option>
+              <option value="price-asc">Price: low to high</option>
+              <option value="price-desc">Price: high to low</option>
+            </select>
+          </label>
+          {phone && (
+            <div className="catalog-phone-add">
+              <button type="button" onClick={openNewCategory}>
+                <Plus size={15} aria-hidden="true" />
+                Category
+              </button>
+              <button
+                type="button"
+                className="catalog-phone-add-dish"
+                disabled={!canAddDish}
+                onClick={() => setEditing({})}
+              >
+                <Plus size={15} aria-hidden="true" />
+                Dish
+              </button>
+            </div>
+          )}
+          {hasFilters && !phone && (
+            <Button variant="secondary" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          )}
+          {desktopAdmin && (
+            <div
+              className="catalog-desktop-view"
+              role="group"
+              aria-label="Menu layout"
+            >
+              <button
+                type="button"
+                aria-pressed={desktopView === "cards"}
+                onClick={() => setDesktopView("cards")}
+              >
+                <LayoutGrid size={16} aria-hidden="true" />
+                Cards
+              </button>
+              <button
+                type="button"
+                aria-pressed={desktopView === "table"}
+                onClick={() => setDesktopView("table")}
+              >
+                <List size={16} aria-hidden="true" />
+                Table
+              </button>
+            </div>
           )}
         </div>
-      )}
-      {loading ? (
-        <Skeleton label="Loading your menu" />
-      ) : !filtered.length ? (
-        <EmptyState
-          icon={UtensilsCrossed}
-          title={
-            hasFilters
-              ? "No dishes match these filters"
-              : "Make the menu your own"
-          }
-          description={
-            hasFilters
-              ? "Try another category or search term."
-              : "Start with a category, then add your first dish."
-          }
-          action={hasFilters ? "Clear filters" : undefined}
-          onAction={() => {
-            setQuery("");
-            setCategoryFilter("");
-          }}
-        />
-      ) : (
-        <div className="catalog-list" data-phone={phone || undefined}>
-          {shown.map((item) =>
-            phone ? (
-              <article
-                key={item.id}
-                className="catalog-phone-dish"
-                data-open={moreId === item.id || undefined}
-              >
-                <div className="catalog-phone-dish-row">
+        {!loading && (
+          <div className="catalog-result-row">
+            <p className="catalog-result-count" role="status">
+              {desktopAdmin
+                ? `${filtered.length} of ${items.length} dishes`
+                : `Showing ${filtered.length} of ${items.length} dishes`}
+            </p>
+            {phone && (pickedCategory || hasFilters) && (
+              <span className="catalog-phone-result-actions">
+                {pickedCategory && (
+                  <button
+                    type="button"
+                    className="catalog-phone-edit-category"
+                    onClick={() => {
+                      setCategoryError("");
+                      setCategoryEditor(pickedCategory);
+                    }}
+                  >
+                    <Pencil size={14} aria-hidden="true" />
+                    Edit
+                  </button>
+                )}
+                {hasFilters && (
+                  <button
+                    type="button"
+                    className="catalog-phone-edit-category"
+                    onClick={clearFilters}
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </span>
+            )}
+          </div>
+        )}
+        {loading ? (
+          <Skeleton
+            label="Loading your menu"
+            layout={{ body: "cards", rows: 6, columns: 3 }}
+          />
+        ) : !filtered.length ? (
+          <EmptyState
+            icon={UtensilsCrossed}
+            title={
+              hasFilters
+                ? "No dishes match these filters"
+                : "Make the menu your own"
+            }
+            description={
+              hasFilters
+                ? "Try another category or search term."
+                : "Start with a category, then add your first dish."
+            }
+            action={hasFilters ? "Clear filters" : undefined}
+            onAction={() => {
+              setQuery("");
+              setCategoryFilter("");
+            }}
+          />
+        ) : desktopAdmin && desktopView === "table" ? (
+          <div className="catalog-desktop-table-wrap">
+            <table className="catalog-desktop-table" aria-label="Menu dishes">
+              <thead>
+                <tr>
+                  <th scope="col">Dish</th>
+                  <th scope="col">Category</th>
+                  <th scope="col" className="catalog-table-num">
+                    Price
+                  </th>
+                  <th scope="col">Availability</th>
+                  <th scope="col" className="catalog-table-end">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((item) => (
+                  <tr
+                    key={item.id}
+                    data-state={
+                      !item.is_active
+                        ? "inactive"
+                        : item.is_sold_out
+                          ? "sold_out"
+                          : "available"
+                    }
+                  >
+                    <th scope="row">
+                      <div className="catalog-table-dish">
+                        <span className="catalog-table-thumb">
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt=""
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <UtensilsCrossed size={18} aria-hidden="true" />
+                          )}
+                        </span>
+                        <span>
+                          <strong>{item.name}</strong>
+                          <DishPortion item={item} />
+                        </span>
+                      </div>
+                    </th>
+                    <td className="catalog-table-category">
+                      {item.category?.name || "Uncategorized"}
+                    </td>
+                    <td className="catalog-desktop-price catalog-table-num">
+                      ₱{Number(item.base_price).toFixed(2)}
+                      {Number(item.discount_percent) > 0 && (
+                        <small>{item.discount_percent}% off</small>
+                      )}
+                    </td>
+                    <td>
+                      {/* On sale is a quick on/off, as on the dish cards. */}
+                      {item.is_active ? (
+                        <label className="menu-desk-switch">
+                          <input
+                            type="checkbox"
+                            role="switch"
+                            checked={!item.is_sold_out}
+                            disabled={busy}
+                            onChange={() => toggle(item, true)}
+                            aria-label={`${item.name} available to order`}
+                          />
+                          <span>
+                            {item.is_sold_out ? "Sold out" : "Available"}
+                          </span>
+                        </label>
+                      ) : (
+                        <StatusBadge status="inactive" />
+                      )}
+                    </td>
+                    <td className="catalog-table-end">
+                      <DesktopDishActions
+                        item={item}
+                        busy={busy}
+                        showAvailability={false}
+                        onEdit={() => setEditing(item)}
+                        onAvailability={() => toggle(item, true)}
+                        onToggle={() => toggle(item)}
+                        onDelete={() => deleteDish(item)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="catalog-list" data-phone={phone || undefined}>
+            {shown.map((item) =>
+              phone ? (
+                <article
+                  key={item.id}
+                  className="catalog-phone-dish"
+                  data-open={moreId === item.id || undefined}
+                >
+                  <div className="catalog-phone-dish-row">
+                    <div className="catalog-dish-icon">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <UtensilsCrossed size={20} aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="catalog-phone-dish-info">
+                      <h2>{item.name}</h2>
+                      <small>
+                        <b>₱{Number(item.base_price).toFixed(2)}</b>
+                        {Number(item.discount_percent) > 0 &&
+                          ` · ${item.discount_percent}% off`}
+                        {` · ${item.category?.name || ""}`}
+                      </small>
+                      <StatusBadge
+                        status={
+                          !item.is_active
+                            ? "inactive"
+                            : item.is_sold_out
+                              ? "sold_out"
+                              : "available"
+                        }
+                      />
+                    </div>
+                    <div className="catalog-phone-dish-buttons">
+                      <button
+                        type="button"
+                        className="catalog-phone-edit"
+                        onClick={() => setEditing(item)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="catalog-phone-more"
+                        aria-expanded={moreId === item.id}
+                        aria-label={`More actions for ${item.name}`}
+                        onClick={() =>
+                          setMoreId((current) =>
+                            current === item.id ? null : item.id,
+                          )
+                        }
+                      >
+                        <Ellipsis size={18} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                  {moreId === item.id && (
+                    <div className="catalog-phone-dish-more">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => toggle(item, true)}
+                      >
+                        {item.is_sold_out ? "Mark available" : "Mark sold out"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => toggle(item)}
+                      >
+                        {item.is_active ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        type="button"
+                        className="catalog-phone-delete"
+                        disabled={busy}
+                        onClick={() => deleteDish(item)}
+                      >
+                        <Trash2 size={14} aria-hidden="true" /> Delete
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ) : desktopAdmin ? (
+                <DeskDishCard
+                  key={item.id}
+                  item={item}
+                  busy={busy}
+                  onAvailability={() => toggle(item, true)}
+                  actions={
+                    <DesktopDishActions
+                      item={item}
+                      busy={busy}
+                      showAvailability={false}
+                      onEdit={() => setEditing(item)}
+                      onToggle={() => toggle(item)}
+                      onDelete={() => deleteDish(item)}
+                    />
+                  }
+                />
+              ) : (
+                <article key={item.id}>
                   <div className="catalog-dish-icon">
                     {item.image_url ? (
                       <img
@@ -728,141 +1057,85 @@ export function MenuAdmin() {
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <UtensilsCrossed size={20} aria-hidden="true" />
+                      <UtensilsCrossed size={25} aria-hidden="true" />
                     )}
                   </div>
-                  <div className="catalog-phone-dish-info">
+                  <div className="catalog-dish-info">
+                    <span className="eyebrow">{item.category?.name}</span>
                     <h2>{item.name}</h2>
-                    <small>
-                      <b>₱{Number(item.base_price).toFixed(2)}</b>
+                    <DishPortion item={item} />
+                    <p>
+                      ₱{Number(item.base_price).toFixed(2)}
                       {Number(item.discount_percent) > 0 &&
                         ` · ${item.discount_percent}% off`}
-                      {` · ${item.category?.name || ""}`}
-                    </small>
-                    <StatusBadge
-                      status={
-                        !item.is_active
-                          ? "inactive"
-                          : item.is_sold_out
-                            ? "sold_out"
-                            : "available"
-                      }
-                    />
+                    </p>
                   </div>
-                  <div className="catalog-phone-dish-buttons">
-                    <button
-                      type="button"
-                      className="catalog-phone-edit"
-                      onClick={() => setEditing(item)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="catalog-phone-more"
-                      aria-expanded={moreId === item.id}
-                      aria-label={`More actions for ${item.name}`}
-                      onClick={() =>
-                        setMoreId((current) =>
-                          current === item.id ? null : item.id,
-                        )
-                      }
-                    >
-                      <Ellipsis size={18} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-                {moreId === item.id && (
-                  <div className="catalog-phone-dish-more">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => toggle(item, true)}
-                    >
-                      {item.is_sold_out ? "Mark available" : "Mark sold out"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => toggle(item)}
-                    >
-                      {item.is_active ? "Deactivate" : "Activate"}
-                    </button>
-                    <button
-                      type="button"
-                      className="catalog-phone-delete"
-                      disabled={busy}
-                      onClick={() => deleteDish(item)}
-                    >
-                      <Trash2 size={14} aria-hidden="true" /> Delete
-                    </button>
-                  </div>
-                )}
-              </article>
-            ) : (
-              <article key={item.id}>
-                <div className="catalog-dish-icon">
-                  {item.image_url ? (
-                    <img
-                      src={item.image_url}
-                      alt=""
-                      referrerPolicy="no-referrer"
+                  <StatusBadge
+                    status={
+                      !item.is_active
+                        ? "inactive"
+                        : item.is_sold_out
+                          ? "sold_out"
+                          : "available"
+                    }
+                  />
+                  {desktopAdmin ? (
+                    <DesktopDishActions
+                      item={item}
+                      busy={busy}
+                      onEdit={() => setEditing(item)}
+                      onAvailability={() => toggle(item, true)}
+                      onToggle={() => toggle(item)}
+                      onDelete={() => deleteDish(item)}
                     />
                   ) : (
-                    <UtensilsCrossed size={25} aria-hidden="true" />
+                    <div className="catalog-dish-actions">
+                      <Button
+                        variant="secondary"
+                        onClick={() => setEditing(item)}
+                      >
+                        Edit dish
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={() => toggle(item, true)}
+                      >
+                        {item.is_sold_out ? "Mark available" : "Mark sold out"}
+                      </Button>
+                      <Button
+                        variant={item.is_active ? "danger" : "secondary"}
+                        disabled={busy}
+                        onClick={() => toggle(item)}
+                      >
+                        {item.is_active ? "Deactivate" : "Activate"}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        className="dish-delete"
+                        disabled={busy}
+                        onClick={() => deleteDish(item)}
+                      >
+                        <Trash2 size={15} aria-hidden="true" /> Delete dish
+                      </Button>
+                    </div>
                   )}
-                </div>
-                <div className="catalog-dish-info">
-                  <span className="eyebrow">{item.category?.name}</span>
-                  <h2>{item.name}</h2>
-                  <DishPortion item={item} />
-                  <p>
-                    ₱{Number(item.base_price).toFixed(2)}
-                    {Number(item.discount_percent) > 0 &&
-                      ` · ${item.discount_percent}% off`}
-                  </p>
-                </div>
-                <StatusBadge
-                  status={
-                    !item.is_active
-                      ? "inactive"
-                      : item.is_sold_out
-                        ? "sold_out"
-                        : "available"
-                  }
-                />
-                <div className="catalog-dish-actions">
-                  <Button variant="secondary" onClick={() => setEditing(item)}>
-                    Edit dish
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => toggle(item, true)}
-                  >
-                    {item.is_sold_out ? "Mark available" : "Mark sold out"}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => toggle(item)}
-                  >
-                    {item.is_active ? "Deactivate" : "Activate"}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="dish-delete"
-                    disabled={busy}
-                    onClick={() => deleteDish(item)}
-                  >
-                    <Trash2 size={15} aria-hidden="true" /> Delete dish
-                  </Button>
-                </div>
-              </article>
-            ),
-          )}
-        </div>
-      )}
+                </article>
+              ),
+            )}
+          </div>
+        )}
+        {desktopAdmin && !loading && filtered.length > perPage && (
+          <Pagination
+            page={currentPage}
+            lastPage={lastPage}
+            total={filtered.length}
+            from={(currentPage - 1) * perPage + 1}
+            to={Math.min(filtered.length, currentPage * perPage)}
+            onChange={changePage}
+          />
+        )}
+      </MenuDeskLayout>
       {phone && !loading && filtered.length > PER_PAGE && (
         <Pagination
           page={currentPage}
@@ -870,13 +1143,11 @@ export function MenuAdmin() {
           total={filtered.length}
           from={(currentPage - 1) * PER_PAGE + 1}
           to={Math.min(filtered.length, currentPage * PER_PAGE)}
-          onChange={(value) => {
-            setPage(value);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
+          onChange={changePage}
         />
       )}
       <Modal
+        className="dish-editor-modal"
         open={editing !== null}
         title={editing?.id ? "Edit dish" : "A new favorite"}
         description="Set the details, then make it your own with sizes and add-ons."

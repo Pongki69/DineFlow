@@ -2,12 +2,15 @@ import { subscribeToLiveChanges } from "./liveUpdates";
 import { useLiveSettings } from "./components/useLiveSettings";
 import { EmptyState, Feedback, Skeleton, StatusBadge } from "./components/ui";
 import { usePrompt } from "./components/ConfirmProvider";
-import { useEffect, useRef, useState } from "react";
+import { CardHeading, StatIcon, useAdminDesktop } from "./components/adminDesk";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
+  Clock3,
   CreditCard,
   Receipt,
+  ReceiptText,
   RefreshCw,
   Search,
   Table2,
@@ -17,11 +20,24 @@ import {
   CheckCircle2,
   Printer,
   UtensilsCrossed,
+  Undo2,
+  ArrowUpDown,
+  Copy,
+  Globe,
+  Smartphone,
+  Banknote,
+  ArrowLeft,
+  Download,
+  FileText,
 } from "lucide-react";
+import { RowMenu } from "./components/RowMenu";
+import { CountUp } from "./components/CountUp";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import "./features/paymentReceipt.css";
 import {
   ThermalReceipt,
+  downloadReceiptText,
+  printReceiptCard,
   printThermalReceipt,
 } from "./components/ThermalReceipt";
 import { api } from "./api";
@@ -45,19 +61,78 @@ const title = (value) =>
     .replaceAll("_", " ")
     .replace(/^./, (letter) => letter.toUpperCase());
 
+// Payment rows: a small icon tile per method (simple icons, not brand logos).
+const METHOD_ICONS = {
+  cash: Banknote,
+  gcash: Smartphone,
+  card: CreditCard,
+  online: Globe,
+};
+function methodKind(method) {
+  const value = String(method || "").toLowerCase();
+  if (value.includes("cash") && !value.includes("gcash")) return "cash";
+  if (
+    ["gcash", "maya", "grabpay", "shopeepay", "qrph"].some((name) =>
+      value.includes(name),
+    )
+  )
+    return "gcash";
+  if (value.includes("card")) return "card";
+  return "online";
+}
+
+// The Payments & bills view (data, filters, pages, scroll) saved when a
+// receipt is opened. Coming back shows it once, in place, then refreshes.
+let savedPaymentsView = null;
+
 export function PaymentDashboard({ user = { permissions: [] } }) {
   const ask = usePrompt();
-  const [loading, setLoading] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const desk = useAdminDesktop();
+  const saved =
+    savedPaymentsView?.userId === user.id ? savedPaymentsView : null;
+  const [loading, setLoading] = useState(!saved);
+  const [hasLoaded, setHasLoaded] = useState(Boolean(saved));
   const [refreshing, setRefreshing] = useState(false);
-  const [payments, setPayments] = useState([]);
-  const [bills, setBills] = useState([]);
-  const [queue, setQueue] = useState({ orders: [], reservation_deposits: [] });
-  const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
-  const [page, setPage] = useState(1);
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("");
-  const [queueType, setQueueType] = useState("");
+  const [payments, setPayments] = useState(saved?.payments || []);
+  const [bills, setBills] = useState(saved?.bills || []);
+  const [queue, setQueue] = useState(
+    saved?.queue || { orders: [], reservation_deposits: [] },
+  );
+  const [meta, setMeta] = useState(
+    saved?.meta || { current_page: 1, last_page: 1, total: 0 },
+  );
+  const [page, setPage] = useState(saved?.page || 1);
+  const [query, setQuery] = useState(saved?.query || "");
+  const [status, setStatus] = useState(saved?.status || "");
+  const [queueType, setQueueType] = useState(saved?.queueType || "");
+  // Admin desktop: the settle queue as a table, oldest first, ten a page.
+  const [queueSort, setQueueSort] = useState(saved?.queueSort || "oldest");
+  const [queuePage, setQueuePage] = useState(saved?.queuePage || 1);
+  // Keep the view current so it can be saved when the page is left.
+  const view = useRef(null);
+  view.current = {
+    userId: user.id,
+    payments,
+    bills,
+    queue,
+    meta,
+    page,
+    query,
+    status,
+    queueType,
+    queueSort,
+    queuePage,
+  };
+  useLayoutEffect(() => {
+    savedPaymentsView = null;
+    if (saved?.scrollY) window.scrollTo(0, saved.scrollY);
+  }, []);
+  const rememberView = () => {
+    savedPaymentsView = { ...view.current, scrollY: window.scrollY };
+  };
+  // Admin desktop review: how the balance is paid, and cash handed over.
+  const [payMethod, setPayMethod] = useState("cash");
+  const [cashGiven, setCashGiven] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [selected, setSelected] = useState(null);
@@ -93,6 +168,8 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
         current_page: result.current_page || page,
         last_page: result.last_page || 1,
         total: result.total || 0,
+        from: result.from || 0,
+        to: result.to || 0,
       });
       setBills(b?.data || []);
       setQueue(q?.data || { orders: [], reservation_deposits: [] });
@@ -163,6 +240,8 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
         "Dining session bill",
       balance: Number(bill.balance_due),
       paymentPending: bill.payment_pending,
+      since: bill.opened_at,
+      billRequested: Boolean(bill.bill_requested_at),
       source: bill,
     })),
     ...(queue.orders || [])
@@ -180,6 +259,7 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
           .join(" · "),
         balance: Number(order.balance_due),
         paymentPending: order.payment_pending,
+        since: order.created_at,
         source: order,
       })),
     ...(queue.reservation_deposits || []).map((reservation) => ({
@@ -196,6 +276,7 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
         .join(" · "),
       balance: Number(reservation.deposit_amount),
       paymentPending: reservation.payment_pending,
+      visitAt: reservation.starts_at,
       source: reservation,
     })),
   ];
@@ -207,6 +288,59 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
   const visibleEntries = entries.filter(
     (entry) => !queueType || entry.kind === queueType,
   );
+  // Desk table: oldest waiting first by default (deposits by visit time).
+  const waitStart = (entry) =>
+    new Date(entry.since || entry.visitAt || 0).getTime() || 0;
+  const sortedEntries = [...visibleEntries].sort(
+    {
+      oldest: (a, b) => waitStart(a) - waitStart(b),
+      newest: (a, b) => waitStart(b) - waitStart(a),
+      largest: (a, b) => b.balance - a.balance,
+      name: (a, b) =>
+        String(a.label).localeCompare(String(b.label), undefined, {
+          numeric: true,
+        }),
+    }[queueSort],
+  );
+  const QUEUE_PER_PAGE = 10;
+  const QueueRow = desk ? "div" : Fragment;
+  const queuePages = Math.max(
+    1,
+    Math.ceil(sortedEntries.length / QUEUE_PER_PAGE),
+  );
+  const queueAt = Math.min(queuePage, queuePages);
+  const pagedEntries = sortedEntries.slice(
+    (queueAt - 1) * QUEUE_PER_PAGE,
+    queueAt * QUEUE_PER_PAGE,
+  );
+  const waited = (value) => {
+    const minutes = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(value).getTime()) / 60000),
+    );
+    if (!Number.isFinite(minutes)) return "—";
+    if (minutes < 60) return minutes + " min";
+    if (minutes < 1440)
+      return Math.floor(minutes / 60) + " h " + (minutes % 60) + " min";
+    return (
+      Math.floor(minutes / 1440) +
+      " d " +
+      Math.floor((minutes % 1440) / 60) +
+      " h"
+    );
+  };
+  const kindLabel = (kind) =>
+    kind === "session"
+      ? "Dining bill"
+      : kind === "reservation"
+        ? "Deposit"
+        : "Order";
+  const KindIcon = (kind) =>
+    kind === "session"
+      ? Table2
+      : kind === "reservation"
+        ? CalendarDays
+        : Receipt;
   const visiblePayments = payments.filter((payment) => {
     const text = [
       payment.reference_number,
@@ -226,6 +360,8 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
     trigger.current = event.currentTarget;
     setReviewError("");
     setUncertain(false);
+    setPayMethod("cash");
+    setCashGiven("");
     setSelected({ kind: entry.kind, id: entry.id, label: entry.label });
   }
   function closeReview() {
@@ -372,31 +508,55 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
           <>
             <article>
               <span>Open balances</span>
-              <strong>{unavailable ? "—" : entries.length}</strong>
+              <strong>
+                {unavailable ? (
+                  "—"
+                ) : desk ? (
+                  <CountUp value={entries.length} />
+                ) : (
+                  entries.length
+                )}
+              </strong>
               <small>Dining bills, orders & deposits</small>
+              <StatIcon icon={ReceiptText} />
             </article>
             <article>
               <span>Balance to collect</span>
               <strong>
                 {unavailable
                   ? "—"
-                  : money(
-                      entries.reduce(
-                        (total, entry) =>
-                          total +
+                  : (() => {
+                      const total = entries.reduce(
+                        (sum, entry) =>
+                          sum +
                           (Number.isFinite(entry.balance) ? entry.balance : 0),
                         0,
-                      ),
-                    )}
+                      );
+                      return desk ? (
+                        <CountUp value={total} decimals={2} format={money} />
+                      ) : (
+                        money(total)
+                      );
+                    })()}
               </strong>
               <small>Current collection queue</small>
+              <StatIcon icon={Wallet} />
             </article>
           </>
         ) : (
           <article>
             <span>Transactions</span>
-            <strong>{unavailable ? "—" : meta.total}</strong>
+            <strong>
+              {unavailable ? (
+                "—"
+              ) : desk ? (
+                <CountUp value={meta.total} />
+              ) : (
+                meta.total
+              )}
+            </strong>
             <small>Payment records</small>
+            <StatIcon icon={ReceiptText} />
           </article>
         )}
         <article>
@@ -404,51 +564,107 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
           <strong>
             {unavailable
               ? "—"
-              : canCash
-                ? entries.filter((entry) => entry.paymentPending).length
-                : payments.filter((payment) => payment.status === "pending")
-                    .length}
+              : (() => {
+                  const pending = canCash
+                    ? entries.filter((entry) => entry.paymentPending).length
+                    : payments.filter((payment) => payment.status === "pending")
+                        .length;
+                  return desk ? <CountUp value={pending} /> : pending;
+                })()}
           </strong>
           <small>
             {canCash
               ? "Check status before collecting again"
               : "On this transaction page"}
           </small>
+          <StatIcon icon={Clock3} />
         </article>
       </div>
-      {loading && <Skeleton label="Loading bills and payments" />}
+      {loading && (
+        <Skeleton
+          label="Loading bills and payments"
+          layout={{ body: "table", rows: 8 }}
+        />
+      )}
       {canCash && (
         <section className="sage-panel" aria-labelledby="collection-heading">
-          <header className="sage-panel-heading">
-            <div>
-              <span className="eyebrow">COLLECTION QUEUE</span>
-              <h2 id="collection-heading">Ready to settle</h2>
+          {desk ? (
+            <CardHeading
+              id="collection-heading"
+              icon={Wallet}
+              title="Ready to settle"
+              description="Dining bills, orders and deposits with a balance to collect."
+              actions={
+                <span className="sage-count">
+                  {hasLoaded ? entries.length : "—"}{" "}
+                  {hasLoaded && entries.length === 1 ? "balance" : "balances"}
+                </span>
+              }
+            />
+          ) : (
+            <header className="sage-panel-heading">
+              <div>
+                <span className="eyebrow">COLLECTION QUEUE</span>
+                <h2 id="collection-heading">Ready to settle</h2>
+              </div>
+              <span className="sage-count">
+                {hasLoaded ? entries.length : "—"}{" "}
+                {hasLoaded && entries.length === 1 ? "balance" : "balances"}
+              </span>
+            </header>
+          )}
+          {/* Admin desktop: the chips and the sort share one row. */}
+          <QueueRow {...(desk ? { className: "settle-filter-row" } : {})}>
+            <div
+              className="sage-filter-chips"
+              role="group"
+              aria-label="Filter payment queue"
+            >
+              {[
+                ["", "All balances"],
+                ["session", "Dining bills"],
+                ["order", "Orders"],
+                ["reservation", "Deposits"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  aria-pressed={queueType === value}
+                  onClick={() => {
+                    setQueueType(value);
+                    setQueuePage(1);
+                  }}
+                >
+                  {label}
+                  {desk && hasLoaded && (
+                    <span className="admin-count">
+                      {value
+                        ? entries.filter((entry) => entry.kind === value).length
+                        : entries.length}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
-            <span className="sage-count">
-              {hasLoaded ? entries.length : "—"}{" "}
-              {hasLoaded && entries.length === 1 ? "balance" : "balances"}
-            </span>
-          </header>
-          <div
-            className="sage-filter-chips"
-            role="group"
-            aria-label="Filter payment queue"
-          >
-            {[
-              ["", "All balances"],
-              ["session", "Dining bills"],
-              ["order", "Orders"],
-              ["reservation", "Deposits"],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                aria-pressed={queueType === value}
-                onClick={() => setQueueType(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+            {desk && (
+              <label className="settle-sort">
+                <ArrowUpDown size={15} aria-hidden="true" />
+                <span>Sort</span>
+                <select
+                  aria-label="Sort balances"
+                  value={queueSort}
+                  onChange={(event) => {
+                    setQueueSort(event.target.value);
+                    setQueuePage(1);
+                  }}
+                >
+                  <option value="oldest">Waiting longest</option>
+                  <option value="newest">Newest first</option>
+                  <option value="largest">Largest balance</option>
+                  <option value="name">Table / order</option>
+                </select>
+              </label>
+            )}
+          </QueueRow>
           {!loading && !error && visibleEntries.length === 0 && (
             <EmptyState
               icon={Wallet}
@@ -460,71 +676,230 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
               description="Open dining bills, unpaid orders and required reservation deposits appear here."
             />
           )}
-          <div className="sage-bill-grid">
-            {visibleEntries.map((entry) => (
-              <article
-                className="sage-bill-card"
-                key={entry.kind + "-" + entry.id}
-              >
-                <header>
-                  <span className="sage-bill-icon">
-                    {entry.kind === "session" ? (
-                      <Table2 size={24} aria-hidden="true" />
-                    ) : entry.kind === "reservation" ? (
-                      <CalendarDays size={24} aria-hidden="true" />
-                    ) : (
-                      <Receipt size={24} aria-hidden="true" />
-                    )}
-                  </span>
-                  <div>
-                    <span className="sage-card-kicker">
-                      {entry.kind === "session"
-                        ? "Dining bill"
-                        : entry.kind === "reservation"
-                          ? "Reservation deposit"
-                          : "Order"}
-                    </span>
-                    <h3>{entry.label}</h3>
-                  </div>
-                </header>
-                <p>{entry.detail}</p>
-                <div className="sage-bill-amount">
-                  <span>Balance due</span>
-                  <strong>{money(entry.balance)}</strong>
-                </div>
-                {entry.paymentPending && (
-                  <p className="sage-attention-label">
-                    Online checkout pending
-                  </p>
-                )}
-                <button
-                  className="sage-button"
-                  onClick={(event) => openReview(entry, event)}
-                  disabled={!!busy}
+          {desk && sortedEntries.length > 0 && (
+            <>
+              <div className="catalog-desktop-table-wrap settle-table-wrap">
+                <table
+                  className="catalog-desktop-table settle-table"
+                  aria-label="Balances to settle"
                 >
-                  Review payment
-                  <ArrowRight size={18} aria-hidden="true" />
+                  <thead>
+                    <tr>
+                      <th scope="col">Balance</th>
+                      <th scope="col">Type</th>
+                      <th scope="col">Details</th>
+                      <th scope="col">Waiting</th>
+                      <th scope="col" className="catalog-table-num">
+                        Due
+                      </th>
+                      <th scope="col" className="catalog-table-end">
+                        <span className="sr-only">Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedEntries.map((entry) => {
+                      const Icon = KindIcon(entry.kind);
+                      return (
+                        <tr key={entry.kind + "-" + entry.id}>
+                          <th scope="row">
+                            <div className="settle-name">
+                              <span className="settle-icon" aria-hidden="true">
+                                <Icon size={18} />
+                              </span>
+                              <strong>{entry.label}</strong>
+                            </div>
+                          </th>
+                          <td>
+                            <span
+                              className="settle-kind"
+                              data-kind={entry.kind}
+                            >
+                              {kindLabel(entry.kind)}
+                            </span>
+                          </td>
+                          <td className="settle-detail">
+                            <span>{entry.detail}</span>
+                            {(entry.billRequested || entry.paymentPending) && (
+                              <span className="settle-tags">
+                                {entry.billRequested && (
+                                  <b data-tone="pending">Bill requested</b>
+                                )}
+                                {entry.paymentPending && (
+                                  <b data-tone="progress">
+                                    <Clock3 size={12} aria-hidden="true" />
+                                    Checkout pending
+                                  </b>
+                                )}
+                              </span>
+                            )}
+                          </td>
+                          <td className="settle-wait">
+                            {entry.since
+                              ? waited(entry.since)
+                              : entry.visitAt
+                                ? "Visit " +
+                                  new Date(entry.visitAt).toLocaleDateString(
+                                    [],
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                    },
+                                  )
+                                : "—"}
+                          </td>
+                          <td className="catalog-table-num settle-due">
+                            {money(entry.balance)}
+                          </td>
+                          <td className="catalog-table-end">
+                            <button
+                              className="sage-button sage-button--secondary settle-review"
+                              onClick={(event) => openReview(entry, event)}
+                              disabled={!!busy}
+                              aria-label={"Review payment for " + entry.label}
+                            >
+                              Review
+                              <ArrowRight size={15} aria-hidden="true" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {/* Always shown, so the card keeps one height. */}
+              <nav className="sage-pagination" aria-label="Balance pages">
+                <button
+                  className="sage-button sage-button--secondary"
+                  disabled={queueAt <= 1}
+                  onClick={() => setQueuePage(queueAt - 1)}
+                >
+                  Previous
                 </button>
-              </article>
-            ))}
+                <span>
+                  Showing {(queueAt - 1) * QUEUE_PER_PAGE + 1}–
+                  {Math.min(queueAt * QUEUE_PER_PAGE, sortedEntries.length)} of{" "}
+                  {sortedEntries.length} · Page {queueAt} of {queuePages}
+                </span>
+                <button
+                  className="sage-button sage-button--secondary"
+                  disabled={queueAt >= queuePages}
+                  onClick={() => setQueuePage(queueAt + 1)}
+                >
+                  Next
+                </button>
+              </nav>
+            </>
+          )}
+          <div className="sage-bill-grid" hidden={desk || undefined}>
+            {!desk &&
+              visibleEntries.map((entry) => (
+                <article
+                  className="sage-bill-card"
+                  key={entry.kind + "-" + entry.id}
+                >
+                  <header>
+                    <span className="sage-bill-icon">
+                      {entry.kind === "session" ? (
+                        <Table2 size={24} aria-hidden="true" />
+                      ) : entry.kind === "reservation" ? (
+                        <CalendarDays size={24} aria-hidden="true" />
+                      ) : (
+                        <Receipt size={24} aria-hidden="true" />
+                      )}
+                    </span>
+                    <div>
+                      <span className="sage-card-kicker">
+                        {entry.kind === "session"
+                          ? "Dining bill"
+                          : entry.kind === "reservation"
+                            ? "Reservation deposit"
+                            : "Order"}
+                      </span>
+                      <h3>{entry.label}</h3>
+                    </div>
+                  </header>
+                  <p>{entry.detail}</p>
+                  {desk ? (
+                    <>
+                      {entry.paymentPending && (
+                        <p className="sage-attention-label sage-bill-tag">
+                          <Clock3 size={13} aria-hidden="true" />
+                          Online checkout pending
+                        </p>
+                      )}
+                      <footer className="sage-bill-foot">
+                        <div className="sage-bill-amount">
+                          <span>Balance due</span>
+                          <strong>{money(entry.balance)}</strong>
+                        </div>
+                        <button
+                          className="sage-button"
+                          onClick={(event) => openReview(entry, event)}
+                          disabled={!!busy}
+                        >
+                          Review payment
+                          <ArrowRight size={16} aria-hidden="true" />
+                        </button>
+                      </footer>
+                    </>
+                  ) : (
+                    <>
+                      <div className="sage-bill-amount">
+                        <span>Balance due</span>
+                        <strong>{money(entry.balance)}</strong>
+                      </div>
+                      {entry.paymentPending && (
+                        <p className="sage-attention-label">
+                          Online checkout pending
+                        </p>
+                      )}
+                      <button
+                        className="sage-button"
+                        onClick={(event) => openReview(entry, event)}
+                        disabled={!!busy}
+                      >
+                        Review payment
+                        <ArrowRight size={18} aria-hidden="true" />
+                      </button>
+                    </>
+                  )}
+                </article>
+              ))}
           </div>
         </section>
       )}
       <section className="sage-panel" aria-labelledby="transactions-heading">
-        <header className="sage-panel-heading">
-          <div>
-            <span className="eyebrow">TRANSACTION RECORDS</span>
-            <h2 id="transactions-heading">Payments & receipts</h2>
-            <p>
-              Paid status comes from verified provider events or an authorized
-              cash record.
-            </p>
-          </div>
-          <span className="sage-count">
-            {hasLoaded ? meta.total : "—"}{" "}
-            {hasLoaded && meta.total === 1 ? "record" : "records"}
-          </span>
-        </header>
+        {desk ? (
+          <CardHeading
+            id="transactions-heading"
+            icon={ReceiptText}
+            title="Payments & receipts"
+            description="Paid status comes from verified provider events or an authorized cash record."
+            actions={
+              <span className="sage-count">
+                {hasLoaded ? meta.total : "—"}{" "}
+                {hasLoaded && meta.total === 1 ? "record" : "records"}
+              </span>
+            }
+          />
+        ) : (
+          <header className="sage-panel-heading">
+            <div>
+              <span className="eyebrow">TRANSACTION RECORDS</span>
+              <h2 id="transactions-heading">Payments & receipts</h2>
+              <p>
+                Paid status comes from verified provider events or an authorized
+                cash record.
+              </p>
+            </div>
+            <span className="sage-count">
+              {hasLoaded ? meta.total : "—"}{" "}
+              {hasLoaded && meta.total === 1 ? "record" : "records"}
+            </span>
+          </header>
+        )}
         <div className="sage-toolbar">
           <label className="sage-field sage-field--search">
             Search this page
@@ -575,54 +950,163 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
             }
           />
         )}
-        <div className="sage-transactions">
-          {visiblePayments.map((payment) => (
-            <article className="sage-transaction" key={payment.id}>
-              <div>
-                <h3>{payment.reference_number || "Payment #" + payment.id}</h3>
-                <p>
-                  {payment.order?.order_number ||
-                    payment.reservation?.reference ||
-                    "Dining session " + (payment.dining_session_id || "—")}{" "}
-                  · {title(payment.purpose)}
-                </p>
-                <small>
-                  {title(payment.method)} ·{" "}
-                  {payment.received_by?.name ||
-                    payment.order?.customer_name_snapshot ||
-                    "Online customer"}
-                </small>
-              </div>
-              <div className="sage-transaction-value">
-                <strong>{money(payment.amount)}</strong>
-                <StatusBadge status={payment.status} />
-              </div>
-              <div className="sage-transaction-actions">
-                <Link
-                  className="sage-button sage-button--secondary"
-                  to={"/payments/" + payment.id + "/receipt"}
-                  aria-label={
-                    "Receipt for " +
-                    (payment.reference_number || "payment " + payment.id)
-                  }
+        {desk && visiblePayments.length > 0 && (
+          <div className="sage-transactions-head" aria-hidden="true">
+            <span>Payment</span>
+            <span>Method</span>
+            <span>Status</span>
+            <span>Amount</span>
+            <span />
+          </div>
+        )}
+        <div className="sage-transactions" data-desk={desk || undefined}>
+          {visiblePayments.map((payment) =>
+            desk ? (
+              <article
+                className="sage-transaction"
+                key={payment.id}
+                data-status={payment.status}
+              >
+                <div className="sage-transaction-main">
+                  <h3>
+                    {payment.reference_number || "Payment #" + payment.id}
+                  </h3>
+                  <p>
+                    {payment.order?.order_number ||
+                      payment.reservation?.reference ||
+                      "Dining session " +
+                        (payment.dining_session_id || "—")}{" "}
+                    · {title(payment.purpose)}
+                  </p>
+                </div>
+                <div
+                  className="sage-transaction-method"
+                  data-method={methodKind(payment.method)}
                 >
-                  <Receipt size={18} aria-hidden="true" />
-                  Receipt
-                </Link>
-                {canRefund && payment.status === "paid" && (
-                  <button
-                    className="sage-button sage-button--danger"
-                    disabled={!!busy}
-                    onClick={() => refund(payment)}
+                  {(() => {
+                    const Icon = METHOD_ICONS[methodKind(payment.method)];
+                    return (
+                      <span className="pay-method-icon" aria-hidden="true">
+                        <Icon size={16} />
+                      </span>
+                    );
+                  })()}
+                  <span>{title(payment.method)}</span>
+                  <small>
+                    {payment.received_by?.name ||
+                      payment.order?.customer_name_snapshot ||
+                      "Online customer"}
+                  </small>
+                </div>
+                <div className="sage-transaction-status">
+                  <StatusBadge status={payment.status} />
+                </div>
+                <strong className="sage-transaction-amount">
+                  {money(payment.amount)}
+                </strong>
+                <div className="sage-transaction-actions">
+                  <Link
+                    className="sage-button sage-button--secondary"
+                    to={"/payments/" + payment.id + "/receipt"}
+                    onClick={rememberView}
+                    aria-label={
+                      "Receipt for " +
+                      (payment.reference_number || "payment " + payment.id)
+                    }
                   >
-                    {busy === "refund-" + payment.id
-                      ? "Processing…"
-                      : "Full refund"}
-                  </button>
-                )}
-              </div>
-            </article>
-          ))}
+                    <Receipt size={16} aria-hidden="true" />
+                    Receipt
+                  </Link>
+                  <RowMenu
+                    label={
+                      "More actions for " +
+                      (payment.reference_number || "payment " + payment.id)
+                    }
+                    // Every row has the menu, so Receipt buttons line up.
+                    items={[
+                      {
+                        key: "copy",
+                        label: "Copy reference",
+                        icon: Copy,
+                        onSelect: () => {
+                          const text =
+                            payment.reference_number ||
+                            "Payment #" + payment.id;
+                          navigator.clipboard
+                            ?.writeText(text)
+                            .then(() => setNotice("Copied " + text + "."))
+                            .catch(() => {});
+                        },
+                      },
+                      canRefund &&
+                        payment.status === "paid" && {
+                          key: "refund",
+                          label:
+                            busy === "refund-" + payment.id
+                              ? "Processing…"
+                              : "Full refund",
+                          icon: Undo2,
+                          tone: "danger",
+                          onSelect: () => {
+                            if (!busy) refund(payment);
+                          },
+                        },
+                    ].filter(Boolean)}
+                  />
+                </div>
+              </article>
+            ) : (
+              <article className="sage-transaction" key={payment.id}>
+                <div>
+                  <h3>
+                    {payment.reference_number || "Payment #" + payment.id}
+                  </h3>
+                  <p>
+                    {payment.order?.order_number ||
+                      payment.reservation?.reference ||
+                      "Dining session " +
+                        (payment.dining_session_id || "—")}{" "}
+                    · {title(payment.purpose)}
+                  </p>
+                  <small>
+                    {title(payment.method)} ·{" "}
+                    {payment.received_by?.name ||
+                      payment.order?.customer_name_snapshot ||
+                      "Online customer"}
+                  </small>
+                </div>
+                <div className="sage-transaction-value">
+                  <strong>{money(payment.amount)}</strong>
+                  <StatusBadge status={payment.status} />
+                </div>
+                <div className="sage-transaction-actions">
+                  <Link
+                    className="sage-button sage-button--secondary"
+                    to={"/payments/" + payment.id + "/receipt"}
+                    onClick={rememberView}
+                    aria-label={
+                      "Receipt for " +
+                      (payment.reference_number || "payment " + payment.id)
+                    }
+                  >
+                    <Receipt size={18} aria-hidden="true" />
+                    Receipt
+                  </Link>
+                  {canRefund && payment.status === "paid" && (
+                    <button
+                      className="sage-button sage-button--danger"
+                      disabled={!!busy}
+                      onClick={() => refund(payment)}
+                    >
+                      {busy === "refund-" + payment.id
+                        ? "Processing…"
+                        : "Full refund"}
+                    </button>
+                  )}
+                </div>
+              </article>
+            ),
+          )}
         </div>
         {meta.last_page > 1 && (
           <nav className="sage-pagination" aria-label="Transaction pages">
@@ -634,6 +1118,9 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
               Previous
             </button>
             <span>
+              {desk && meta.from && meta.to
+                ? `Showing ${meta.from}–${meta.to} of ${meta.total} · `
+                : ""}
               Page {meta.current_page} of {meta.last_page}
             </span>
             <button
@@ -669,7 +1156,7 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
             </h2>
           </div>
           <button
-            className="sage-icon-button"
+            className="sage-icon-button pay-review-close"
             aria-label="Close payment review"
             onClick={closeReview}
             disabled={!!busy}
@@ -677,81 +1164,298 @@ export function PaymentDashboard({ user = { permissions: [] } }) {
             <X size={22} aria-hidden="true" />
           </button>
         </header>
-        <div className="sage-review-body">
-          <p id="payment-review-help">
-            Confirm the balance before recording cash or opening secure hosted
-            checkout. The server verifies the final amount.
-          </p>
-          {current ? (
-            <>
-              <p>{current.detail}</p>
-              {current.kind === "session" && (
-                <ul className="sage-review-orders">
-                  {current.source.orders?.map((order) => (
-                    <li key={order.id || order.order_number}>
-                      <strong>{order.order_number}</strong>
-                      <span>{title(order.status)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <dl className="sage-review-total">
-                <div>
-                  <dt>
-                    {current.kind === "reservation"
-                      ? "Deposit due"
-                      : "Balance due"}
-                  </dt>
-                  <dd>{money(current.balance)}</dd>
-                </div>
-              </dl>
-              {current.paymentPending && (
+        {desk ? (
+          <>
+            <div className="sage-review-body pay-review">
+              <p id="payment-review-help" className="pay-review-help">
+                {current
+                  ? kindLabel(current.kind) + " · " + current.detail
+                  : "Confirm the balance before collecting."}
+              </p>
+              {current ? (
+                <>
+                  <dl className="pay-review-lines">
+                    {current.kind === "session" &&
+                      current.source.orders?.map((order) => (
+                        <div key={order.id || order.order_number}>
+                          <dt>
+                            {order.order_number}
+                            <span>{title(order.status)}</span>
+                          </dt>
+                          <dd>{money(order.total)}</dd>
+                        </div>
+                      ))}
+                    {current.kind === "session" &&
+                      (() => {
+                        const total = (current.source.orders || [])
+                          .filter((order) => order.status !== "cancelled")
+                          .reduce(
+                            (sum, order) => sum + Number(order.total || 0),
+                            0,
+                          );
+                        const paid = total - current.balance;
+                        return paid > 0.004 ? (
+                          <div className="pay-review-paid">
+                            <dt>Already paid</dt>
+                            <dd>−{money(paid)}</dd>
+                          </div>
+                        ) : null;
+                      })()}
+                    <div className="pay-review-due">
+                      <dt>
+                        {current.kind === "reservation"
+                          ? "Deposit due"
+                          : "Balance due"}
+                      </dt>
+                      <dd>{money(current.balance)}</dd>
+                    </div>
+                  </dl>
+                  <fieldset className="pay-review-methods">
+                    <legend>How is it paid?</legend>
+                    {[
+                      [
+                        "cash",
+                        Wallet,
+                        "Cash at the counter",
+                        "Record the cash you received.",
+                      ],
+                      current.kind !== "reservation" && [
+                        "checkout",
+                        CreditCard,
+                        "Online checkout",
+                        "GCash, card or QR Ph on a secure page.",
+                      ],
+                    ]
+                      .filter(Boolean)
+                      .map(([value, Icon, name, hint]) => (
+                        <label
+                          key={value}
+                          data-checked={payMethod === value || undefined}
+                        >
+                          <input
+                            type="radio"
+                            name="pay-method"
+                            value={value}
+                            checked={payMethod === value}
+                            onChange={() => setPayMethod(value)}
+                          />
+                          <Icon size={20} aria-hidden="true" />
+                          <span>
+                            <strong>{name}</strong>
+                            <small>{hint}</small>
+                          </span>
+                        </label>
+                      ))}
+                  </fieldset>
+                  {payMethod === "cash" && (
+                    <div className="pay-review-cash">
+                      <label className="pay-review-cash-field">
+                        <span>Cash received</span>
+                        <span className="pay-review-cash-input">
+                          ₱
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                            value={cashGiven}
+                            placeholder={Number(current.balance).toFixed(2)}
+                            onChange={(event) =>
+                              setCashGiven(event.target.value)
+                            }
+                          />
+                        </span>
+                      </label>
+                      {(() => {
+                        const given =
+                          cashGiven === ""
+                            ? current.balance
+                            : Number(cashGiven);
+                        const short = given < current.balance;
+                        return (
+                          <div
+                            className="pay-review-change"
+                            data-tone={short ? "short" : "good"}
+                            aria-live="polite"
+                          >
+                            <span>{short ? "Short by" : "Change to give"}</span>
+                            <strong>
+                              {money(Math.abs(given - current.balance))}
+                            </strong>
+                          </div>
+                        );
+                      })()}
+                      {/* Quick amounts: exact, then the next round notes. */}
+                      <div
+                        className="pay-review-quick"
+                        role="group"
+                        aria-label="Quick cash amounts"
+                      >
+                        {[
+                          current.balance,
+                          ...[100, 500, 1000].map(
+                            (step) => Math.ceil(current.balance / step) * step,
+                          ),
+                        ]
+                          .filter(
+                            (amount, index, all) =>
+                              amount > 0 && all.indexOf(amount) === index,
+                          )
+                          .slice(0, 4)
+                          .map((amount, index) => (
+                            <button
+                              key={amount}
+                              type="button"
+                              aria-pressed={Number(cashGiven) === amount}
+                              onClick={() => setCashGiven(amount.toFixed(2))}
+                            >
+                              {index === 0 ? "Exact" : money(amount)}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                  {current.paymentPending && (
+                    <Feedback>
+                      A checkout is pending. Refresh the payment status before
+                      collecting another payment.
+                    </Feedback>
+                  )}
+                </>
+              ) : (
                 <Feedback>
-                  A checkout is pending. Refresh the payment status before
-                  collecting another payment.
+                  This balance is no longer in the collection queue. Refresh the
+                  records to confirm whether it has been settled.
                 </Feedback>
               )}
-            </>
-          ) : (
-            <Feedback>
-              This balance is no longer in the collection queue. Refresh the
-              records to confirm whether it has been settled.
-            </Feedback>
-          )}
-          {reviewError && <Feedback>{reviewError}</Feedback>}
-          {uncertain && (
-            <p className="sage-attention-label">
-              The result needs verification. Close this review and check the
-              updated payment records before starting another payment.
-            </p>
-          )}
-        </div>
-        <footer>
-          <button
-            className="sage-button"
-            disabled={
-              !current || !!busy || uncertain || current?.paymentPending
-            }
-            aria-busy={busy === "cash"}
-            onClick={() => settle("cash")}
-          >
-            <Wallet size={20} aria-hidden="true" />
-            {busy === "cash" ? "Recording…" : "Record cash"}
-          </button>
-          {current?.kind !== "reservation" && (
-            <button
-              className="sage-button sage-button--secondary"
-              disabled={
-                !current || !!busy || uncertain || current?.paymentPending
-              }
-              aria-busy={busy === "checkout"}
-              onClick={() => settle("checkout")}
-            >
-              <CreditCard size={20} aria-hidden="true" />
-              {busy === "checkout" ? "Opening checkout…" : "Pay online"}
-            </button>
-          )}
-        </footer>
+              {reviewError && <Feedback>{reviewError}</Feedback>}
+              {uncertain && (
+                <p className="sage-attention-label">
+                  The result needs verification. Close this review and check the
+                  updated payment records before starting another payment.
+                </p>
+              )}
+            </div>
+            <footer className="pay-review-foot">
+              <button
+                type="button"
+                className="sage-button sage-button--secondary"
+                onClick={closeReview}
+                disabled={!!busy}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="sage-button pay-review-confirm"
+                disabled={
+                  !current ||
+                  !!busy ||
+                  uncertain ||
+                  current?.paymentPending ||
+                  (payMethod === "cash" &&
+                    cashGiven !== "" &&
+                    Number(cashGiven) < (current?.balance || 0))
+                }
+                aria-busy={!!busy}
+                onClick={() => settle(payMethod)}
+              >
+                {payMethod === "cash" ? (
+                  <Wallet size={18} aria-hidden="true" />
+                ) : (
+                  <CreditCard size={18} aria-hidden="true" />
+                )}
+                {busy === "cash"
+                  ? "Recording…"
+                  : busy === "checkout"
+                    ? "Opening checkout…"
+                    : payMethod === "cash"
+                      ? "Record " +
+                        (current ? money(current.balance) : "") +
+                        " cash"
+                      : "Open online checkout"}
+              </button>
+            </footer>
+          </>
+        ) : (
+          <>
+            <div className="sage-review-body">
+              <p id="payment-review-help">
+                Confirm the balance before recording cash or opening secure
+                hosted checkout. The server verifies the final amount.
+              </p>
+              {current ? (
+                <>
+                  <p>{current.detail}</p>
+                  {current.kind === "session" && (
+                    <ul className="sage-review-orders">
+                      {current.source.orders?.map((order) => (
+                        <li key={order.id || order.order_number}>
+                          <strong>{order.order_number}</strong>
+                          <span>{title(order.status)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <dl className="sage-review-total">
+                    <div>
+                      <dt>
+                        {current.kind === "reservation"
+                          ? "Deposit due"
+                          : "Balance due"}
+                      </dt>
+                      <dd>{money(current.balance)}</dd>
+                    </div>
+                  </dl>
+                  {current.paymentPending && (
+                    <Feedback>
+                      A checkout is pending. Refresh the payment status before
+                      collecting another payment.
+                    </Feedback>
+                  )}
+                </>
+              ) : (
+                <Feedback>
+                  This balance is no longer in the collection queue. Refresh the
+                  records to confirm whether it has been settled.
+                </Feedback>
+              )}
+              {reviewError && <Feedback>{reviewError}</Feedback>}
+              {uncertain && (
+                <p className="sage-attention-label">
+                  The result needs verification. Close this review and check the
+                  updated payment records before starting another payment.
+                </p>
+              )}
+            </div>
+            <footer>
+              <button
+                className="sage-button"
+                disabled={
+                  !current || !!busy || uncertain || current?.paymentPending
+                }
+                aria-busy={busy === "cash"}
+                onClick={() => settle("cash")}
+              >
+                <Wallet size={20} aria-hidden="true" />
+                {busy === "cash" ? "Recording…" : "Record cash"}
+              </button>
+              {current?.kind !== "reservation" && (
+                <button
+                  className="sage-button sage-button--secondary"
+                  disabled={
+                    !current || !!busy || uncertain || current?.paymentPending
+                  }
+                  aria-busy={busy === "checkout"}
+                  onClick={() => settle("checkout")}
+                >
+                  <CreditCard size={20} aria-hidden="true" />
+                  {busy === "checkout" ? "Opening checkout…" : "Pay online"}
+                </button>
+              )}
+            </footer>
+          </>
+        )}
       </dialog>
     </section>
   );
@@ -854,6 +1558,8 @@ export function PaymentReturn() {
 export function PaymentReceipt() {
   const { paymentId } = useParams();
   const navigate = useNavigate();
+  // Admin desktop: Back and Print sit in a bar above the receipt.
+  const desk = useAdminDesktop();
   const [receipt, setReceipt] = useState(null),
     [error, setError] = useState("");
   useEffect(() => {
@@ -875,7 +1581,7 @@ export function PaymentReceipt() {
     return (
       <section className="welcome">
         <h1>Payment receipt</h1>
-        <Skeleton label="Loading receipt" />
+        <Skeleton label="Loading receipt" layout={{ body: "receipt" }} />
       </section>
     );
   const paid = receipt.status === "paid";
@@ -972,22 +1678,61 @@ export function PaymentReceipt() {
             window.history.length > 1 ? navigate(-1) : navigate("/payments")
           }
         >
-          Back
+          {desk && <ArrowLeft size={16} aria-hidden="true" />}
+          {desk ? "Back to payments" : "Back"}
         </button>
-        <button
-          type="button"
-          className="receipt-print"
-          onClick={printThermalReceipt}
-        >
-          <Printer size={16} aria-hidden="true" />
-          Print receipt
-        </button>
+        {/* Print shows the receipt as on screen; Save PDF names the file
+            after the receipt; the thermal print and a text copy wait in ⋮. */}
+        <div className="receipt-action-group">
+          <button
+            type="button"
+            className="receipt-save"
+            onClick={() =>
+              printReceiptCard(
+                "Receipt " + (receipt.reference || "payment " + paymentId),
+              )
+            }
+          >
+            <Download size={16} aria-hidden="true" />
+            Save PDF
+          </button>
+          <button
+            type="button"
+            className="receipt-print"
+            onClick={() => printReceiptCard()}
+          >
+            <Printer size={16} aria-hidden="true" />
+            Print receipt
+          </button>
+          <RowMenu
+            label="More receipt options"
+            items={[
+              {
+                key: "thermal",
+                label: "Thermal printer (80mm)",
+                icon: Printer,
+                onSelect: printThermalReceipt,
+              },
+              {
+                key: "text",
+                label: "Download text copy",
+                icon: FileText,
+                onSelect: () =>
+                  downloadReceiptText(
+                    receipt,
+                    "Receipt " + (receipt.reference || "payment " + paymentId),
+                  ),
+              },
+            ]}
+          />
+        </div>
       </div>
     </section>
   );
 }
 
 export function PaymentSettings() {
+  const desk = useAdminDesktop();
   const [loading, setLoading] = useState(true),
     [initialError, setInitialError] = useState(""),
     [attempt, setAttempt] = useState(0);
@@ -1060,7 +1805,10 @@ export function PaymentSettings() {
       <section className="welcome">
         <h1>Payment settings</h1>
         {loading ? (
-          <Skeleton label="Loading payment settings" />
+          <Skeleton
+            label="Loading payment settings"
+            layout={{ body: "form", rows: 2 }}
+          />
         ) : (
           <Feedback onRetry={() => setAttempt((value) => value + 1)}>
             {initialError}
@@ -1084,6 +1832,13 @@ export function PaymentSettings() {
       {error && <Feedback>{error}</Feedback>}
       {notice && <Feedback tone="success">{notice}</Feedback>}
       <form className="payment-settings-form" onSubmit={save}>
+        {desk && (
+          <CardHeading
+            icon={Wallet}
+            title="Checkout methods"
+            description="How customers can pay at the counter and online."
+          />
+        )}
         <label className="checkline">
           <input
             type="checkbox"
@@ -1094,7 +1849,11 @@ export function PaymentSettings() {
           />
           Accept cash payments
         </label>
-        <h2>PayMongo Hosted Checkout methods</h2>
+        {desk ? (
+          <h3>PayMongo Hosted Checkout methods</h3>
+        ) : (
+          <h2>PayMongo Hosted Checkout methods</h2>
+        )}
         <p>
           Enable only payment methods that are active for the merchant.
           Test-mode availability can differ from live account eligibility.

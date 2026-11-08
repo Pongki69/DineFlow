@@ -1,0 +1,105 @@
+/* Account deactivated: one calm, centred card on the page background. */
+.dineflow-app .account-off {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--canvas, var(--bg, #f5f7f2));
+}
+.dineflow-app .account-off-card {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(480px, 100%);
+  padding: 36px 32px 28px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgb(16 34 24 / 8%);
+  color: var(--ink);
+  text-align: center;
+}
+.dineflow-app .account-off-brand {
+  margin-bottom: 6px;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.dineflow-app .account-off-brand span {
+  color: #d9822b;
+}
+.dineflow-app .account-off-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: var(--df-status-danger-bg, #fbe9e7);
+  color: var(--df-status-danger-text, #a33a2b);
+}
+.dineflow-app .account-off-card h1 {
+  margin: 0;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.25;
+}
+.dineflow-app .account-off-lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.dineflow-app .account-off-points {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  margin: 6px 0 4px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.dineflow-app .account-off-points li {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--neutral-soft, #eef1ec);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.dineflow-app .account-off-points svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--primary);
+}
+.dineflow-app .account-off-points strong {
+  color: var(--ink);
+}
+.dineflow-app .account-off-actions {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+.dineflow-app .account-off-actions a {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.dineflow-app .account-off-primary {
+  background: var(--primary-fill, var(--primary));
+  color: var(--df-color-on-brand, #fff);
+}
+.dineflow-app .account-off-secondary {
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+.dineflow-app .account-off-actions a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

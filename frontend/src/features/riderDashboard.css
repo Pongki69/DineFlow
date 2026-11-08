@@ -369,8 +369,8 @@
   font-weight: 700;
 }
 .rider-home .rider-next-progress li[aria-current="step"] .rider-step-number {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-fill, var(--primary));
+  border-color: var(--primary-fill, var(--primary));
   color: var(--surface);
 }
 .rider-home .rider-next-progress li[data-complete] {

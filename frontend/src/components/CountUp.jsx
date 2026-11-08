@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
-export function CountUp({ value, decimals = 0 }) {
+// `format` turns the number into text (for example money); by default it
+// shows `decimals` places.
+export function CountUp({ value, decimals = 0, format }) {
   const target = Number(value) || 0;
   const current = useRef(0);
   const [display, setDisplay] = useState(0);
@@ -24,10 +26,14 @@ export function CountUp({ value, decimals = 0 }) {
     return () => cancelAnimationFrame(frame);
   }, [target]);
 
+  const text = (number) =>
+    format
+      ? format(decimals ? number : Math.round(number))
+      : number.toFixed(decimals);
   return (
     <span className="count-up">
-      <span className="sr-only">{target.toFixed(decimals)}</span>
-      <span aria-hidden="true">{display.toFixed(decimals)}</span>
+      <span className="sr-only">{text(target)}</span>
+      <span aria-hidden="true">{text(display)}</span>
     </span>
   );
 }

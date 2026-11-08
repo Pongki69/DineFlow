@@ -36,7 +36,12 @@ const groups = [
     role: "manager",
     scenes: [["manager", "/admin/dashboard", ".admin-freshness"]],
   },
-  { role: "cashier", scenes: [["cashier", "/payments", ".cashier-row"]] },
+  {
+    role: "cashier",
+    scenes: [
+      ["cashier", "/payments", ".cashier-desktop-group li, .cashier-prow-item"],
+    ],
+  },
   {
     role: "kitchen_staff",
     scenes: [["kitchen", "/kitchen", ".sage-kds-ticket"]],
@@ -140,7 +145,21 @@ test("screenshots and layout review of populated production pages", async ({
         }
         await record(name);
         if (name === "cashier") {
-          await page.locator(".cashier-row-button").first().click();
+          if (page.viewportSize().width > 850) {
+            await page
+              .locator(".cashier-desktop-queue button:visible")
+              .filter({ hasNotText: "Online checkout open" })
+              .first()
+              .click();
+            await page
+              .getByRole("button", { name: "Collect payment", exact: true })
+              .click();
+          } else {
+            await page
+              .getByRole("button", { name: /^Collect ₱/ })
+              .first()
+              .click();
+          }
           await expect(page.getByRole("dialog")).toBeVisible();
           await record("cashier-payment-sheet");
           await page.keyboard.press("Escape");

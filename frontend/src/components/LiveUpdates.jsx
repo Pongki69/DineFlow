@@ -1,4 +1,5 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { Radio, RefreshCw } from "lucide-react";
 import { initializeRealtime, privateEcho } from "../realtime";
 import {
@@ -14,8 +15,12 @@ import "./liveUpdates.css";
 // `seamless` (the rider app) applies queued updates by itself once the rider
 // stops touching or scrolling, and shows no bar: pull to refresh covers the
 // manual case.
-export function LiveUpdates({ userId, seamless = false }) {
+export function LiveUpdates({ userId, seamless = false, targetId }) {
   const state = useSyncExternalStore(subscribeLiveState, getLiveState);
+  const [target, setTarget] = useState(null);
+  useEffect(() => {
+    setTarget(targetId ? document.getElementById(targetId) : null);
+  }, [targetId]);
   useEffect(() => {
     if (!seamless || !state.pending) return;
     let timer;
@@ -103,9 +108,9 @@ export function LiveUpdates({ userId, seamless = false }) {
     };
   }, [userId]);
   if (seamless) return null;
-  return (
+  const bar = (
     <div
-      className="live-updates-bar"
+      className={`live-updates-bar${targetId ? " live-updates-bar--compact" : ""}`}
       aria-label="Live updates"
       data-connection={state.connection}
       data-pending={state.pending ? "true" : undefined}
@@ -137,4 +142,5 @@ export function LiveUpdates({ userId, seamless = false }) {
       </button>
     </div>
   );
+  return targetId ? (target ? createPortal(bar, target) : null) : bar;
 }

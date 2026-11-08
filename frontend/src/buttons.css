@@ -1,0 +1,234 @@
+/*
+ * Universal buttons: one look for every app (admin, customer, rider, staff).
+ *
+ * Meaning decides the variant, everywhere:
+ *   primary   — the one confirming action in an area (Confirm, Save, Mark ready)
+ *   secondary — every other action (Reschedule, Receipt, Record cash, Cancel
+ *               in a dialog that only closes it)
+ *   danger    — actions that cancel, refund, remove or turn something off
+ *   danger-solid — the confirm button of a destructive dialog
+ *   ghost     — quiet text actions inside lists
+ *
+ * Use <Button variant="…"> from components/ui.jsx. Older families
+ * (sage-button, admin-button, order-action-button, waiter, public) map onto
+ * the same variants below so they read the same until they are migrated.
+ *
+ * Shape follows the device: pills on phones, 8px corners from 851px up.
+ * Heights and padding stay with each screen, so layouts keep their rhythm.
+ * Loaded last; screens that need a special control (tabs, dispatch tiles,
+ * icon buttons) are excluded rather than overridden.
+ */
+
+.dineflow-app {
+  --df-button-radius: 8px;
+  --df-button-border: color-mix(
+    in srgb,
+    var(--df-color-control-border, #697a66) 48%,
+    var(--border, #ccd7cd)
+  );
+  --df-button-hover: var(--neutral-soft, #f3f5f4);
+  --df-button-danger-solid: var(--df-status-danger-text, #87320c);
+}
+
+@media (max-width: 850px) {
+  .dineflow-app {
+    --df-button-radius: 999px;
+  }
+}
+
+/* Shape and type: every variant. ------------------------------------------ */
+.dineflow-app.df-theme
+  :is(
+    .ui-button,
+    .sage-button,
+    .admin-button--secondary,
+    a.admin-button,
+    .order-action-button,
+    .waiter-primary,
+    .cashier-primary,
+    .waiter-secondary,
+    .cashier-secondary,
+    .public-button
+  ):not(.ui-button--tab, .icon-button, .dispatch-queues > *) {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--df-button-radius);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+/* Primary. ----------------------------------------------------------------- */
+.dineflow-app.df-theme
+  :is(
+    .ui-button--primary,
+    .sage-button:not(.sage-button--secondary, .sage-button--danger),
+    a.admin-button:not(.admin-button--secondary),
+    .order-action-button:not(
+      .order-action-button--cash,
+      .order-action-button--cancel
+    ),
+    .waiter-primary,
+    .cashier-primary,
+    .public-button:not(.public-button--secondary)
+  ):not(.ui-button--tab, .icon-button, .dispatch-queues > *) {
+  border-color: var(--primary-fill, var(--primary));
+  background: var(--primary-fill, var(--primary));
+  box-shadow: none;
+  color: var(--df-color-on-brand, #fff);
+}
+
+.dineflow-app.df-theme
+  :is(
+    .ui-button--primary,
+    .sage-button:not(.sage-button--secondary, .sage-button--danger),
+    a.admin-button:not(.admin-button--secondary),
+    .order-action-button:not(
+      .order-action-button--cash,
+      .order-action-button--cancel
+    ),
+    .waiter-primary,
+    .cashier-primary,
+    .public-button:not(.public-button--secondary)
+  ):not(.ui-button--tab, .icon-button, .dispatch-queues > *):hover:not(
+    :disabled
+  ) {
+  border-color: var(--primary-hover);
+  background: var(--primary-hover);
+  color: var(--df-color-on-brand, #fff);
+}
+
+/* Secondary. --------------------------------------------------------------- */
+.dineflow-app.df-theme
+  :is(
+    .ui-button--secondary,
+    .sage-button--secondary,
+    .admin-button--secondary,
+    .order-action-button--cash,
+    .waiter-secondary,
+    .cashier-secondary,
+    .public-button--secondary
+  ):not(.ui-button--tab, .icon-button, .dispatch-queues > *) {
+  border-color: var(--df-button-border);
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--ink);
+}
+
+.dineflow-app.df-theme
+  :is(
+    .ui-button--secondary,
+    .sage-button--secondary,
+    .admin-button--secondary,
+    .order-action-button--cash,
+    .waiter-secondary,
+    .cashier-secondary,
+    .public-button--secondary
+  ):not(.ui-button--tab, .icon-button, .dispatch-queues > *):hover:not(
+    :disabled
+  ) {
+  border-color: var(--df-color-control-border, #697a66);
+  background: var(--df-button-hover);
+  color: var(--ink);
+}
+
+/* Danger: cancel, refund, remove, deactivate. ------------------------------ */
+.dineflow-app.df-theme
+  :is(
+    .ui-button--danger,
+    .sage-button--danger,
+    .order-action-button--cancel
+  ):not(.icon-button) {
+  border-color: var(--df-status-danger-border);
+  background: var(--surface);
+  box-shadow: none;
+  color: var(--df-status-danger-text);
+}
+
+.dineflow-app.df-theme
+  :is(
+    .ui-button--danger,
+    .sage-button--danger,
+    .order-action-button--cancel
+  ):not(.icon-button):hover:not(:disabled) {
+  border-color: var(--df-status-danger-text);
+  background: var(--df-status-danger-bg);
+  color: var(--df-status-danger-text);
+}
+
+/* Danger solid: the confirm button of a destructive dialog. ----------------- */
+.dineflow-app.df-theme
+  :is(.ui-button--danger-solid, .action-dialog .dialog-confirm--danger) {
+  border-color: var(--df-button-danger-solid);
+  background: var(--df-button-danger-solid);
+  box-shadow: none;
+  color: var(--df-color-on-brand, #fff);
+}
+
+.dineflow-app.df-theme
+  :is(
+    .ui-button--danger-solid,
+    .action-dialog .dialog-confirm--danger
+  ):hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--df-button-danger-solid) 82%, #000);
+  background: color-mix(in srgb, var(--df-button-danger-solid) 82%, #000);
+  color: var(--df-color-on-brand, #fff);
+}
+
+/* Ghost: quiet text actions. ----------------------------------------------- */
+.dineflow-app.df-theme .ui-button.ui-button--ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--primary);
+}
+
+.dineflow-app.df-theme .ui-button.ui-button--ghost:hover:not(:disabled) {
+  background: var(--df-button-hover);
+  color: var(--primary-hover);
+}
+
+/* Disabled: flat, so it never reads as live. Busy buttons keep their look. */
+.dineflow-app.df-theme
+  :is(
+    .ui-button,
+    .sage-button,
+    .admin-button--secondary,
+    a.admin-button,
+    .order-action-button,
+    .waiter-primary,
+    .cashier-primary,
+    .waiter-secondary,
+    .cashier-secondary,
+    .public-button
+  ):not(.ui-button--tab, .icon-button, .dispatch-queues > *):disabled:not(
+    [aria-busy="true"]
+  ) {
+  border-color: transparent;
+  background: var(--df-color-disabled-bg);
+  box-shadow: none;
+  color: var(--df-color-disabled-text);
+  cursor: not-allowed;
+}
+
+/* Keyboard focus: one ring for every button. */
+.dineflow-app.df-theme
+  :is(
+    .ui-button,
+    .sage-button,
+    .admin-button--secondary,
+    a.admin-button,
+    .order-action-button,
+    .waiter-primary,
+    .cashier-primary,
+    .waiter-secondary,
+    .cashier-secondary,
+    .public-button
+  ):focus-visible {
+  outline: 2px solid var(--df-color-focus, #1e4d3a);
+  outline-offset: 2px;
+}

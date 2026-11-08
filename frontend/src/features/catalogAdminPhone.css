@@ -25,8 +25,8 @@
   white-space: nowrap;
 }
 .dineflow-app .catalog-phone-chips button[aria-pressed="true"] {
-  border-color: var(--primary);
-  background: var(--primary);
+  border-color: var(--primary-fill, var(--primary));
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
 }
 .dineflow-app .catalog-phone-chips button[data-inactive] {
@@ -264,8 +264,8 @@
     font-weight: 700;
   }
   .dineflow-app .catalog-phone-add .catalog-phone-add-dish {
-    border-color: var(--primary);
-    background: var(--primary);
+    border-color: var(--primary-fill, var(--primary));
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
   }
   .dineflow-app .catalog-phone-add button:disabled {

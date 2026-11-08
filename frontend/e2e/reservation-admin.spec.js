@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { switchToDarkMode, switchToLightMode } from "./theme.js";
 
 async function login(page) {
   await page.goto("/login");
@@ -44,8 +45,12 @@ async function audit(page) {
 test("audit history paginates through server records and retains readable event details", async ({
   page,
 }, info) => {
+  // /admin/audit is the team activity feed: entries come from /admin/activity.
   const pages = [];
-  await page.route("**/api/v1/admin/audit-logs?*", (route) => {
+  await page.route("**/api/v1/admin/activity/people", (route) =>
+    route.fulfill({ json: { data: [] } }),
+  );
+  await page.route("**/api/v1/admin/activity?*", (route) => {
     const query = new URL(route.request().url()).searchParams;
     const p = Number(query.get("page"));
     pages.push(p);
@@ -58,11 +63,16 @@ test("audit history paginates through server records and retains readable event 
         to: p === 1 ? 20 : 21,
         data: Array.from({ length: p === 1 ? 20 : 1 }, (_, i) => ({
           id: (p - 1) * 20 + i + 1,
-          event: p === 1 ? "business.settings_updated" : "auth.logout",
+          area: p === 1 ? "settings" : "account",
+          summary:
+            p === 1
+              ? "Updated the business settings"
+              : "Signed out of DineFlow",
           created_at: "2026-10-30T04:00:00Z",
-          actor: { name: "Administrator Demo" },
-          subject_type: "App\\Models\\User",
-          subject_id: 2,
+          actor:
+            p === 1
+              ? { name: "Administrator Demo", role: "Administrator" }
+              : { name: "Cashier Demo", role: "Cashier" },
         })),
       },
     });
@@ -76,8 +86,10 @@ test("audit history paginates through server records and retains readable event 
   await expect(
     page.getByText("Showing 21–21 of 21", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("Auth logout", { exact: true })).toBeVisible();
-  await expect(page.getByText("User #2", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Signed out of DineFlow", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Cashier Demo", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Next page", exact: true }),
   ).toBeDisabled();
@@ -87,7 +99,7 @@ test("audit history paginates through server records and retains readable event 
     path: info.outputPath("audit-history.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await audit(page);
 });
 
@@ -123,9 +135,9 @@ test("reservation cards and calendar have useful details and a single filtered e
     path: info.outputPath("my-reservations.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await audit(page);
-  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await switchToLightMode(page);
   await page.goto("/reservations");
   await expect(
     page.getByText("No reservations in this period", { exact: true }),
@@ -133,9 +145,18 @@ test("reservation cards and calendar have useful details and a single filtered e
   await page
     .getByRole("button", { name: "Previous period", exact: true })
     .click();
-  await page
-    .getByRole("combobox", { name: "Reservation status", exact: true })
-    .selectOption("confirmed");
+  // Phones pick the status from a select; larger screens use status chips.
+  const statusSelect = page.getByRole("combobox", {
+    name: "Reservation status",
+    exact: true,
+  });
+  if (await statusSelect.isVisible())
+    await statusSelect.selectOption("confirmed");
+  else
+    await page
+      .getByRole("group", { name: "Reservation status", exact: true })
+      .getByRole("button", { name: /^Confirmed/ })
+      .click();
   await expect(
     page.getByRole("button", { name: "Calendar date", exact: true }),
   ).toBeVisible();
@@ -144,7 +165,7 @@ test("reservation cards and calendar have useful details and a single filtered e
     path: info.outputPath("calendar.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await audit(page);
 });
 
@@ -247,7 +268,7 @@ test("floor objects shrink with zoom, snap to blocks, and show adjacent properti
     path: info.outputPath("floor-editor-2d.png"),
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await switchToDarkMode(page);
   await audit(page);
   await page.getByRole("button", { name: "Preview 3D", exact: true }).click();
   await expect(page.locator(".floor-scene canvas")).toBeVisible();

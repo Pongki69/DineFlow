@@ -1,14 +1,17 @@
 import {
   BellRing,
   Bike,
+  CalendarCheck,
   ChefHat,
   CircleCheck,
   CircleX,
   ClipboardCheck,
   Clock3,
+  LogIn,
   Package,
   Store,
   TriangleAlert,
+  UserX,
   UtensilsCrossed,
 } from "lucide-react";
 
@@ -91,6 +94,43 @@ export function OrderStatusPill({ status, className = "" }) {
       data-tone={tone}
     >
       <Icon size={16} strokeWidth={1.7} aria-hidden="true" />
+      {label}
+    </span>
+  );
+}
+
+// Reservation states on the same Sage status pairs: waiting is amber, booked
+// is green, at the table is teal, done is neutral, called off is red.
+const BOOKING_STATES = {
+  pending: { label: "Pending", icon: Clock3, tone: "pending" },
+  confirmed: { label: "Confirmed", icon: CalendarCheck, tone: "success" },
+  checked_in: { label: "Checked in", icon: LogIn, tone: "progress" },
+  seated: { label: "Seated", icon: UtensilsCrossed, tone: "progress" },
+  completed: { label: "Completed", icon: CircleCheck, tone: "neutral" },
+  cancelled: { label: "Cancelled", icon: CircleX, tone: "danger" },
+  no_show: { label: "No show", icon: UserX, tone: "danger" },
+};
+
+export function reservationStatusTone(status) {
+  return BOOKING_STATES[status]?.tone || "neutral";
+}
+
+export function reservationStatusLabel(status) {
+  return (
+    BOOKING_STATES[status]?.label || String(status || "").replaceAll("_", " ")
+  );
+}
+
+export function ReservationStatusPill({ status, className = "" }) {
+  const state = BOOKING_STATES[status] || BOOKING_STATES.pending;
+  const { label, icon: Icon, tone } = state;
+  return (
+    <span
+      className={`df-status reservation-status ${className}`.trim()}
+      data-state={status}
+      data-tone={tone}
+    >
+      <Icon size={14} strokeWidth={1.8} aria-hidden="true" />
       {label}
     </span>
   );

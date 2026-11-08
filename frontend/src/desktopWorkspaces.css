@@ -1,0 +1,205 @@
+@media (min-width: 1025px) {
+  .dineflow-app :is(.app-sidebar, .admin-sidebar) {
+    padding-top: 24px;
+  }
+
+  .dineflow-app :is(.app-topbar, .admin-topbar) {
+    min-height: 64px;
+    padding-block: 8px;
+  }
+
+  .dineflow-app :is(.app-content, .admin-content) h1 {
+    font-weight: 700;
+  }
+
+  .dineflow-app .orders-workspace--staff {
+    gap: 16px;
+  }
+
+  .dineflow-app .orders-workspace--staff .order-filters {
+    padding: 12px 16px;
+    border-radius: 12px;
+  }
+
+  .dineflow-app
+    .orders-workspace--staff
+    :is(.order-filters select, .orders-clear-filters) {
+    border-radius: 8px;
+  }
+
+  .dineflow-app #main-content .orders-workspace--staff .orders-refresh {
+    min-height: 44px;
+    border-color: var(--control-border);
+    border-radius: 8px;
+    color: var(--ink);
+  }
+}
+
+@media (min-width: 1201px) {
+  .orders-workspace.orders-triage {
+    display: grid;
+    align-items: start;
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(max(min(100%, 440px), 48%), 1fr)
+    );
+  }
+
+  .orders-triage > :not(.orders-triage-queue, .orders-list) {
+    grid-column: 1 / -1;
+  }
+
+  .orders-triage-queue {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--df-shadow-low);
+  }
+
+  .dineflow-app .orders-triage-queue h2 {
+    margin: 0 0 12px;
+    font-size: var(--df-type-lg);
+  }
+
+  .orders-triage-queue ul,
+  .orders-triage-items ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .orders-triage-queue li + li {
+    border-top: 1px solid var(--border);
+  }
+
+  .orders-triage-columns,
+  .orders-triage-row {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1.35fr) minmax(0, 0.75fr) minmax(0, 1.1fr)
+      minmax(0, 0.85fr);
+    align-items: center;
+    gap: 8px;
+    padding: 10px 8px;
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+
+  .orders-triage-columns {
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: var(--df-type-xs);
+    font-weight: 600;
+  }
+
+  .orders-triage-columns > :last-child,
+  .orders-triage-row > :last-child {
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .orders-triage-queue .orders-triage-row {
+    width: 100%;
+    min-height: 52px;
+    margin: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink);
+    font-size: var(--df-type-xs);
+  }
+
+  .orders-triage-row strong,
+  .orders-triage-row small,
+  .orders-triage-items small {
+    display: block;
+  }
+
+  .orders-triage-row small,
+  .orders-triage-items small {
+    color: var(--muted);
+    font-size: var(--df-type-xs);
+    font-weight: 400;
+  }
+
+  .orders-triage-row .df-status {
+    white-space: normal;
+  }
+
+  .orders-triage-queue .orders-triage-row:hover {
+    background: var(--neutral-soft);
+  }
+
+  .orders-triage-queue .orders-triage-row[aria-pressed="true"] {
+    background: var(--primary-soft);
+    box-shadow: inset 3px 0 var(--primary);
+  }
+
+  .orders-triage > .orders-list {
+    position: sticky;
+    top: 16px;
+  }
+
+  .orders-triage .orders-list .order-card {
+    border-radius: 16px;
+    overflow: visible;
+  }
+
+  .orders-triage .orders-list .order-card-summary {
+    display: flex;
+    padding: 20px;
+  }
+
+  .orders-triage .order-card-summary > .order-payment-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 4px 0 0;
+    padding: 12px 0 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .orders-triage .orders-list .order-card-workbench {
+    padding: 16px 20px;
+    border-radius: 0 0 16px 16px;
+  }
+
+  .orders-triage .order-prep-fields {
+    max-width: none;
+  }
+
+  .orders-triage .order-action-buttons {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+
+  .orders-triage
+    .order-action-buttons
+    .order-action-button:not(
+      .order-action-button--cancel,
+      .order-action-button--cash
+    ) {
+    min-height: 48px;
+  }
+
+  .orders-triage-items h3 {
+    margin: 8px 0;
+    font-size: var(--df-type-sm);
+  }
+
+  .orders-triage-items li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    padding-block: 8px;
+    border-top: 1px solid var(--border);
+    overflow-wrap: anywhere;
+  }
+
+  .orders-triage-line-total {
+    max-width: 12ch;
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+}

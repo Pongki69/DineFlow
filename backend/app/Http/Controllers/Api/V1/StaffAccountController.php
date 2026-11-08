@@ -12,6 +12,7 @@ use App\Services\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Validation\Rules\Password;
 
 class StaffAccountController extends Controller
@@ -19,7 +20,7 @@ class StaffAccountController extends Controller
     public function index(): JsonResponse
     {
         $users = User::whereHas('roles', fn ($query) => $query->where('slug', '!=', 'customer'))
-            ->with('roles:id,name,slug')->orderBy('name')->paginate(30);
+            ->with('roles:id,name,slug')->orderBy('name')->paginate(200);
         return response()->json($users);
     }
 
@@ -69,6 +70,22 @@ class StaffAccountController extends Controller
         $audit->record($request->user(), $user->is_active ? 'account.activated' : 'account.deactivated', $user, [], $request);
 
         return response()->json(['id' => $user->id, 'is_active' => $user->is_active]);
+    }
+
+    /** Emails the person a one-time link; the administrator never sees or sets the password. */
+    public function sendPasswordReset(Request $request, User $user, AuditLogService $audit): JsonResponse
+    {
+        abort_unless($user->is_active, 422, 'Reactivate this account before sending a reset link.');
+
+        $status = PasswordBroker::sendResetLink(['email' => $user->email]);
+        if ($status === PasswordBroker::RESET_THROTTLED) {
+            return response()->json(['message' => 'A reset link was sent moments ago. Try again in a minute.'], 429);
+        }
+        abort_unless($status === PasswordBroker::RESET_LINK_SENT, 422, 'The reset link could not be sent.');
+
+        $audit->record($request->user(), 'account.password_reset_sent', $user, [], $request);
+
+        return response()->json(['message' => 'Reset link sent.']);
     }
 
     public function assignRole(Request $request, User $user, AuditLogService $audit): JsonResponse

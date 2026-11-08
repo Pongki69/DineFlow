@@ -7,15 +7,24 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { api } from "./api";
-import { defaultStartPath, visibleNavigation } from "./navigation";
+import {
+  defaultStartPath,
+  managesReservations,
+  visibleNavigation,
+} from "./navigation";
 import { Account } from "./Account";
 import { AppShell } from "./components/AppShell";
 import { RiderScreenSkeleton } from "./components/RiderScreenSkeleton";
 import { AuthScreen } from "./components/AuthScreen";
+import { AccountDeactivated } from "./components/AccountDeactivated";
 import { ConfirmProvider } from "./components/ConfirmProvider";
 import { EmptyState, Feedback, Skeleton } from "./components/ui";
+import { routeSkeletonLayout } from "./components/skeletonLayouts";
 import { MenuBrowser } from "./features/Menu";
 import { useWorkspaceTheme } from "./components/useWorkspaceTheme";
+import { usePublicBrand } from "./components/usePublicBrand";
+import { PublicSkeleton } from "./components/PublicSkeleton";
+import { UtensilsCrossed } from "lucide-react";
 import { signInDestination } from "./components/signInDestination";
 import { RiderDispatchPanel } from "./components/RiderDispatchPanel";
 import { LiveUpdates } from "./components/LiveUpdates";
@@ -200,6 +209,11 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
   const location = useLocation();
   // Phones apply live updates by themselves; pull to refresh is the manual way.
   const compactScreen = useMediaQuery("(max-width: 850px)");
+  // Admin workspace desktops (administrators and managers) show live status
+  // in the top bar.
+  const desktopAdministrator =
+    useMediaQuery("(min-width: 1024px)") &&
+    user.roles.some((role) => ["administrator", "manager"].includes(role));
   // Pull to refresh reopens the page: it loads again behind its own skeleton.
   const [pageRefresh, setPageRefresh] = useState(0);
   useEffect(() => {
@@ -259,11 +273,11 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
     "/my-orders": <OrdersView />,
     "/orders": <OrdersView staff user={user} />,
     "/kitchen": <OrdersView kitchen staff user={user} />,
-    "/admin/users": <StaffAccounts />,
+    "/admin/users": <StaffAccounts user={user} />,
     "/admin/customers": <AdminCustomers />,
     "/admin/audit": <TeamActivity />,
     "/activity": <MyActivity />,
-    "/admin/menu": <MenuAdmin />,
+    "/admin/menu": <MenuAdmin user={user} />,
     "/reserve": <ReservationBooking user={user} />,
     "/my-reservations": <MyReservations />,
     "/reservations": <ReservationCalendar user={user} />,
@@ -306,6 +320,7 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
       <LiveUpdates
         userId={user.id}
         seamless={user.roles.includes("rider") || compactScreen}
+        targetId={desktopAdministrator ? "admin-live-updates-slot" : undefined}
       />
       {signOutError && <Feedback>{signOutError}</Feedback>}
       {user.roles.includes("rider") &&
@@ -339,7 +354,10 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
             ) : customerLoadingVariant ? (
               <CustomerScreenSkeleton variant={customerLoadingVariant} />
             ) : (
-              <Skeleton label="Loading your page" />
+              <Skeleton
+                label="Loading your page"
+                layout={routeSkeletonLayout(location.pathname)}
+              />
             )
           }
         >
@@ -364,6 +382,14 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
                 <Route key={to} path={to} element={screens[to]} />
               ))}
             <Route path="/account" element={screens["/account"]} />
+            {/* Staff who manage reservations: old "My reservations" and
+                "All bookings" links open the Reservations list view. */}
+            {managesReservations(user.permissions) && (
+              <Route
+                path="/my-reservations"
+                element={<Navigate to="/reservations?view=list" replace />}
+              />
+            )}
             <Route
               path="/delivery/:deliveryId/tracking"
               element={<CustomerDeliveryTracking user={user} />}
@@ -404,7 +430,7 @@ function Workspace({ user, onSignOut, onUserUpdated, signOutError }) {
 
 const REPLACED_KEY = "dineflow.signedInElsewhere";
 
-function AppContent() {
+function AppContent({ theme }) {
   useEffect(() => {
     initializeRealtime().catch(() => {});
   }, []);
@@ -440,7 +466,11 @@ function AppContent() {
       .then((data) => setUser(data.user))
       .catch((failure) => {
         if (failure.code === "session_replaced") setReplaced(true);
-        if (!controller.signal.aborted && ![401, 419].includes(failure.status))
+        if (
+          !controller.signal.aborted &&
+          ![401, 419].includes(failure.status) &&
+          failure.code !== "account_deactivated"
+        )
           setError(failure.message);
       })
       .finally(() => {
@@ -448,6 +478,17 @@ function AppContent() {
       });
     return () => controller.abort();
   }, [retry]);
+  // The account was turned off (at sign-in or while in use): sign out
+  // here and explain on its own page.
+  useEffect(() => {
+    const turnedOff = () => {
+      setUser(null);
+      navigate("/account-deactivated", { replace: true });
+    };
+    window.addEventListener("dineflow:account-deactivated", turnedOff);
+    return () =>
+      window.removeEventListener("dineflow:account-deactivated", turnedOff);
+  }, [navigate]);
   // Signed in somewhere else: drop this device back to the sign-in page.
   useEffect(() => {
     const signedOutHere = () => {
@@ -483,13 +524,29 @@ function AppContent() {
     setUser(nextUser);
     navigate(destination, { replace: true });
   }
+  usePublicBrand(!user, theme);
+  // These pages are known before sign-in is checked, so show their shape.
+  const publicShape = {
+    "/": "landing",
+    "/login": "login",
+    "/register": "register",
+    "/forgot-password": "forgot",
+  }[location.pathname];
+  if (!ready && publicShape) return <PublicSkeleton variant={publicShape} />;
   if (!ready)
     return (
-      <main className="boot-screen">
-        <div className="boot-brand">
-          DineFlow<span>.</span>
+      <main className="boot-screen boot-screen--splash">
+        <div role="status" aria-label="Loading your workspace">
+          <span className="brand-mark" aria-hidden="true">
+            <UtensilsCrossed size={28} />
+          </span>
+          <div className="boot-brand">
+            DineFlow<span>.</span>
+          </div>
+          <span className="boot-progress" aria-hidden="true">
+            <i />
+          </span>
         </div>
-        <Skeleton cards={1} label="Loading your workspace" />
       </main>
     );
   if (error)
@@ -510,14 +567,10 @@ function AppContent() {
           onUserUpdated={setUser}
           signOutError={signOutError}
         />
+      ) : location.pathname === "/account-deactivated" ? (
+        <AccountDeactivated />
       ) : location.pathname === "/" ? (
-        <Suspense
-          fallback={
-            <main className="public-loading">
-              <Skeleton label="Loading restaurant" />
-            </main>
-          }
-        >
+        <Suspense fallback={<PublicSkeleton variant="landing" />}>
           <PublicLanding />
         </Suspense>
       ) : (
@@ -550,7 +603,7 @@ export default function App() {
   const { theme } = useWorkspaceTheme();
   return (
     <div className="df-theme dineflow-app" data-df-theme={theme}>
-      <AppContent />
+      <AppContent theme={theme} />
     </div>
   );
 }

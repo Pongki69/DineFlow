@@ -135,6 +135,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/roles', [StaffAccountController::class, 'roles']);
             Route::post('/users', [StaffAccountController::class, 'store']);
             Route::patch('/users/{user}/active', [StaffAccountController::class, 'setActive']);
+            Route::post('/users/{user}/password-reset', [StaffAccountController::class, 'sendPasswordReset'])->middleware('throttle:20,1');
             Route::get('/customers', [\App\Http\Controllers\Api\V1\AdminCustomerController::class, 'index']);
             Route::get('/customers/{user}', [\App\Http\Controllers\Api\V1\AdminCustomerController::class, 'show']);
             Route::delete('/customers/{user}', [\App\Http\Controllers\Api\V1\AdminCustomerController::class, 'destroy']);
@@ -185,6 +186,7 @@ Route::prefix('v1')->group(function (): void {
 
         Route::get('/kitchen/orders', [\App\Http\Controllers\Api\V1\KitchenController::class, 'index'])->middleware('permission:kitchen.orders.view');
         Route::post('/kitchen/orders/{order}/recall', [\App\Http\Controllers\Api\V1\KitchenController::class, 'recall'])->middleware('permission:kitchen.orders.update');
+        Route::patch('/kitchen/orders/{order}/pin', [\App\Http\Controllers\Api\V1\KitchenController::class, 'pin'])->middleware('permission:kitchen.orders.update');
         Route::patch('/kitchen/order-items/{item}/prepared', [\App\Http\Controllers\Api\V1\KitchenController::class, 'prepared'])->middleware('permission:kitchen.orders.update');
         Route::get('/kitchen/menu', [MenuController::class, 'kitchenMenu'])->middleware('permission:kitchen.orders.view');
         Route::patch('/kitchen/menu/{item}/sold-out', [MenuController::class, 'kitchenSoldOut'])->middleware('permission:kitchen.orders.update');

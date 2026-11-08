@@ -173,8 +173,8 @@
   background: var(--muted);
 }
 .reservation-settings-page .reservation-setting-toggle input:checked {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-fill, var(--primary));
+  border-color: var(--primary-fill, var(--primary));
 }
 .reservation-setting-toggle input:checked::before {
   transform: translateX(18px);
@@ -228,7 +228,7 @@
   flex-shrink: 0;
   border: 1px solid var(--primary);
   border-radius: 7px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
   font-size: 13px;
   font-weight: 500;

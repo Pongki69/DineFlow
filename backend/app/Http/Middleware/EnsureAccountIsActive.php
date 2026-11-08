@@ -21,7 +21,7 @@ class EnsureAccountIsActive
                 $request->session()->regenerateToken();
             }
 
-            return response()->json(['message' => 'This account is deactivated.'], 403);
+            return response()->json(['message' => 'This account is deactivated.', 'code' => 'account_deactivated'], 403);
         }
 
         return $next($request);

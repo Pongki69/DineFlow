@@ -54,8 +54,8 @@
   font-weight: 650;
 }
 .dineflow-app #main-content .admin-customers-chips button[aria-pressed="true"] {
-  border-color: var(--primary);
-  background: var(--primary);
+  border-color: var(--primary-fill, var(--primary));
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
 }
 .admin-customers-count {
@@ -349,7 +349,9 @@
 }
 .admin-customer-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 8px;
   padding-top: 4px;
 }
 .dineflow-app .admin-customer-actions button {
@@ -361,6 +363,11 @@
   font-size: 14px;
   font-weight: 700;
 }
+.dineflow-app .admin-customer-actions .admin-customer-reset {
+  border: 1px solid var(--control-border, var(--border));
+  background: var(--surface);
+  color: var(--ink);
+}
 .dineflow-app .admin-customer-actions .admin-customer-danger {
   border: 1px solid #e3b4aa;
   background: var(--surface);
@@ -368,7 +375,7 @@
 }
 .dineflow-app .admin-customer-actions .admin-customer-primary {
   border: 0;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
 }
 @media (max-width: 850px) {
@@ -396,4 +403,104 @@
   border: 0;
   background: #a33a2c;
   color: #fff;
+}
+
+/* Admin desktop customer panel: a little wider, history in tabs, and the
+   account actions pinned to the bottom of the panel. */
+@media (min-width: 1024px) {
+  .admin-customer-layer[data-desk] .admin-customer-sheet {
+    width: min(520px, 100vw);
+  }
+  .admin-customer-layer[data-desk] .admin-customer-body section[hidden] {
+    display: none;
+  }
+  .admin-customer-layer[data-desk] .admin-customer-body {
+    padding: 20px 24px 0;
+  }
+  .dineflow-app .admin-customer-layer[data-desk] .admin-customer-tabs {
+    display: flex;
+    gap: 4px;
+    margin: 0 -24px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dineflow-app .admin-customer-layer[data-desk] .admin-customer-tabs button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    min-height: 0;
+    height: 40px;
+    margin: 0 0 -1px;
+    padding: 0 12px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .dineflow-app
+    .admin-customer-layer[data-desk]
+    .admin-customer-tabs
+    button[aria-selected="true"] {
+    border-bottom-color: var(--primary);
+    color: var(--ink);
+  }
+  .admin-customer-layer[data-desk] .admin-customer-body section > h3 {
+    display: none;
+  }
+  .admin-customer-layer[data-desk] .admin-customer-contact a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .admin-customer-layer[data-desk] .admin-customer-contact a:hover {
+    text-decoration: underline;
+  }
+  .admin-customer-layer[data-desk] .admin-customer-actions {
+    position: sticky;
+    bottom: 0;
+    gap: 8px;
+    margin: 8px -24px 0;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+}
+
+@media (min-width: 1024px) {
+  /* The actions sit at the very bottom even when the history is short. */
+  .admin-customer-layer[data-desk] .admin-customer-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .admin-customer-layer[data-desk] .admin-customer-actions {
+    margin-top: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Customer panel rows: order / pill / amount in fixed columns, so pills
+     end at one line and amounts line up. */
+  .admin-customer-layer[data-desk] .admin-customer-rows li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 128px 92px;
+    align-items: center;
+    gap: 12px;
+  }
+  .admin-customer-layer[data-desk] .admin-customer-rows li > :nth-child(2) {
+    justify-self: end;
+  }
+  .admin-customer-layer[data-desk] .admin-customer-rows li > b {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Bookings and addresses have no amount column. */
+  .admin-customer-layer[data-desk] .admin-customer-rows li:not(:has(> b)) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
 }

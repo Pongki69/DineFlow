@@ -1,0 +1,300 @@
+@media (min-width: 1025px) {
+  .dineflow-app #main-content .sage-kitchen {
+    gap: 14px;
+  }
+
+  .dineflow-app #main-content .sage-kitchen .sage-page-heading {
+    order: -2;
+    align-items: center;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--staff-border);
+  }
+
+  .sage-kitchen .sage-page-heading :is(.eyebrow, p) {
+    display: none;
+  }
+
+  .dineflow-app #main-content .sage-kitchen .sage-page-heading h1 {
+    margin: 0;
+  }
+
+  .dineflow-app #main-content .sage-kitchen .sage-page-heading > .sage-button {
+    min-height: 44px;
+    padding: 7px 12px;
+    border-color: var(--staff-control);
+    border-radius: 8px;
+    color: var(--staff-ink);
+  }
+
+  .dineflow-app #main-content .sage-kitchen .sage-toolbar {
+    order: -1;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px 16px;
+  }
+
+  .dineflow-app #main-content .sage-kitchen .sage-toolbar .sage-field {
+    grid-template-columns: max-content minmax(110px, 1fr);
+    align-items: center;
+    flex-basis: 235px;
+    gap: 10px;
+  }
+
+  .dineflow-app
+    #main-content
+    .sage-kitchen
+    :is(.sage-filter-chips button, .sage-field select) {
+    min-height: 44px;
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+
+  .dineflow-app #main-content .sage-kitchen .sage-filter-chips button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .dineflow-app
+    #main-content
+    .sage-kitchen
+    .sage-filter-chips
+    button[aria-pressed="true"] {
+    border-color: var(--staff-brand);
+    background: var(--primary-soft);
+    color: var(--staff-brand);
+    font-weight: 700;
+  }
+
+  .kitchen-filter-count,
+  .kitchen-stage-heading > span {
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--staff-surface);
+    color: var(--staff-ink);
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sage-kitchen .sage-stat-grid {
+    gap: 10px;
+  }
+
+  .sage-kitchen .sage-stat-grid article {
+    flex-flow: row wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+  }
+
+  .sage-kitchen .sage-stat-grid strong {
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .sage-kitchen .sage-stat-grid small {
+    display: none;
+  }
+
+  .sage-kitchen .kitchen-queue-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+  }
+
+  .sage-kitchen .kitchen-queue-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+
+  .sage-kitchen .kitchen-soldout {
+    max-width: 100%;
+    border-radius: 10px;
+  }
+
+  .sage-kitchen .kitchen-soldout[data-open] {
+    flex-basis: 100%;
+  }
+
+  .dineflow-app #main-content .sage-kitchen .kitchen-soldout-toggle {
+    min-height: 44px;
+  }
+
+  .sage-kitchen .sage-kds-board {
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .sage-kitchen .sage-kds-board[data-stage] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sage-kitchen .sage-kds-column {
+    align-content: start;
+    gap: 0;
+    padding: 0;
+    border: 1px solid var(--staff-border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--staff-surface) 65%, var(--canvas));
+  }
+
+  .sage-kitchen .kitchen-stage-heading {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px;
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--staff-border);
+    border-radius: 13px 13px 0 0;
+    background: var(--staff-panel);
+  }
+
+  .sage-kitchen
+    .sage-kds-column[data-status="ready_to_serve"]
+    .kitchen-stage-heading {
+    background: var(--primary-soft);
+  }
+
+  .sage-kitchen .kitchen-stage-heading > svg {
+    color: var(--staff-brand);
+  }
+
+  .sage-kitchen .kitchen-stage-heading h2 {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .sage-kitchen .kitchen-stage-heading p,
+  .sage-kitchen .kitchen-stage-empty {
+    color: var(--staff-muted);
+    font-size: 13px;
+  }
+
+  .sage-kitchen .kitchen-stage-empty {
+    padding: 16px 12px;
+  }
+
+  .sage-kitchen .kitchen-stage-tickets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    align-items: start;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .sage-kitchen .sage-kds-ticket {
+    border-radius: 10px;
+    box-shadow: none;
+  }
+
+  .sage-kitchen .sage-kds-ticket > header {
+    gap: 8px;
+    padding: 12px 12px 8px;
+  }
+
+  .sage-kitchen .sage-kds-ticket h2 {
+    margin-top: 4px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .sage-kitchen .sage-ticket-age {
+    grid-template-columns: auto auto;
+    gap: 2px 4px;
+  }
+
+  .sage-kitchen .sage-ticket-age svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .sage-kitchen .sage-ticket-age strong {
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sage-kitchen .sage-ticket-state {
+    gap: 5px;
+    padding: 0 12px 8px;
+  }
+
+  .sage-kitchen .sage-ticket-countdown {
+    font-size: 14px;
+  }
+
+  .sage-kitchen .sage-kds-items {
+    padding: 4px 12px;
+  }
+
+  .sage-kitchen .sage-kds-items > li {
+    align-items: baseline;
+    gap: 7px;
+    padding: 7px 0;
+  }
+
+  .sage-kitchen .sage-kds-items strong,
+  .sage-kitchen .sage-item-quantity {
+    min-width: auto;
+    font-size: 15px;
+  }
+
+  .sage-kitchen .sage-ticket-note {
+    margin: 4px 12px 8px;
+    padding: 8px;
+  }
+
+  .sage-kitchen .sage-ticket-prep {
+    padding: 10px 12px;
+  }
+
+  .sage-kitchen .sage-ticket-prep fieldset {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 108px), 1fr));
+    gap: 8px;
+  }
+
+  .dineflow-app
+    #main-content
+    .sage-kitchen
+    .sage-ticket-prep
+    :is(input, select) {
+    min-height: 44px;
+  }
+
+  .sage-kitchen .sage-kds-ticket > footer {
+    padding: 10px 12px 12px;
+    border-top: 1px solid var(--staff-border);
+  }
+
+  .dineflow-app
+    #main-content
+    .sage-kitchen
+    .sage-kds-ticket
+    > footer
+    .sage-button {
+    min-height: 44px;
+    padding: 7px 10px;
+    font-size: 14px;
+    font-weight: 650;
+  }
+
+  .dineflow-app
+    #main-content
+    .sage-kitchen
+    .sage-kds-ticket
+    > footer
+    .sage-button:not(.sage-button--secondary) {
+    min-height: 48px;
+  }
+
+  @container (max-width: 760px) {
+    .sage-kitchen .sage-kds-board {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

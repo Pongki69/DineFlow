@@ -230,11 +230,12 @@ async function serverRequest(page, path, method = "GET", data) {
 test("real pickup order reaches kitchen and cash settlement through redesigned screens", async ({
   browser,
 }, info) => {
+  const viewport = info.project.use.viewport;
   const contexts = await Promise.all([
     browser.newContext(),
     browser.newContext(),
-    browser.newContext(),
-    browser.newContext(),
+    browser.newContext({ viewport }),
+    browser.newContext({ viewport }),
   ]);
   try {
     const [customer, admin, kitchen, cashier] = await Promise.all(
@@ -252,15 +253,46 @@ test("real pickup order reaches kitchen and cash settlement through redesigned s
       })
     ).data;
     await login(admin, "administrator");
-    await serverRequest(admin, `/orders/${order.id}/status`, "PATCH", {
-      status: "confirmed",
+    await admin.setViewportSize({ width: 1440, height: 1000 });
+    await admin.goto("/admin/orders");
+    const queue = admin.getByRole("region", { name: "Order queue" });
+    const row = queue
+      .getByRole("button")
+      .filter({ hasText: order.order_number });
+    await row.press("Enter");
+    await expect(row).toHaveAttribute("aria-pressed", "true");
+    const orderDetails = admin.getByRole("article", {
+      name: `Order ${order.order_number}`,
+      exact: true,
     });
+    await expect(orderDetails.getByText("Demo Noodle Bowl")).toBeVisible();
+    await noOverflow(admin);
+    if (info.project.name === "desktop")
+      await admin.screenshot({ path: info.outputPath("order-triage.png") });
+    await admin.setViewportSize({ width: 850, height: 900 });
+    await expect(queue).toHaveCount(0);
+    await expect(orderDetails).toBeVisible();
+    await admin.setViewportSize({ width: 1440, height: 1000 });
+    await expect(row).toHaveAttribute("aria-pressed", "true");
+    await orderDetails.getByRole("button", { name: "Confirm order" }).click();
+    await expect(
+      orderDetails.getByText("Confirmed", { exact: true }),
+    ).toBeVisible();
     await login(kitchen, "kitchen_staff");
     await kitchen.goto("/kitchen");
     const ticket = kitchen.getByRole("article", {
       name: `Kitchen order ${order.order_number}`,
       exact: true,
     });
+    if (viewport.width >= 1025) {
+      await expect(kitchen.locator(".sage-kds-column")).toHaveCount(3);
+      await noOverflow(kitchen);
+      await kitchen.screenshot({ path: info.outputPath("kitchen-board.png") });
+    } else {
+      await expect(
+        kitchen.locator(".sage-kds-grid").getByRole("article").first(),
+      ).toBeVisible();
+    }
     await ticket
       .getByRole("button", { name: "Start preparing", exact: true })
       .click();
@@ -276,11 +308,26 @@ test("real pickup order reaches kitchen and cash settlement through redesigned s
     ).toBeVisible();
     await login(cashier, "cashier");
     await cashier.goto("/payments");
-    const bill = cashier
-      // Desktop rows, or the phone's slim rows.
-      .locator(".cashier-row, .cashier-prow-item")
-      .filter({ hasText: order.order_number });
-    await bill.getByRole("button", { name: /^Collect/ }).click();
+    if (cashier.viewportSize().width > 850) {
+      const queue = cashier.getByRole("region", { name: /^Open bills/ });
+      await queue
+        .getByRole("button", { name: new RegExp(order.order_number) })
+        .click();
+      const inspector = cashier.getByRole("region", {
+        name: order.order_number,
+      });
+      await expect(
+        inspector.getByRole("table", { name: "Items on this bill" }),
+      ).toBeVisible();
+      await noOverflow(cashier);
+      await cashier.screenshot({ path: info.outputPath("cashier-desk.png") });
+      await inspector.getByRole("button", { name: "Collect payment" }).click();
+    } else {
+      const bill = cashier
+        .locator(".cashier-prow-item")
+        .filter({ hasText: order.order_number });
+      await bill.getByRole("button", { name: /^Collect/ }).click();
+    }
     const review = cashier.getByRole("dialog", {
       name: order.order_number,
       exact: true,

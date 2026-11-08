@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-/** The kitchen display: queue, recently ready tickets, recall and item tick-off. */
+/** The kitchen display: queue, recently ready tickets, recall, pins and item tick-off. */
 class KitchenController extends Controller
 {
     /** Ready tickets stay on the board this long (the "Ready" column). */
@@ -73,6 +73,23 @@ class KitchenController extends Controller
         $audit->record($request->user(), 'order.recalled_to_kitchen', $order, ['order_number' => $order->order_number], $request);
 
         return response()->json(['data' => $order->load('items.addons')]);
+    }
+
+    /**
+     * Pin an open ticket to the top of its column on every kitchen screen, for
+     * what the clock cannot see: a remake, a guest at the counter, a VIP. The
+     * pin clears itself when the ticket leaves the kitchen.
+     */
+    public function pin(Request $request, Order $order, AuditLogService $audit): JsonResponse
+    {
+        $data = $request->validate(['pinned' => ['required', 'boolean']]);
+        abort_unless(in_array($order->status, ['confirmed', 'preparing'], true), 422, 'Only open tickets can be pinned.');
+        // A pin is a kitchen display mark, not an order change: leave updated_at alone.
+        $order->timestamps = false;
+        $order->forceFill(['kitchen_pinned_at' => $data['pinned'] ? ($order->kitchen_pinned_at ?? now()) : null])->save();
+        $audit->record($request->user(), $data['pinned'] ? 'kitchen.ticket_pinned' : 'kitchen.ticket_unpinned', $order, ['order_number' => $order->order_number], $request);
+
+        return response()->json(['data' => ['id' => $order->id, 'kitchen_pinned_at' => $order->kitchen_pinned_at?->toIso8601String()]]);
     }
 
     /** Tick a dish off (or back on) while the ticket is being prepared. */

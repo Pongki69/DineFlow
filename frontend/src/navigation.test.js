@@ -6,6 +6,20 @@ import {
 } from "./navigation";
 
 describe("role-driven navigation", () => {
+  it("keeps My reservations for guests; staff use the Reservations list", () => {
+    const paths = (permissions, roles) =>
+      visibleNavigation(permissions, roles).map(([, , path]) => path);
+    expect(paths(["reservations.view_own"], ["customer"])).toContain(
+      "/my-reservations",
+    );
+    const staff = paths(
+      ["reservations.view_own", "reservations.manage"],
+      ["administrator"],
+    );
+    expect(staff).not.toContain("/my-reservations");
+    expect(staff).toContain("/reservations");
+  });
+
   it("shows staff administration only when the API grants that permission", () => {
     expect(
       visibleNavigation(["dashboard.view", "users.manage"]).map(

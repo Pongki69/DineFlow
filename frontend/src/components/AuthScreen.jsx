@@ -27,6 +27,51 @@ const descriptions = {
   reset: "Choose a strong password to keep your account secure.",
 };
 
+/** The welcome panel beside the sign-in, sign-up and recovery forms. */
+export function AuthStory() {
+  return (
+    <aside className="auth-story" aria-label="Welcome to DineFlow">
+      <a
+        className="auth-wordmark"
+        href="/"
+        aria-label="DineFlow restaurant homepage"
+      >
+        <span className="brand-mark">
+          <UtensilsCrossed size={22} aria-hidden="true" />
+        </span>
+        DineFlow<span className="wordmark-dot">.</span>
+      </a>
+      <div className="auth-story-copy">
+        <span className="eyebrow">MADE FOR GOOD MOMENTS</span>
+        <h2>
+          Less waiting.
+          <br />
+          More savoring.
+        </h2>
+        <p>
+          Your next favorite meal starts here. Discover the menu, find your
+          table, and leave the rest to us.
+        </p>
+        <div className="table-illustration" aria-hidden="true">
+          <div className="plate-orbit orbit-one" />
+          <div className="plate-orbit orbit-two" />
+          <div className="illustration-plate">
+            <UtensilsCrossed size={76} strokeWidth={1} />
+          </div>
+          <span className="illustration-tag">
+            <CalendarDays size={18} />A table for every occasion
+          </span>
+          <i className="table-chair chair-one" />
+          <i className="table-chair chair-two" />
+        </div>
+      </div>
+      <p className="auth-story-footer">
+        Thoughtful dining, from the first click.
+      </p>
+    </aside>
+  );
+}
+
 export function AuthScreen({
   onSignedIn,
   initialMode = "login",
@@ -99,45 +144,7 @@ export function AuthScreen({
   }[mode];
   return (
     <main className="auth-layout">
-      <aside className="auth-story" aria-label="Welcome to DineFlow">
-        <a
-          className="auth-wordmark"
-          href="/"
-          aria-label="DineFlow restaurant homepage"
-        >
-          <span className="brand-mark">
-            <UtensilsCrossed size={22} aria-hidden="true" />
-          </span>
-          DineFlow<span className="wordmark-dot">.</span>
-        </a>
-        <div className="auth-story-copy">
-          <span className="eyebrow">MADE FOR GOOD MOMENTS</span>
-          <h2>
-            Less waiting.
-            <br />
-            More savoring.
-          </h2>
-          <p>
-            Your next favorite meal starts here. Discover the menu, find your
-            table, and leave the rest to us.
-          </p>
-          <div className="table-illustration" aria-hidden="true">
-            <div className="plate-orbit orbit-one" />
-            <div className="plate-orbit orbit-two" />
-            <div className="illustration-plate">
-              <UtensilsCrossed size={76} strokeWidth={1} />
-            </div>
-            <span className="illustration-tag">
-              <CalendarDays size={18} />A table for every occasion
-            </span>
-            <i className="table-chair chair-one" />
-            <i className="table-chair chair-two" />
-          </div>
-        </div>
-        <p className="auth-story-footer">
-          Thoughtful dining, from the first click.
-        </p>
-      </aside>
+      <AuthStory />
       <div className="auth-form-area">
         <a
           className="auth-mobile-brand"
@@ -223,11 +230,7 @@ export function AuthScreen({
             {mode === "login" && (
               <div className="auth-login-preferences">
                 <label className="auth-remember-choice">
-                  <input
-                    type="checkbox"
-                    name="remember"
-                    aria-describedby="remember-device-hint"
-                  />
+                  <input type="checkbox" name="remember" />
                   Remember me
                 </label>
                 <button
@@ -238,10 +241,6 @@ export function AuthScreen({
                 >
                   Forgot password?
                 </button>
-                <small id="remember-device-hint">
-                  Stay signed in for up to 30 days on this browser. Use on your
-                  own device.
-                </small>
               </div>
             )}
             {error && <Feedback>{error}</Feedback>}

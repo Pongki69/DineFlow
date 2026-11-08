@@ -100,4 +100,28 @@ describe("sortTickets", () => {
     ]);
     expect(sorted.map((ticket) => ticket.order.id)).toEqual([3, 4, 1, 5, 2]);
   });
+
+  it("puts pinned tickets above late ones, keeping the usual order among them", () => {
+    const t = (id, priority, created_at, kitchen_pinned_at = null) => ({
+      order: { id, status: "preparing", created_at, kitchen_pinned_at },
+      priority,
+    });
+    const sorted = sortTickets([
+      t(1, "late", "2026-01-01T09:00:00Z"),
+      t(2, "normal", "2026-01-01T10:00:00Z", "2026-01-01T10:30:00Z"),
+      t(3, "normal", "2026-01-01T09:30:00Z"),
+      t(4, "soon", "2026-01-01T10:10:00Z", "2026-01-01T10:20:00Z"),
+      {
+        order: {
+          id: 5,
+          status: "ready_to_serve",
+          created_at: "2026-01-01T08:00:00Z",
+          ready_at: "2026-01-01T10:00:00Z",
+          kitchen_pinned_at: "2026-01-01T09:00:00Z",
+        },
+        priority: "normal",
+      },
+    ]);
+    expect(sorted.map((ticket) => ticket.order.id)).toEqual([4, 2, 1, 3, 5]);
+  });
 });

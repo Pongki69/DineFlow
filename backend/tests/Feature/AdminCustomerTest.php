@@ -83,3 +83,29 @@ it('keeps customer records from staff without account access and hides staff fro
     $this->actingAs($admin)->getJson("/api/v1/admin/customers/{$cashier->id}")->assertNotFound();
     $this->getJson("/api/v1/admin/customers/{$customer->id}")->assertOk();
 });
+
+it('emails a reset link without touching the current password', function () {
+    \Illuminate\Support\Facades\Notification::fake();
+    $admin = customerAdminUser('administrator');
+    $customer = customerAdminUser('customer');
+    $password = $customer->password;
+
+    $this->actingAs($admin)->postJson("/api/v1/admin/users/{$customer->id}/password-reset")->assertOk();
+
+    \Illuminate\Support\Facades\Notification::assertSentTo($customer, \Illuminate\Auth\Notifications\ResetPassword::class);
+    expect($customer->fresh()->password)->toBe($password);
+    $this->assertDatabaseHas('audit_logs', ['event' => 'account.password_reset_sent']);
+});
+
+it('refuses a reset link for deactivated accounts and for staff without access', function () {
+    \Illuminate\Support\Facades\Notification::fake();
+    $admin = customerAdminUser('administrator');
+    $customer = customerAdminUser('customer');
+
+    $this->actingAs(customerAdminUser('cashier'))->postJson("/api/v1/admin/users/{$customer->id}/password-reset")->assertForbidden();
+
+    $customer->forceFill(['is_active' => false])->save();
+    $this->actingAs($admin)->postJson("/api/v1/admin/users/{$customer->id}/password-reset")->assertStatus(422);
+
+    \Illuminate\Support\Facades\Notification::assertNothingSent();
+});

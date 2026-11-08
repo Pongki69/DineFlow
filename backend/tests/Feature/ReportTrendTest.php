@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Order;
+use App\Models\RestaurantSetting;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AuthSeeder;
@@ -42,6 +43,27 @@ it('compares with the previous period and keeps a week-long trend for one day', 
         ->and(collect($data['sales_trend']['days'])->pluck('date')->all())->toBe(['2026-10-29', '2026-11-02', '2026-11-03']);
 });
 
+it('breaks a single day down by business hour and reports the last order', function () {
+    RestaurantSetting::updateOrCreate(['key' => 'business_profile'], ['value' => ['timezone' => 'Asia/Manila']]);
+    reportOrder('2026-11-03 03:10:00', '100.00'); // 11:10 am in Manila
+    reportOrder('2026-11-03 03:40:00', '50.00');  // 11:40 am
+    reportOrder('2026-11-03 10:05:00', '80.00');  // 6:05 pm
+    reportOrder('2026-11-03 11:00:00', '999.00', 'cancelled');
+
+    $data = $this->actingAs(reportManager())->getJson('/api/v1/reports?from=2026-11-03&to=2026-11-03')->assertOk()->json('data');
+
+    expect(collect($data['sales_by_hour'])->map(fn ($row) => [$row['hour'], $row['orders'], (float) $row['gross']])->all())
+        ->toBe([[11, 2, 150.0], [18, 1, 80.0]])
+        ->and($data['last_order_at'])->toStartWith('2026-11-03T10:05:00');
+
+    $later = $this->actingAs(reportManager())->getJson('/api/v1/reports?from=2026-11-05&to=2026-11-05')->assertOk()->json('data');
+    expect($later['sales']['orders'])->toBe(0)
+        ->and($later['last_order_at'])->toStartWith('2026-11-03T10:05:00');
+
+    $week = $this->actingAs(reportManager())->getJson('/api/v1/reports?from=2026-11-01&to=2026-11-07')->assertOk()->json('data');
+    expect($week)->not->toHaveKey('sales_by_hour');
+});
+
 it('uses the range itself as the trend when it is a week or longer', function () {
     reportOrder('2026-11-05 12:00:00', '120.00');
 
@@ -53,7 +75,7 @@ it('uses the range itself as the trend when it is a week or longer', function ()
 });
 
 it('counts orders by the restaurant business day, not by the stored UTC day', function () {
-    App\Models\RestaurantSetting::updateOrCreate(['key' => 'business_profile'], ['value' => ['timezone' => 'Asia/Manila']]);
+    RestaurantSetting::updateOrCreate(['key' => 'business_profile'], ['value' => ['timezone' => 'Asia/Manila']]);
     reportOrder('2026-11-02 20:00:00', '400.00'); // Nov 3, 4:00 am in Manila
     reportOrder('2026-11-03 18:00:00', '70.00');  // Nov 4, 2:00 am in Manila
 

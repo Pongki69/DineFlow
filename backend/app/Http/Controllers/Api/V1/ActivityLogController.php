@@ -49,13 +49,20 @@ class ActivityLogController extends Controller
             'area' => ['nullable', Rule::in(array_keys(ActivityLogPresenter::AREAS))],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
+            // Optional times of day (HH:MM) that narrow the from / to days.
+            'from_time' => ['nullable', 'date_format:H:i'],
+            'to_time' => ['nullable', 'date_format:H:i'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
         $zone = config('app.timezone');
         $query = AuditLog::with(['actor:id,name', 'actor.roles:id,name'])
             ->when($actorId, fn ($q) => $q->where('actor_id', $actorId))
-            ->when($data['from'] ?? null, fn ($q, $from) => $q->where('created_at', '>=', Carbon::parse($from, $zone)->startOfDay()->utc()))
-            ->when($data['to'] ?? null, fn ($q, $to) => $q->where('created_at', '<=', Carbon::parse($to, $zone)->endOfDay()->utc()));
+            ->when($data['from'] ?? null, fn ($q, $from) => $q->where('created_at', '>=', isset($data['from_time'])
+                ? Carbon::parse($from.' '.$data['from_time'], $zone)->utc()
+                : Carbon::parse($from, $zone)->startOfDay()->utc()))
+            ->when($data['to'] ?? null, fn ($q, $to) => $q->where('created_at', '<=', isset($data['to_time'])
+                ? Carbon::parse($to.' '.$data['to_time'], $zone)->endOfMinute()->utc()
+                : Carbon::parse($to, $zone)->endOfDay()->utc()));
         if (! empty($data['area'])) {
             ActivityLogPresenter::whereArea($query, $data['area']);
         }

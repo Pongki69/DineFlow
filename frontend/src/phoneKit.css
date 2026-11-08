@@ -138,7 +138,7 @@
     #main-content
     .bookings-phone-modes
     > button[aria-pressed="true"] {
-    background: var(--primary);
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
   }
   .dineflow-app #main-content .bookings-phone-today {
@@ -182,7 +182,7 @@
     white-space: nowrap;
   }
   .dineflow-app #main-content .admin-tracking-views > a[aria-current="page"] {
-    background: var(--primary);
+    background: var(--primary-fill, var(--primary));
     color: var(--df-color-on-brand, #fff);
   }
   .dineflow-app #main-content .admin-tracking-views > a::after {
@@ -250,9 +250,6 @@
   /* -- Buttons -------------------------------------------------------------- */
   .dineflow-app #main-content :is(.ui-button, .admin-button):not(.icon-button) {
     border-radius: 999px;
-  }
-  .dineflow-app #main-content .bookings-phone-actions .bookings-phone-quiet {
-    border-color: #e3b4aa;
   }
 }
 

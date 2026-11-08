@@ -19,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        \Illuminate\Auth\Notifications\ResetPassword::createUrlUsing(fn (\App\Models\User $user, string $token): string => rtrim((string) config('app.frontend_url'), '/').'/reset-password?token='.urlencode($token).'&email='.urlencode($user->email));
+
         foreach ([\App\Models\Order::class, \App\Models\OrderItem::class, \App\Models\OrderItemAddon::class,
             Delivery::class, RiderProfile::class, \App\Models\DeliveryLocationUpdate::class,
             \App\Models\DispatchOffer::class, \App\Models\DeliveryAssignment::class,

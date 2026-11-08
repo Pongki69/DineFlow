@@ -262,3 +262,32 @@ it('lets kitchen staff mark dishes sold out without other menu access', function
     $this->putJson('/api/v1/menu/items/'.$item->id, ['name' => 'Renamed', 'base_price' => 1])->assertForbidden();
     $this->actingAs(orderingUser('customer'))->patchJson('/api/v1/kitchen/menu/'.$item->id.'/sold-out', ['is_sold_out' => true])->assertForbidden();
 });
+
+it('lets staff search orders and count each status in the current view', function () {
+    $jamie = orderingUser('customer');
+    $jamie->update(['name' => 'Jamie Rivera']);
+    $alex = orderingUser('customer');
+    $alex->update(['name' => 'Alex Santos']);
+    $item = orderableItem();
+    $place = fn (User $customer) => $this->actingAs($customer)->postJson('/api/v1/orders', [
+        'order_type' => 'pickup', 'items' => [['menu_item_id' => $item->id, 'quantity' => 1]],
+    ])->assertCreated()->json('data');
+    $first = $place($jamie);
+    $second = $place($jamie);
+    $other = $place($alex);
+    \App\Models\Order::findOrFail($first['id'])->update(['status' => 'cancelled']);
+    $staff = orderingUser('cashier');
+
+    $this->actingAs($staff)->getJson('/api/v1/orders?search=JAMIE')
+        ->assertOk()->assertJsonCount(2, 'data')
+        ->assertJsonPath('status_counts.cancelled', 1)
+        ->assertJsonPath('status_counts.'.$second['status'], 1);
+    // The counts describe the whole view, so the status tabs keep their numbers.
+    $this->actingAs($staff)->getJson('/api/v1/orders?search=jamie&status=cancelled')
+        ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $first['id'])
+        ->assertJsonPath('status_counts.'.$second['status'], 1);
+    $this->actingAs($staff)->getJson('/api/v1/orders?search='.urlencode($other['order_number']))
+        ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $other['id']);
+    // Wildcards are searched for as typed, not as "match anything".
+    $this->actingAs($staff)->getJson('/api/v1/orders?search='.urlencode('%'))->assertOk()->assertJsonCount(0, 'data');
+});

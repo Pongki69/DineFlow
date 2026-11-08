@@ -46,8 +46,15 @@ export function visibleNavigation(permissions = [], roles = []) {
         permission.split("|").some((value) => granted.has(value))) &&
       (permission !== "customer.account" || isCustomer) &&
       (permission !== "deliveries.assigned" || roles.includes("rider")) &&
-      (path !== "/activity" || roles.some((role) => role !== "customer")),
+      (path !== "/activity" || roles.some((role) => role !== "customer")) &&
+      // Staff who manage reservations find every booking in the
+      // Reservations list view; "My reservations" is for guests.
+      (path !== "/my-reservations" || !managesReservations(permissions)),
   );
+}
+
+export function managesReservations(permissions = []) {
+  return permissions.includes("reservations.manage");
 }
 
 export function navigationGroup(path, roles = []) {

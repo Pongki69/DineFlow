@@ -53,8 +53,8 @@ export function riderStatus(delivery) {
 
 const PRIORITY_RANK = { late: 0, soon: 1, normal: 2 };
 
-// Most urgent first: late, then due soon, then oldest. Ready tickets go
-// last, the most recently finished on top.
+// Most urgent first: tickets the pass pinned, then late, then due soon,
+// then oldest. Ready tickets go last, the most recently finished on top.
 export function sortTickets(tickets) {
   return [...tickets].sort((a, b) => {
     const aReady = a.order.status === "ready_to_serve";
@@ -62,6 +62,9 @@ export function sortTickets(tickets) {
     if (aReady !== bReady) return aReady ? 1 : -1;
     if (aReady)
       return new Date(b.order.ready_at || 0) - new Date(a.order.ready_at || 0);
+    const aPinned = Boolean(a.order.kitchen_pinned_at);
+    const bPinned = Boolean(b.order.kitchen_pinned_at);
+    if (aPinned !== bPinned) return aPinned ? -1 : 1;
     return (
       PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
       new Date(a.order.created_at || 0) - new Date(b.order.created_at || 0)

@@ -122,8 +122,8 @@
   place-items: center;
 }
 .editor-map-controls .editor-tool-toggle[aria-pressed="true"] {
-  border-color: var(--primary, #1f4d3a);
-  background: var(--primary, #1f4d3a);
+  border-color: var(--primary-fill, var(--primary, #1f4d3a));
+  background: var(--primary-fill, var(--primary, #1f4d3a));
   color: var(--df-color-on-brand, #fff);
 }
 .editor-board.is-fullscreen {
@@ -188,8 +188,8 @@
   cursor: default;
 }
 .editor-full-card .editor-full-done {
-  border-color: var(--primary, #1f4d3a);
-  background: var(--primary, #1f4d3a);
+  border-color: var(--primary-fill, var(--primary, #1f4d3a));
+  background: var(--primary-fill, var(--primary, #1f4d3a));
   color: var(--df-color-on-brand, #fff);
 }
 .editor-full-add {
@@ -304,7 +304,7 @@
 .dineflow-app .floor-editor-toolbar .floor-action-primary {
   padding: 0 18px;
   border: 1px solid var(--primary, #1f4d3a);
-  background: var(--primary, #1f4d3a);
+  background: var(--primary-fill, var(--primary, #1f4d3a));
   color: var(--df-color-on-brand, #fff);
 }
 .dineflow-app .floor-editor-toolbar .floor-action-publish {
@@ -506,5 +506,28 @@
     grid-column: auto;
     padding-inline: 6px;
     font-size: 12.5px;
+  }
+}
+
+/* 3D preview: the Full screen switch carries its icon beside the label. */
+.dineflow-app .floor-scene .scene-toolbar-actions .scene-fullscreen-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Floor plans: the legend and the hint always sit above the walls and
+   tables, however the plan is zoomed or panned. */
+.dineflow-app .editor-status-legend,
+.dineflow-app .editor-board-hint {
+  z-index: 60;
+}
+
+/* Full-screen editing: the legend sits beside the Add to layout card. */
+@media (min-width: 851px) {
+  .dineflow-app
+    .editor-board.is-fullscreen:has(.editor-full-card)
+    .editor-status-legend {
+    left: 306px;
   }
 }

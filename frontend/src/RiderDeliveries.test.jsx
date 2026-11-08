@@ -115,6 +115,38 @@ it("keeps loaded work on refresh failure and permits a retry", async () => {
     screen.getByRole("button", { name: "Refresh assignments" }).disabled,
   ).toBe(false);
 });
+it("reorders from the queue card body and still supports the grip's arrow keys", async () => {
+  const deliveries = [row(1), row(2)];
+  mockApi(() => Promise.resolve({ data: deliveries }));
+  mount();
+  const [first, second] = await stopRows();
+  const list = first.closest(".rider-delivery-queue-list");
+  for (const button of [first, second]) {
+    const card = button.parentElement;
+    Object.defineProperties(card, {
+      offsetTop: { get: () => [...list.children].indexOf(card) * 64 },
+      offsetHeight: { value: 64 },
+    });
+  }
+  function pointer(target, type, clientY) {
+    const event = new MouseEvent(type, { bubbles: true, clientY });
+    Object.defineProperties(event, {
+      pointerType: { value: "mouse" },
+      pointerId: { value: 1 },
+    });
+    fireEvent(target, event);
+  }
+  pointer(first.querySelector("strong"), "pointerdown", 20);
+  pointer(list, "pointermove", 112);
+  pointer(list, "pointerup", 112);
+  expect(await stopRows()).toEqual([second, first]);
+  expect(screen.getByText("Stop order changed")).toBeTruthy();
+
+  fireEvent.keyDown(screen.getByRole("button", { name: /Reorder DF-1/ }), {
+    key: "ArrowUp",
+  });
+  expect(await stopRows()).toEqual([first, second]);
+});
 it("locks route edits during saving and preserves the saved drop-off order", async () => {
   const deliveries = [3, 1, 2].map((id) => row(id));
   let saved = [3, 1, 2],

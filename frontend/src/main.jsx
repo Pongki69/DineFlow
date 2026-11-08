@@ -12,6 +12,15 @@ import "./features/orderFoundation.css";
 // Last: the shared phone patterns (search, view switch, tiles, buttons).
 import "./phoneKit.css";
 import "./desktopPolish.css";
+import "./desktopWorkspaces.css";
+// Admin workspace on desktop (1024px and wider): shared system, then pages.
+import "./adminDesktop.css";
+import "./features/adminOverviewDesktop.css";
+import "./features/adminToolsDesktop.css";
+// Very last: one button look for every app (variants, shape, states).
+import "./buttons.css";
+// Thin, softly green scrollbars in every app.
+import "./scrollbars.css";
 
 // No page zoom on phones: iOS Safari ignores user-scalable=no for pinch, so
 // cancel its gesture events. Maps and the floor plan zoom on their own.

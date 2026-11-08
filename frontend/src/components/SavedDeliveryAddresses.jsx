@@ -224,7 +224,7 @@ export default function SavedDeliveryAddresses({ user }) {
                   </Button>
                 )}
                 <Button
-                  variant="secondary"
+                  variant="danger"
                   disabled={busy}
                   onClick={() => remove(address)}
                   aria-label={`Delete ${address.label}`}

@@ -83,17 +83,19 @@ export function RiderStopsList({
     current.active = true;
     current.el.setPointerCapture?.(current.pointerId);
     current.el.style.transition = "none";
-    document.addEventListener("touchmove", blockScroll, { passive: false });
-    // However the touch ends, scrolling comes back.
-    for (const type of ["touchend", "touchcancel"])
-      document.addEventListener(type, stopBlockingScroll, { once: true });
-    navigator.vibrate?.(8);
+    if (current.touch) {
+      document.addEventListener("touchmove", blockScroll, { passive: false });
+      // However the touch ends, scrolling comes back.
+      for (const type of ["touchend", "touchcancel"])
+        document.addEventListener(type, stopBlockingScroll, { once: true });
+      navigator.vibrate?.(8);
+    }
     setDragId(current.id);
   }
 
-  function finish() {
+  function finish(event) {
     const current = press.current;
-    if (!current) return;
+    if (!current || event.pointerId !== current.pointerId) return;
     window.clearTimeout(current.timer);
     press.current = null;
     if (!current.active) return;
@@ -111,7 +113,7 @@ export function RiderStopsList({
 
   function move(event) {
     const current = press.current;
-    if (!current) return;
+    if (!current || event.pointerId !== current.pointerId) return;
     const dy = event.clientY - current.startY;
     const dx = event.clientX - current.startX;
     if (!current.active) {
@@ -159,7 +161,17 @@ export function RiderStopsList({
       <p className="rider-queue-drag-hint">
         Hold and drag a stop to change the order.
       </p>
-      <div className="rider-delivery-queue-list" ref={list}>
+      <div
+        className="rider-delivery-queue-list"
+        ref={list}
+        onPointerMove={move}
+        onPointerUp={finish}
+        onPointerCancel={finish}
+        onLostPointerCapture={finish}
+        onPointerLeave={(event) => {
+          if (!press.current?.active) finish(event);
+        }}
+      >
         {deliveries.map((delivery, index) => {
           const onRoad = ["picked_up", "in_transit"].includes(delivery.status);
           const address = onRoad
@@ -175,7 +187,12 @@ export function RiderStopsList({
               data-stop-id={delivery.id}
               data-dragging={dragging || undefined}
               onPointerDown={(event) => {
-                if (saving || (event.pointerType === "mouse" && event.button))
+                if (
+                  saving ||
+                  press.current ||
+                  event.isPrimary === false ||
+                  (event.pointerType === "mouse" && event.button)
+                )
                   return;
                 const row = event.currentTarget;
                 const box = list.current.getBoundingClientRect();
@@ -189,6 +206,7 @@ export function RiderStopsList({
                   index,
                   el: row,
                   quick,
+                  touch: event.pointerType === "touch",
                   pointerId: event.pointerId,
                   startX: event.clientX,
                   startY: event.clientY,
@@ -199,9 +217,6 @@ export function RiderStopsList({
                   timer: quick ? 0 : window.setTimeout(activate, HOLD_MS),
                 };
               }}
-              onPointerMove={move}
-              onPointerUp={finish}
-              onPointerCancel={finish}
               onClickCapture={(event) => {
                 if (!suppressClick.current) return;
                 suppressClick.current = false;

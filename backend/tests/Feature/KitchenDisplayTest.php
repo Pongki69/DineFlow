@@ -73,6 +73,36 @@ it('lets cooks tick dishes off only on open tickets', function () {
     $this->actingAs($this->customer)->patchJson("/api/v1/kitchen/order-items/{$item->id}/prepared", ['prepared' => true])->assertForbidden();
 });
 
+it('pins an open ticket for every kitchen screen until it leaves the kitchen', function () {
+    $order = kitchenOrder($this);
+    $updated = $order->updated_at;
+    $this->travel(5)->minutes();
+    $this->actingAs($this->kitchen)->patchJson("/api/v1/kitchen/orders/{$order->id}/pin", ['pinned' => true])
+        ->assertOk()->assertJsonPath('data.id', $order->id);
+    $pinnedAt = $order->fresh()->kitchen_pinned_at;
+    expect($pinnedAt)->not->toBeNull()
+        ->and($order->fresh()->updated_at->equalTo($updated))->toBeTrue();
+    expect($this->getJson('/api/v1/kitchen/orders')->json('data.0.kitchen_pinned_at'))->not->toBeNull();
+    $this->assertDatabaseHas('audit_logs', ['event' => 'kitchen.ticket_pinned']);
+
+    // Pinning again keeps the original pin time; unpinning clears it.
+    $this->travel(1)->minutes();
+    $this->patchJson("/api/v1/kitchen/orders/{$order->id}/pin", ['pinned' => true])->assertOk();
+    expect($order->fresh()->kitchen_pinned_at->equalTo($pinnedAt))->toBeTrue();
+    $this->patchJson("/api/v1/kitchen/orders/{$order->id}/pin", ['pinned' => false])->assertOk();
+    expect($order->fresh()->kitchen_pinned_at)->toBeNull();
+
+    // Marking the ticket ready clears the pin, and a ready ticket cannot be pinned.
+    $this->patchJson("/api/v1/kitchen/orders/{$order->id}/pin", ['pinned' => true])->assertOk();
+    $this->patchJson("/api/v1/orders/{$order->id}/status", ['status' => 'preparing'])->assertOk();
+    expect($order->fresh()->kitchen_pinned_at)->not->toBeNull();
+    $this->patchJson("/api/v1/orders/{$order->id}/status", ['status' => 'ready_to_serve'])->assertOk();
+    expect($order->fresh()->kitchen_pinned_at)->toBeNull();
+    $this->patchJson("/api/v1/kitchen/orders/{$order->id}/pin", ['pinned' => true])->assertUnprocessable();
+
+    $this->actingAs($this->customer)->patchJson("/api/v1/kitchen/orders/{$order->id}/pin", ['pinned' => true])->assertForbidden();
+});
+
 it('tells waiters when a dine-in order is ready to serve', function () {
     $waiter = kdsUser('waiter');
     $order = kitchenOrder($this, 'dine_in', ['status' => 'preparing', 'table_number_snapshot' => 'Table 6']);

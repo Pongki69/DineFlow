@@ -31,3 +31,33 @@
 .auth-login-preferences small {
   flex-basis: 100%;
 }
+
+/* Sign-in and recovery: the story panel carries the restaurant's colour. */
+.dineflow-app .production-auth .auth-story {
+  background: var(--admin-secondary, #e8eedd);
+}
+.dineflow-app .production-auth .wordmark-dot {
+  color: var(--primary);
+}
+.dineflow-app .production-auth :is(.auth-story-copy p, .auth-story-footer) {
+  color: var(--df-color-secondary, #3b4f43);
+}
+.dineflow-app .production-auth .plate-orbit {
+  border-color: var(--border);
+}
+.dineflow-app .production-auth .illustration-plate {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface));
+  color: var(--primary);
+}
+.dineflow-app .production-auth .illustration-tag {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--primary);
+}
+.dineflow-app .production-auth .table-chair {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--surface));
+  background: color-mix(in srgb, var(--primary) 35%, var(--surface));
+}
+.dineflow-app .production-auth .password-toggle {
+  color: var(--df-color-secondary, #3b4f43);
+}

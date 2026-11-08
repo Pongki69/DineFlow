@@ -30,9 +30,12 @@ import {
 } from "lucide-react";
 import { api } from "../api";
 import { visibleNavigation, navigationContext } from "../navigation";
+import { adminBrandTheme } from "./brandTheme";
+import { subscribeToLiveChanges } from "../liveUpdates";
 import { adminModuleForPath, adminNavigation } from "./adminNavigation";
 import { Notifications } from "./Notifications";
 import { useMediaQuery } from "./useMediaQuery";
+import { AdminDesktopContext } from "./adminDesk";
 import { RiderPullToRefresh } from "./RiderMobileChrome";
 import "./adminMobile.css";
 import { useWorkspaceTheme } from "./useWorkspaceTheme";
@@ -73,6 +76,62 @@ const detailTitles = {
   "/admin/payment-settings": "Payment settings",
   "/admin/settings": "Reservation settings",
 };
+// Desktop pages carry the name of their sidebar area above the title.
+const moduleContexts = {
+  dashboard: "Dashboard",
+  tracking: "Delivery operations",
+  outlets: "Restaurant setup",
+  orders: "Order management",
+  settings: "System settings",
+};
+const desktopSections = [
+  {
+    key: "service",
+    label: "Service & menu",
+    paths: [
+      "/reserve",
+      "/my-reservations",
+      "/reservations",
+      "/admin/floor-plan",
+      "/admin/menu",
+      "/kitchen",
+      "/service",
+    ],
+  },
+  {
+    key: "finance",
+    label: "Payments & reports",
+    paths: ["/payments", "/cashier/summary", "/reports"],
+  },
+  {
+    key: "people",
+    label: "People & records",
+    paths: ["/admin/users", "/admin/customers", "/admin/audit", "/activity"],
+  },
+];
+// Lists and forms stop at a readable width on wide screens; boards, maps,
+// the dashboards, the menu grid and the floor plan keep the full width.
+const readingPages = new Set([
+  "/admin/orders",
+  "/orders",
+  "/admin/deliveries",
+  "/admin/outlets",
+  "/my-reservations",
+  "/reservations",
+  "/payments",
+  "/cashier/summary",
+  "/admin/users",
+  "/admin/customers",
+  "/admin/audit",
+  "/activity",
+  "/settings",
+  "/account",
+  "/admin/system-settings",
+  "/admin/business-settings",
+  "/admin/settings",
+  "/admin/payment-settings",
+  "/admin/delivery",
+]);
 const searchable = (value) =>
   value
     .normalize("NFD")
@@ -84,8 +143,12 @@ export function AdminShell({ user, onSignOut, children }) {
   // Phones get the app layout the rider workspace uses: alerts in the bottom
   // bar, pull to refresh, and a centred title in a slim top bar.
   const compactScreen = useMediaQuery("(max-width: 850px)");
+  const desktopScreen = useMediaQuery("(min-width: 1024px)");
+  const desktopAdmin = desktopScreen && user.roles.includes("administrator");
+  const [desktopSection, setDesktopSection] = useState(null);
   const { theme, setTheme } = useWorkspaceTheme();
   const [branding, setBranding] = useState("DineFlow");
+  const [brandColor, setBrandColor] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [toolsQuery, setToolsQuery] = useState("");
@@ -98,6 +161,7 @@ export function AdminShell({ user, onSignOut, children }) {
   const toolsButton = useRef(null);
   const restoreToolsFocus = useRef(true);
   const main = useRef(null);
+  const sidebar = useRef(null);
   const location = useLocation();
   const links = visibleNavigation(user.permissions, user.roles);
   const { primary, tools } = adminNavigation(links);
@@ -106,6 +170,18 @@ export function AdminShell({ user, onSignOut, children }) {
   const visibleTools = tools.filter(([label]) =>
     searchWords.every((word) => searchable(label).includes(word)),
   );
+  const pageSection = desktopSections.find((section) =>
+    section.paths.includes(location.pathname),
+  );
+  const activeDesktopSection = pageSection?.key;
+  // The desktop sidebar groups already list every tool, so "More tools" would
+  // repeat them. It stays for phones, managers and a collapsed sidebar.
+  const toolsInSidebar =
+    desktopAdmin &&
+    !collapsed &&
+    tools.every(([, , path]) =>
+      desktopSections.some((section) => section.paths.includes(path)),
+    );
   const current =
     detailTitles[location.pathname] ||
     currentModule?.label ||
@@ -113,6 +189,16 @@ export function AdminShell({ user, onSignOut, children }) {
   const breadcrumbParent = detailTitles[location.pathname]
     ? currentModule
     : null;
+  const pageContext =
+    pageSection?.label ||
+    moduleContexts[currentModule?.key] ||
+    (["/settings", "/account"].includes(location.pathname)
+      ? "Your account"
+      : location.pathname.startsWith("/payments/")
+        ? "Payments & reports"
+        : /^\/(riders|delivery)\//.test(location.pathname)
+          ? "Delivery operations"
+          : null);
   const initials = user.name
     .split(" ")
     .filter(Boolean)
@@ -122,15 +208,81 @@ export function AdminShell({ user, onSignOut, children }) {
     .toUpperCase();
   useEffect(() => {
     const controller = new AbortController();
-    api("/restaurant/branding", { signal: controller.signal })
-      .then((result) => setBranding(result.data?.name || "DineFlow"))
-      .catch(() => {});
-    return () => controller.abort();
+    const load = () =>
+      api("/restaurant/branding", { signal: controller.signal })
+        .then((result) => {
+          setBranding(result.data?.name || "DineFlow");
+          setBrandColor(result.data?.brand_color || "");
+        })
+        .catch(() => {});
+    load();
+    // Saved in System settings, here or on another screen: apply it now.
+    const unsubscribe = subscribeToLiveChanges(load, ["settings"]);
+    window.addEventListener("dineflow:branding-changed", load);
+    // Another open tab may have saved a new colour while this one sat idle.
+    window.addEventListener("focus", load);
+    return () => {
+      controller.abort();
+      unsubscribe();
+      window.removeEventListener("dineflow:branding-changed", load);
+      window.removeEventListener("focus", load);
+    };
   }, []);
+  // The restaurant's colour across the workspace, including panels that
+  // render outside the shell.
+  useEffect(() => {
+    if (!/^#[0-9a-f]{6}$/i.test(brandColor)) return undefined;
+    const vars = Object.entries(adminBrandTheme(brandColor, theme));
+    const targets = [
+      ...document.querySelectorAll(".dineflow-app, .admin-shell"),
+    ];
+    targets.forEach((element) =>
+      vars.forEach(([name, value]) => element.style.setProperty(name, value)),
+    );
+    return () =>
+      targets.forEach((element) =>
+        vars.forEach(([name]) => element.style.removeProperty(name)),
+      );
+  }, [brandColor, theme]);
   useEffect(() => {
     document.title = `${current} · ${branding}`;
   }, [current, branding]);
+  // Desktop: keep the current page visible in the sidebar, clear of the
+  // profile footer, when a long group pushes it below the fold.
   useEffect(() => {
+    if (!desktopScreen) return undefined;
+    const reveal = () =>
+      sidebar.current
+        ?.querySelector('[aria-current="page"]')
+        ?.scrollIntoView({ block: "nearest" });
+    // Follow the list while it settles: a group opening, or the outlet name
+    // arriving, moves the link after the first pass.
+    const frame = requestAnimationFrame(reveal);
+    const resized =
+      typeof ResizeObserver === "function" ? new ResizeObserver(reveal) : null;
+    const watch = () => {
+      for (const child of sidebar.current?.children || [])
+        resized?.observe(child);
+    };
+    const added = new MutationObserver(() => {
+      watch();
+      reveal();
+    });
+    watch();
+    if (sidebar.current) added.observe(sidebar.current, { childList: true });
+    const stop = () => {
+      resized?.disconnect();
+      added.disconnect();
+    };
+    const settle = window.setTimeout(stop, 1500);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(settle);
+      stop();
+    };
+  }, [location.pathname, desktopScreen]);
+  useEffect(() => {
+    setDesktopSection(null);
     main.current?.scrollTo(0, 0);
     window.scrollTo(0, 0);
     const focusTitle = () => {
@@ -166,7 +318,7 @@ export function AdminShell({ user, onSignOut, children }) {
     setToolsOpen(true);
     toolsSearch.current?.focus();
   }
-  function navigation() {
+  function navigation(includeSections = false) {
     return (
       <>
         <Link
@@ -220,7 +372,7 @@ export function AdminShell({ user, onSignOut, children }) {
               </Link>
             );
           })}
-          {tools.length > 0 && (
+          {tools.length > 0 && !(includeSections && toolsInSidebar) && (
             <button
               type="button"
               className={`admin-tools-trigger${tools.some(([, , path]) => path === location.pathname) ? " is-current" : ""}`}
@@ -236,6 +388,53 @@ export function AdminShell({ user, onSignOut, children }) {
             </button>
           )}
         </nav>
+        {desktopAdmin && includeSections && (
+          <nav className="admin-desktop-sections" aria-label="Workspace tools">
+            {desktopSections.map((section) => {
+              const destinations = tools.filter(([, , path]) =>
+                section.paths.includes(path),
+              );
+              if (!destinations.length) return null;
+              const open =
+                (desktopSection ?? activeDesktopSection) === section.key;
+              return (
+                <div className="admin-desktop-section" key={section.key}>
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    aria-controls={`admin-section-${section.key}`}
+                    onClick={() => setDesktopSection(open ? "" : section.key)}
+                  >
+                    <span>{section.label}</span>
+                    <ChevronDown size={16} aria-hidden="true" />
+                  </button>
+                  <div id={`admin-section-${section.key}`} hidden={!open}>
+                    {destinations.map(([label, , path]) => {
+                      const Icon = toolIcons[path] || UsersRound;
+                      return (
+                        <Link
+                          key={path}
+                          to={path}
+                          aria-current={
+                            location.pathname === path ? "page" : undefined
+                          }
+                          onClick={() => setDesktopSection(section.key)}
+                        >
+                          <Icon
+                            size={18}
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                          />
+                          <span>{label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </nav>
+        )}
         <div className="admin-sidebar-bottom">
           <button
             type="button"
@@ -279,7 +478,9 @@ export function AdminShell({ user, onSignOut, children }) {
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <aside className="admin-sidebar">{navigation()}</aside>
+      <aside className="admin-sidebar" ref={sidebar}>
+        {navigation(true)}
+      </aside>
       <dialog
         className="admin-mobile-dialog"
         ref={mobile}
@@ -345,11 +546,15 @@ export function AdminShell({ user, onSignOut, children }) {
             </nav>
           </div>
           <div className="admin-topbar-right">
-            <span className="admin-topbar-status">
-              {user.roles.includes("administrator")
-                ? "Restaurant admin"
-                : "Restaurant manager"}
-            </span>
+            {desktopScreen ? (
+              <div id="admin-live-updates-slot" />
+            ) : (
+              <span className="admin-topbar-status">
+                {user.roles.includes("administrator")
+                  ? "Restaurant admin"
+                  : "Restaurant manager"}
+              </span>
+            )}
             <button
               className="admin-icon-button"
               aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
@@ -378,8 +583,18 @@ export function AdminShell({ user, onSignOut, children }) {
           id="main-content"
           className="admin-content"
           tabIndex={-1}
+          data-page-width={
+            desktopScreen && readingPages.has(location.pathname)
+              ? "reading"
+              : undefined
+          }
         >
-          {children}
+          {desktopScreen && pageContext && (
+            <p className="admin-page-context">{pageContext}</p>
+          )}
+          <AdminDesktopContext.Provider value={desktopScreen}>
+            {children}
+          </AdminDesktopContext.Provider>
         </main>
         <footer className="admin-footer">
           <span>© {new Date().getFullYear()} DineFlow</span>

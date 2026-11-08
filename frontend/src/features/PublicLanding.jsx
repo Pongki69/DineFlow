@@ -224,16 +224,18 @@ export function PublicLanding({ onSignIn }) {
       </a>
       <header className="public-header">
         <Link className="public-brand" to="/" aria-label={`${name} home`}>
-          <span>
-            <UtensilsCrossed size={25} aria-hidden="true" />
+          <span className="brand-mark">
+            <UtensilsCrossed size={22} aria-hidden="true" />
           </span>
           <div className="public-brand-identity">
             <strong>
               DineFlow<i>.</i>
             </strong>
-            <span className="public-restaurant-name" title={name}>
-              {name}
-            </span>
+            {name !== "DineFlow" && (
+              <span className="public-restaurant-name" title={name}>
+                {name}
+              </span>
+            )}
           </div>
         </Link>
         <nav aria-label="Restaurant navigation">
@@ -614,7 +616,9 @@ export function PublicLanding({ onSignIn }) {
       </main>
       <footer className="public-footer">
         <Link className="public-brand" to="/">
-          <UtensilsCrossed size={23} aria-hidden="true" />
+          <span className="brand-mark">
+            <UtensilsCrossed size={20} aria-hidden="true" />
+          </span>
           <strong>
             {name}
             <i>.</i>

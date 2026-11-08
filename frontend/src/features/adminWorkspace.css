@@ -60,7 +60,7 @@
   font-size: inherit;
 }
 .admin-shell :is(button, a, input, select, textarea, summary):focus-visible {
-  outline: 3px solid #4f8c67;
+  outline: 3px solid var(--df-color-focus, #4f8c67);
   outline-offset: 3px;
 }
 .admin-shell button {
@@ -121,7 +121,7 @@
   display: grid;
   place-items: center;
   color: #fff;
-  background: #246b55;
+  background: var(--primary-fill, var(--primary, #246b55));
   flex-shrink: 0;
 }
 .admin-brand strong {
@@ -541,7 +541,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: #fff;
   border: 1px solid transparent;
   padding: 10px 15px;
@@ -964,7 +964,7 @@
   border: 3px solid #fff;
   border-radius: 50%;
   color: #fff;
-  background: #246b55;
+  background: var(--primary-fill, var(--primary, #246b55));
   box-shadow: 0 2px 7px #1e423c40;
   font-size: 15px;
 }
@@ -1770,7 +1770,6 @@
   font-weight: 400;
 }
 .admin-form-body textarea {
-  resize: vertical;
   min-height: 74px;
 }
 .admin-field-pair {

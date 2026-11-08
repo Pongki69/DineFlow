@@ -61,7 +61,7 @@
   box-shadow: 0 2px 8px #20372c40;
 }
 .delivery-endpoint-pin.store span {
-  background: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
 }
 .delivery-endpoint-pin.dropoff span {
   background: #805b21;
@@ -89,7 +89,7 @@
   width: 25px;
   height: 4px;
   border-radius: 4px;
-  background: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
 }
 .delivery-route-caption button {
   border: 0;

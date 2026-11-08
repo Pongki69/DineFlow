@@ -234,6 +234,8 @@ class OrderService
             if ($to === 'confirmed') $locked->confirmed_at = now();
             if ($to === 'completed') $locked->completed_at = now();
             if ($to === 'cancelled') $locked->cancelled_at = now();
+            // A kitchen pin lasts only while the ticket is being cooked.
+            if (! in_array($to, ['confirmed', 'preparing'], true)) $locked->kitchen_pinned_at = null;
             $locked->save();
             $locked->statusHistory()->create(['actor_id' => $actor->id, 'from_status' => $from, 'to_status' => $to, 'note' => $note]);
             if ($locked->order_type === 'delivery') {

@@ -3,19 +3,55 @@ import { Link } from "react-router-dom";
 import {
   Banknote,
   CreditCard,
+  Globe,
   LockKeyhole,
+  Scale,
   Receipt,
+  ReceiptText,
   Smartphone,
+  Undo2,
   Wallet,
 } from "lucide-react";
+import {
+  CardHeading,
+  StatIcon,
+  useAdminDesktop,
+} from "../components/adminDesk";
 import { api } from "../api";
 import { subscribeToLiveChanges } from "../liveUpdates";
 import { Feedback, Skeleton } from "../components/ui";
 import { peso, totalsByMethod } from "./cashierQueue";
+import { CountUp } from "../components/CountUp";
 import "./cashierDesk.css";
 import "./cashierToday.css";
 
 const METHOD_ICONS = { cash: Banknote, card: CreditCard, gcash: Smartphone };
+// Admin desktop: wallets share the phone icon; anything else is "online".
+const methodKind = (method) =>
+  method === "cash"
+    ? "cash"
+    : method === "card"
+      ? "card"
+      : ["gcash", "maya", "grabpay", "shopeepay", "qrph"].includes(method)
+        ? "gcash"
+        : "online";
+const KIND_ICONS = { ...METHOD_ICONS, online: Globe };
+const ACTIVITY_PER_PAGE = 10;
+const ACTIVITY_FILTERS = [
+  ["", "All", () => true],
+  ["paid", "Paid", (payment) => payment.status === "paid"],
+  [
+    "refunded",
+    "Refunded",
+    (payment) => ["refunded", "refund_pending"].includes(payment.status),
+  ],
+  [
+    "issue",
+    "Failed / pending",
+    (payment) =>
+      ["failed", "expired", "cancelled", "pending"].includes(payment.status),
+  ],
+];
 const METHOD_LABELS = {
   gcash: "GCash",
   card: "Card",
@@ -39,9 +75,14 @@ const time = (value) =>
 
 /** Today at the counter: the cash drawer, takings by method and every transaction. */
 export function CashierToday({ user = { permissions: [] } }) {
+  const desk = useAdminDesktop();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const canDrawer = user.permissions?.includes("payments.manage");
+  // Admin desktop: filter by status or method, ten payments a page.
+  const [statusFilter, setStatusFilter] = useState("");
+  const [methodFilter, setMethodFilter] = useState("");
+  const [page, setPage] = useState(1);
   async function load() {
     try {
       const result = await api("/cashier/summary");
@@ -56,6 +97,36 @@ export function CashierToday({ user = { permissions: [] } }) {
     return subscribeToLiveChanges(load);
   }, []);
   const methods = totalsByMethod(data?.recent || []);
+  const recent = data?.recent || [];
+  const statusMatch =
+    ACTIVITY_FILTERS.find(([key]) => key === statusFilter)?.[2] || (() => true);
+  const activity = desk
+    ? recent.filter(
+        (payment) =>
+          statusMatch(payment) &&
+          (!methodFilter || payment.method === methodFilter),
+      )
+    : recent;
+  const pages = Math.max(1, Math.ceil(activity.length / ACTIVITY_PER_PAGE));
+  const at = Math.min(page, pages);
+  const shown = desk
+    ? activity.slice((at - 1) * ACTIVITY_PER_PAGE, at * ACTIVITY_PER_PAGE)
+    : activity;
+  // Admin desktop: money counts up into place.
+  const money = (value) =>
+    desk ? (
+      <CountUp value={Number(value) || 0} decimals={2} format={peso} />
+    ) : (
+      peso(value)
+    );
+  const pickStatus = (value) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+  const pickMethod = (value) => {
+    setMethodFilter((current) => (current === value ? "" : value));
+    setPage(1);
+  };
   return (
     <section className="cashier-today" aria-labelledby="cashier-today-title">
       <header className="cashier-today-head">
@@ -70,30 +141,77 @@ export function CashierToday({ user = { permissions: [] } }) {
             : ""}
         </p>
       </header>
-      {canDrawer && <CashDrawer onChange={load} />}
-      {!data && !error && <Skeleton label="Loading today’s transactions" />}
+      {canDrawer && (data || !desk) && <CashDrawer onChange={load} />}
+      {!data && !error && (
+        <Skeleton
+          label="Loading today’s transactions"
+          layout={{ stats: 3, body: "list", rows: 8, rail: true }}
+        />
+      )}
       {error && <Feedback onRetry={load}>{error}</Feedback>}
       {data && (
         <>
           <div className="cashier-today-totals">
-            <article>
+            <article data-tone="success">
               <small>Received</small>
-              <strong>{peso(data.paid_total)}</strong>
+              <strong>{money(data.paid_total)}</strong>
               <span>{data.payment_count} paid</span>
+              <StatIcon icon={Wallet} />
             </article>
-            <article>
+            <article data-tone="danger">
               <small>Refunded</small>
-              <strong>{peso(data.refund_total)}</strong>
+              <strong>{money(data.refund_total)}</strong>
+              <StatIcon icon={Undo2} />
             </article>
+            {desk && (
+              <article data-tone="progress">
+                <small>Net</small>
+                <strong>
+                  {money(Number(data.paid_total) - Number(data.refund_total))}
+                </strong>
+                <span>Received less refunds</span>
+                <StatIcon icon={Scale} />
+              </article>
+            )}
           </div>
           {methods.length > 0 && (
             <section
               className="cashier-methods"
               aria-label="Received by method"
             >
+              {desk && <h2>Received by method</h2>}
               {methods.map(({ method, total, count }) => {
                 const Icon = METHOD_ICONS[method] || Wallet;
-                return (
+                return desk ? (
+                  <button
+                    key={method}
+                    type="button"
+                    data-method={methodKind(method)}
+                    aria-pressed={methodFilter === method}
+                    title={`Show ${readable(method)} payments`}
+                    onClick={() => pickMethod(method)}
+                  >
+                    <Icon size={16} aria-hidden="true" />
+                    <span>{readable(method)}</span>
+                    <b>{money(total)}</b>
+                    <small>{count}×</small>
+                    {/* Share of the day's takings, in the method's colour. */}
+                    {(() => {
+                      const share = Number(data.paid_total)
+                        ? Math.min(1, Number(total) / Number(data.paid_total))
+                        : 0;
+                      return (
+                        <span
+                          className="cashier-method-share"
+                          aria-hidden="true"
+                        >
+                          <i style={{ width: `${Math.round(share * 100)}%` }} />
+                          <em>{Math.round(share * 100)}%</em>
+                        </span>
+                      );
+                    })()}
+                  </button>
+                ) : (
                   <div key={method}>
                     <Icon size={16} aria-hidden="true" />
                     <span>{readable(method)}</span>
@@ -105,16 +223,88 @@ export function CashierToday({ user = { permissions: [] } }) {
             </section>
           )}
           <section className="cashier-activity" aria-label="Today’s activity">
-            <h2>Activity</h2>
+            {desk ? (
+              <CardHeading
+                icon={ReceiptText}
+                title="Activity"
+                description="Payments recorded today."
+              />
+            ) : (
+              <h2>Activity</h2>
+            )}
+            {desk && recent.length > 0 && (
+              <div className="cashier-activity-filters">
+                <div
+                  className="sage-filter-chips"
+                  role="group"
+                  aria-label="Show payments"
+                >
+                  {ACTIVITY_FILTERS.map(([key, label, match]) => (
+                    <button
+                      key={key || "all"}
+                      type="button"
+                      aria-pressed={statusFilter === key}
+                      onClick={() => pickStatus(key)}
+                    >
+                      {label}
+                      <span className="admin-count">
+                        {
+                          recent.filter(
+                            (payment) =>
+                              match(payment) &&
+                              (!methodFilter ||
+                                payment.method === methodFilter),
+                          ).length
+                        }
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {methodFilter && (
+                  <button
+                    type="button"
+                    className="cashier-clear-method"
+                    onClick={() => pickMethod(methodFilter)}
+                  >
+                    {readable(methodFilter)} only · Show all methods
+                  </button>
+                )}
+              </div>
+            )}
             {data.recent.length === 0 && (
               <p className="cashier-hint">No payments yet today.</p>
             )}
+            {desk && recent.length > 0 && activity.length === 0 && (
+              <p className="cashier-hint">No payments match this filter.</p>
+            )}
+            {desk && shown.length > 0 && (
+              <div className="cashier-activity-head" aria-hidden="true">
+                <span>Time</span>
+                <span>Order</span>
+                <span>Status</span>
+                <span>Amount</span>
+              </div>
+            )}
             <ul>
-              {data.recent.map((payment) => (
+              {shown.map((payment) => (
                 <li key={payment.id} data-status={payment.status}>
                   <span className="cashier-activity-time">
                     {time(payment.paid_at || payment.created_at)}
                   </span>
+                  {desk &&
+                    (() => {
+                      const kind = methodKind(payment.method);
+                      const Icon = KIND_ICONS[kind];
+                      return (
+                        <span
+                          className="cashier-method-icon"
+                          data-method={kind}
+                          aria-hidden="true"
+                        >
+                          <Icon size={16} />
+                        </span>
+                      );
+                    })()}
                   <span className="cashier-activity-main">
                     <strong>
                       {payment.order?.order_number ||
@@ -132,7 +322,7 @@ export function CashierToday({ user = { permissions: [] } }) {
                     <span className="cashier-activity-status">
                       {readable(payment.status)}
                     </span>
-                    {payment.status === "paid" && (
+                    {payment.status === "paid" ? (
                       <Link
                         to={`/payments/${payment.id}/receipt`}
                         aria-label={`Receipt for ${payment.reference_number}`}
@@ -140,11 +330,44 @@ export function CashierToday({ user = { permissions: [] } }) {
                         <Receipt size={14} aria-hidden="true" />
                         Receipt
                       </Link>
+                    ) : (
+                      // Keeps amounts and statuses lined up on every row.
+                      desk && (
+                        <span
+                          className="cashier-receipt-spacer"
+                          aria-hidden="true"
+                        />
+                      )
                     )}
                   </span>
                 </li>
               ))}
             </ul>
+            {desk && pages > 1 && (
+              <nav className="sage-pagination" aria-label="Activity pages">
+                <button
+                  type="button"
+                  className="sage-button sage-button--secondary"
+                  disabled={at <= 1}
+                  onClick={() => setPage(at - 1)}
+                >
+                  Previous
+                </button>
+                <span>
+                  Showing {(at - 1) * ACTIVITY_PER_PAGE + 1}–
+                  {Math.min(at * ACTIVITY_PER_PAGE, activity.length)} of{" "}
+                  {activity.length} · Page {at} of {pages}
+                </span>
+                <button
+                  type="button"
+                  className="sage-button sage-button--secondary"
+                  disabled={at >= pages}
+                  onClick={() => setPage(at + 1)}
+                >
+                  Next
+                </button>
+              </nav>
+            )}
           </section>
         </>
       )}
@@ -154,6 +377,7 @@ export function CashierToday({ user = { permissions: [] } }) {
 
 /** Start a shift with the opening float; close it by counting the drawer. */
 function CashDrawer({ onChange }) {
+  const desk = useAdminDesktop();
   const [state, setState] = useState(null);
   const [error, setError] = useState("");
   const [amount, setAmount] = useState("");
@@ -204,7 +428,8 @@ function CashDrawer({ onChange }) {
     }
   }
   if (!state && !error)
-    return <Skeleton cards={1} label="Loading the cash drawer" />;
+    // Admin desktop: the page's placeholder already has the drawer card.
+    return desk ? null : <Skeleton cards={1} label="Loading the cash drawer" />;
   const shift = state?.current;
   const last = state?.last;
   const counted = Number(amount);

@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Search, UtensilsCrossed } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowUpRight,
+  ChevronDown,
+  RotateCcw,
+  Search,
+  UtensilsCrossed,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "../api";
 import { subscribeToLiveChanges } from "../liveUpdates";
 import { playSound } from "../uiSound";
@@ -92,15 +99,16 @@ export function useScreenWakeLock() {
   return awake;
 }
 
-/** Lets the kitchen mark dishes sold out (or back) without menu admin access. */
-export function KitchenSoldOut({ canUpdate }) {
+/**
+ * The kitchen's dishes and their sold-out switch. KitchenSoldOut loads its own
+ * copy; the admin desktop shares one copy between the panel and the sold-out
+ * strip. Pass enabled=false to skip loading.
+ */
+export function useKitchenMenu(enabled = true) {
   const [items, setItems] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [onlySoldOut, setOnlySoldOut] = useState(false);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const result = await api("/kitchen/menu");
       setItems(result.data || []);
@@ -108,30 +116,12 @@ export function KitchenSoldOut({ canUpdate }) {
     } catch (failure) {
       setError(failure.message);
     }
-  }
+  }, []);
   useEffect(() => {
+    if (!enabled) return undefined;
     load();
     return subscribeToLiveChanges(load, ["menu"]);
-  }, []);
-  const soldOut = items.filter((item) => item.is_sold_out);
-  // Grouped by category in menu order. Rows keep their place when switched,
-  // so a dish never jumps away from the cook's finger.
-  const groups = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const byCategory = new Map();
-    for (const item of items) {
-      if (onlySoldOut && !item.is_sold_out) continue;
-      if (
-        needle &&
-        !`${item.name} ${item.category || ""}`.toLowerCase().includes(needle)
-      )
-        continue;
-      const category = item.category || "Other dishes";
-      if (!byCategory.has(category)) byCategory.set(category, []);
-      byCategory.get(category).push(item);
-    }
-    return [...byCategory];
-  }, [items, query, onlySoldOut]);
+  }, [enabled, load]);
   async function toggle(item) {
     setBusy(item.id);
     setError("");
@@ -152,8 +142,67 @@ export function KitchenSoldOut({ canUpdate }) {
       setBusy(null);
     }
   }
+  return { items, busy, error, load, toggle };
+}
+
+/**
+ * Lets the kitchen mark dishes sold out (or back) without menu admin access.
+ * On the admin desktop (`desk`) the list opens over the board, the button
+ * says how the menu stands, and `manageHref` links to Menu management.
+ */
+export function KitchenSoldOut({ canUpdate, menu, desk = false, manageHref }) {
+  const own = useKitchenMenu(!menu);
+  const { items, busy, error, load, toggle } = menu || own;
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [onlySoldOut, setOnlySoldOut] = useState(false);
+  const root = useRef(null);
+  const soldOut = items.filter((item) => item.is_sold_out);
+  // Grouped by category in menu order. Rows keep their place when switched,
+  // so a dish never jumps away from the cook's finger.
+  const groups = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const byCategory = new Map();
+    for (const item of items) {
+      if (onlySoldOut && !item.is_sold_out) continue;
+      if (
+        needle &&
+        !`${item.name} ${item.category || ""}`.toLowerCase().includes(needle)
+      )
+        continue;
+      const category = item.category || "Other dishes";
+      if (!byCategory.has(category)) byCategory.set(category, []);
+      byCategory.get(category).push(item);
+    }
+    return [...byCategory];
+  }, [items, query, onlySoldOut]);
+  // Admin desktop: the list floats over the board, so Escape or a click
+  // outside puts it away.
+  useEffect(() => {
+    if (!desk || !open) return undefined;
+    const close = (event) => {
+      if (event.type === "keydown") {
+        if (event.key !== "Escape") return;
+        setOpen(false);
+        root.current?.querySelector(".kitchen-soldout-toggle")?.focus();
+        return;
+      }
+      if (!root.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("keydown", close);
+    document.addEventListener("pointerdown", close);
+    return () => {
+      document.removeEventListener("keydown", close);
+      document.removeEventListener("pointerdown", close);
+    };
+  }, [desk, open]);
   return (
-    <section className="kitchen-soldout" data-open={open || undefined}>
+    <section
+      ref={root}
+      className="kitchen-soldout"
+      data-open={open || undefined}
+      data-desk={desk || undefined}
+    >
       <button
         type="button"
         className="kitchen-soldout-toggle"
@@ -163,13 +212,37 @@ export function KitchenSoldOut({ canUpdate }) {
       >
         <UtensilsCrossed size={17} aria-hidden="true" />
         <span>Menu availability</span>
-        {soldOut.length > 0 && (
+        {soldOut.length > 0 ? (
           <b className="kitchen-soldout-count">{soldOut.length} sold out</b>
+        ) : (
+          desk &&
+          items.length > 0 && (
+            <b className="kitchen-soldout-count" data-tone="success">
+              All on sale
+            </b>
+          )
         )}
         <ChevronDown size={18} aria-hidden="true" />
       </button>
       {open && (
         <div id="kitchen-soldout-list" className="kitchen-soldout-panel">
+          {desk && (
+            <header className="kitchen-soldout-head">
+              <div>
+                <h2>Menu availability</h2>
+                <p>
+                  {items.length - soldOut.length} of {items.length} dishes on
+                  sale. Sold-out dishes are hidden from customers.
+                </p>
+              </div>
+              {manageHref && (
+                <Link className="kitchen-soldout-manage" to={manageHref}>
+                  Edit in Menu management
+                  <ArrowUpRight size={15} aria-hidden="true" />
+                </Link>
+              )}
+            </header>
+          )}
           <div className="kitchen-soldout-tools">
             <label className="kitchen-soldout-search">
               <Search size={16} aria-hidden="true" />
@@ -250,5 +323,37 @@ export function KitchenSoldOut({ canUpdate }) {
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Admin desktop: the dishes sold out right now, on the kitchen's control
+ * card, each one click from being back on sale.
+ */
+export function KitchenSoldOutStrip({ menu, canUpdate }) {
+  const soldOut = menu.items.filter((item) => item.is_sold_out);
+  if (!soldOut.length) return null;
+  return (
+    <div className="kitchen-desk-soldout">
+      <h2>Sold out</h2>
+      <ul aria-label="Sold-out dishes">
+        {soldOut.map((item) => (
+          <li key={item.id}>
+            <span>{item.name}</span>
+            {canUpdate && (
+              <button
+                type="button"
+                disabled={menu.busy === item.id}
+                aria-label={`Put ${item.name} back on sale`}
+                onClick={() => menu.toggle(item)}
+              >
+                <RotateCcw size={13} aria-hidden="true" />
+                Back on sale
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

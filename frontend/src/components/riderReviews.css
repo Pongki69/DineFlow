@@ -122,7 +122,6 @@
 .review-comment-input textarea {
   width: 100%;
   padding: 12px;
-  resize: vertical;
   min-height: 88px;
   border: 1px solid #a4b49e;
   border-radius: 10px;

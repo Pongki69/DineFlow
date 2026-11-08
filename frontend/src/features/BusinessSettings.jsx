@@ -13,12 +13,54 @@ import {
   Truck,
   TriangleAlert,
   RefreshCw,
+  UtensilsCrossed,
+  ChevronDown,
 } from "lucide-react";
 import { api } from "../api";
 import { subscribeToLiveChanges } from "../liveUpdates";
 import { Button, Feedback, Field, Skeleton } from "../components/ui";
 import { useSaveDock } from "../components/useSaveDock";
+import { useAdminDesktop } from "../components/adminDesk";
+import { adminBrandTheme, readableBrand } from "../components/brandTheme";
+import { useWorkspaceTheme } from "../components/useWorkspaceTheme";
 import "./businessSettings.css";
+
+const BRAND_PRESETS = [
+  ["#1e4d3a", "Forest"],
+  ["#229159", "Emerald"],
+  ["#0f766e", "Teal"],
+  ["#1d4ed8", "Blue"],
+  ["#6d28d9", "Violet"],
+  ["#b4532a", "Terracotta"],
+  ["#b91c1c", "Crimson"],
+  ["#334155", "Slate"],
+];
+
+/** Type any hex colour; a complete code applies straight away. */
+function BrandHexInput({ value, onChange }) {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  const complete = /^#[0-9a-f]{6}$/i.test(text);
+  return (
+    <input
+      className="business-brand-hex"
+      aria-label="Brand color hex code"
+      aria-invalid={!complete || undefined}
+      maxLength={7}
+      spellCheck={false}
+      autoComplete="off"
+      placeholder="#229159"
+      value={text.toUpperCase()}
+      onChange={(event) => {
+        let next = event.target.value.trim();
+        if (next && !next.startsWith("#")) next = `#${next}`;
+        setText(next);
+        if (/^#[0-9a-f]{6}$/i.test(next)) onChange(next.toLowerCase());
+      }}
+      onBlur={() => setText(value)}
+    />
+  );
+}
 
 function settingsDraft(data) {
   const profile = data.business_profile || {};
@@ -106,6 +148,7 @@ function useBusinessSettings() {
       const next = settingsDraft(result.data);
       setDraft(next);
       setSaved(next);
+      window.dispatchEvent(new CustomEvent("dineflow:branding-changed"));
       setNotice(
         "Business settings saved. New orders use the updated tax and service-charge rates.",
       );
@@ -165,6 +208,8 @@ const relatedSettings = [
 
 export function BusinessSettings() {
   const settings = useBusinessSettings();
+  const desk = useAdminDesktop();
+  const { theme } = useWorkspaceTheme();
   const { pathname } = useLocation();
   const title =
     pathname === "/admin/system-settings"
@@ -211,7 +256,10 @@ export function BusinessSettings() {
       )}
       {notice && <Feedback tone="success">{notice}</Feedback>}
       {loading ? (
-        <Skeleton label="Loading business settings" />
+        <Skeleton
+          label="Loading business settings"
+          layout={{ body: "form", rows: 3 }}
+        />
       ) : (
         draft && (
           <form
@@ -289,29 +337,125 @@ export function BusinessSettings() {
                           }
                           aria-describedby="business-brand-color-hint"
                         />
-                        <span>{draft.brand_color.toUpperCase()}</span>
+                        {desk ? (
+                          <BrandHexInput
+                            value={draft.brand_color}
+                            onChange={(color) => change("brand_color", color)}
+                          />
+                        ) : (
+                          <span>{draft.brand_color.toUpperCase()}</span>
+                        )}
                       </div>
                       <small id="business-brand-color-hint">
                         Choose your restaurant’s primary brand color.
+                        {desk &&
+                          readableBrand(draft.brand_color).toLowerCase() !==
+                            draft.brand_color.toLowerCase() &&
+                          ` It shows as ${readableBrand(draft.brand_color).toUpperCase()} so text stays readable.`}
                       </small>
+                      {desk && (
+                        <div
+                          className="business-brand-presets"
+                          role="group"
+                          aria-label="Suggested colors"
+                        >
+                          {BRAND_PRESETS.map(([color, name]) => (
+                            <button
+                              key={color}
+                              type="button"
+                              title={name}
+                              aria-label={name}
+                              aria-pressed={
+                                draft.brand_color.toLowerCase() === color
+                              }
+                              style={{ backgroundColor: color }}
+                              onClick={() => change("brand_color", color)}
+                            >
+                              {draft.brand_color.toLowerCase() === color && (
+                                <Check size={14} aria-hidden="true" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div
-                      className="business-brand-preview"
-                      style={{ borderTopColor: draft.brand_color }}
-                      aria-label="Brand preview"
-                    >
-                      <span
-                        className="business-brand-swatch"
-                        style={{ backgroundColor: draft.brand_color }}
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <strong>
-                          {draft.restaurant_name || "Your restaurant"}
-                        </strong>
-                        <small>Brand preview</small>
+                    {desk ? (
+                      <div
+                        className="business-brand-live"
+                        style={adminBrandTheme(draft.brand_color, theme)}
+                        aria-label="Preview of your brand color"
+                      >
+                        <div className="business-brand-live-side">
+                          <span className="business-brand-live-logo">
+                            <UtensilsCrossed size={15} aria-hidden="true" />
+                          </span>
+                          <strong>
+                            {draft.restaurant_name || "Your restaurant"}
+                          </strong>
+                          <span data-active>Dashboard</span>
+                          <span>Orders</span>
+                          <span>Menu</span>
+                        </div>
+                        <div className="business-brand-live-main">
+                          <small>Live preview</small>
+                          <div>
+                            <span className="business-brand-live-primary">
+                              Save changes
+                            </span>
+                            <span className="business-brand-live-secondary">
+                              Cancel
+                            </span>
+                          </div>
+                          <div>
+                            <span
+                              className="business-brand-live-chip"
+                              data-active
+                            >
+                              All 12
+                            </span>
+                            <span className="business-brand-live-chip">
+                              Pending 3
+                            </span>
+                          </div>
+                          <div>
+                            <span className="business-brand-live-select">
+                              All areas
+                              <ChevronDown size={14} aria-hidden="true" />
+                            </span>
+                            <span className="business-brand-live-link">
+                              View details
+                            </span>
+                          </div>
+                          <div
+                            className="business-brand-split"
+                            role="img"
+                            aria-label="Palette: 60 percent backgrounds, 30 percent panels and dropdowns, 10 percent accent"
+                          >
+                            <i data-part="60">60</i>
+                            <i data-part="30">30</i>
+                            <i data-part="10">10</i>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div
+                        className="business-brand-preview"
+                        style={{ borderTopColor: draft.brand_color }}
+                        aria-label="Brand preview"
+                      >
+                        <span
+                          className="business-brand-swatch"
+                          style={{ backgroundColor: draft.brand_color }}
+                          aria-hidden="true"
+                        />
+                        <div>
+                          <strong>
+                            {draft.restaurant_name || "Your restaurant"}
+                          </strong>
+                          <small>Brand preview</small>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </fieldset>
                 <fieldset

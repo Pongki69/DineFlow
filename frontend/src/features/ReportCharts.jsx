@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BarChart3 } from "lucide-react";
+import { DeskIcon } from "../components/adminDesk";
 import "./reportCharts.css";
 
 // Categorical colours come from CSS (--report-series-1..4, validated for
@@ -25,6 +27,15 @@ export function niceTicks(max) {
   const step =
     [1, 2, 2.5, 5, 10].map((m) => m * power).find((s) => s >= rough) ||
     10 * power;
+  const ticks = [];
+  for (let value = 0; value < max + step; value += step) ticks.push(value);
+  return ticks;
+}
+
+/** Whole-number axis ticks from 0 to just above `max`: 3–5 steps. */
+function wholeTicks(max) {
+  if (!(max > 0)) return [0];
+  const step = Math.max(1, Math.ceil(max / 4));
   const ticks = [];
   for (let value = 0; value < max + step; value += step) ticks.push(value);
   return ticks;
@@ -102,19 +113,46 @@ function useWidth() {
   return [ref, width];
 }
 
-/** A column for each day's order gross, with a tooltip per day. */
-export function SalesTrend({ rows, span = null }) {
+// 13 -> "1 PM"; 0 -> "12 AM".
+const hourLabel = (hour) =>
+  `${((hour + 11) % 12) + 1} ${hour % 24 < 12 ? "AM" : "PM"}`;
+
+/**
+ * A column for each day's (or, with bucket="hour", each hour's) order gross,
+ * with a tooltip per column.
+ */
+export function SalesTrend({
+  rows,
+  span = null,
+  bucket = "day",
+  action = null,
+  // "gross" (order gross, pesos) or "orders" (how many orders).
+  measure = "gross",
+}) {
+  const counting = measure === "orders";
+  const tickText = counting
+    ? (value) => String(Math.round(value))
+    : compactPeso;
+  const amount = counting
+    ? (value) => `${value} ${value === 1 ? "order" : "orders"}`
+    : peso;
   const [ref, width] = useWidth();
   const [active, setActive] = useState(null);
+  const hourly = bucket === "hour";
+  const weekly = bucket === "week";
   const days = rows.map((row) => ({
-    date: row.date,
+    date: hourly ? row.hour : row.date,
     gross: Number(row.gross || 0),
     orders: Number(row.orders || 0),
+    value: Number((counting ? row.orders : row.gross) || 0),
   }));
   if (days.length < 2) return null;
   const height = 190;
   const pad = { top: 12, right: 8, bottom: 26, left: 44 };
-  const ticks = niceTicks(Math.max(...days.map((d) => d.gross)));
+  // Counts step in whole numbers (never 2.5 orders).
+  const ticks = counting
+    ? wholeTicks(Math.max(...days.map((d) => d.value)))
+    : niceTicks(Math.max(...days.map((d) => d.value)));
   const top = ticks.at(-1) || 1;
   const plotW = Math.max(0, width - pad.left - pad.right);
   const plotH = height - pad.top - pad.bottom;
@@ -122,37 +160,62 @@ export function SalesTrend({ rows, span = null }) {
   const barW = Math.max(4, Math.min(24, band * 0.6));
   const y = (value) => pad.top + plotH - (value / top) * plotH;
   const label = (date) =>
-    new Date(`${date}T12:00:00`).toLocaleDateString([], {
-      month: "short",
-      day: "numeric",
-    });
+    hourly
+      ? hourLabel(date)
+      : new Date(`${date}T12:00:00`).toLocaleDateString([], {
+          month: "short",
+          day: "numeric",
+        });
+  // The tooltip names the whole hour ("1 PM – 2 PM") or week.
+  const longLabel = (date) =>
+    hourly
+      ? `${hourLabel(date)} – ${hourLabel(date + 1)}`
+      : weekly
+        ? `Week of ${label(date)}`
+        : label(date);
   const every = Math.max(
     1,
     Math.ceil(days.length / Math.max(1, Math.floor(plotW / 48))),
   );
   const picked = active === null ? null : days[active];
-  const total = days.reduce((sum, d) => sum + d.gross, 0);
+  const total = days.reduce((sum, d) => sum + d.value, 0);
   // The highest day gets its value over the column and a note in the header.
   const best = days.reduce(
-    (top, day, index) => (day.gross > (days[top]?.gross ?? 0) ? index : top),
+    (top, day, index) => (day.value > (days[top]?.value ?? 0) ? index : top),
     -1,
   );
   return (
     <figure className="report-trend">
       <figcaption>
-        <h3>Sales by day</h3>
+        <DeskIcon icon={BarChart3} />
+        <h3>
+          {counting ? "Orders" : "Sales"}{" "}
+          {hourly ? "by hour" : weekly ? "by week" : "by day"}
+        </h3>
         <small>
-          {span || `${days.length} days`} · {peso(total)} order gross
-          {best >= 0 && <> · Best {label(days[best].date)}</>}
+          {span ||
+            (hourly
+              ? "This day"
+              : `${days.length} ${weekly ? "weeks" : "days"}`)}{" "}
+          · {counting ? amount(total) : `${peso(total)} order gross`}
+          {best >= 0 && (
+            <>
+              {" "}
+              · {hourly ? "Busiest" : "Best"}{" "}
+              {weekly ? longLabel(days[best].date) : label(days[best].date)}
+            </>
+          )}
         </small>
+        {action}
       </figcaption>
       <div className="report-trend-plot" ref={ref}>
         {width > 0 && (
           <svg
             width={width}
             height={height}
-            role="img"
-            aria-label={`Order gross per day, ${label(days[0].date)} to ${label(days.at(-1).date)}`}
+            // A group, not one image: each day below is reachable on its own.
+            role="group"
+            aria-label={`Order gross per ${hourly ? "hour" : weekly ? "week" : "day"}, ${label(days[0].date)} to ${label(days.at(-1).date)}`}
             onMouseLeave={() => setActive(null)}
           >
             {ticks.map((tick) => (
@@ -164,13 +227,13 @@ export function SalesTrend({ rows, span = null }) {
                   y2={y(tick)}
                 />
                 <text x={pad.left - 8} y={y(tick)} dy="0.32em" textAnchor="end">
-                  {compactPeso(tick)}
+                  {tickText(tick)}
                 </text>
               </g>
             ))}
             {days.map((day, index) => {
               const x = pad.left + band * index + (band - barW) / 2;
-              const h = Math.max(0, y(0) - y(day.gross));
+              const h = Math.max(0, y(0) - y(day.value));
               const r = Math.min(4, h, barW / 2);
               const base = y(0);
               // Rounded data end at the top, square at the baseline.
@@ -196,7 +259,7 @@ export function SalesTrend({ rows, span = null }) {
                       y={base - h - 6}
                       textAnchor="middle"
                     >
-                      {compactPeso(day.gross)}
+                      {tickText(day.value)}
                     </text>
                   )}
                   {index % every === 0 && (
@@ -217,7 +280,8 @@ export function SalesTrend({ rows, span = null }) {
                     height={plotH}
                     fill="transparent"
                     tabIndex={0}
-                    aria-label={`${label(day.date)}: ${peso(day.gross)}, ${day.orders} orders`}
+                    role="img"
+                    aria-label={`${longLabel(day.date)}: ${amount(day.value)}${counting ? "" : `, ${day.orders} orders`}`}
                     onMouseEnter={() => setActive(index)}
                     onFocus={() => setActive(index)}
                     onBlur={() => setActive(null)}
@@ -244,17 +308,109 @@ export function SalesTrend({ rows, span = null }) {
                 Math.max(pad.left + band * active + band / 2, 70),
                 width - 70,
               ),
-              top: Math.max(0, y(picked.gross) - 8),
+              top: Math.max(0, y(picked.value) - 8),
             }}
           >
-            <strong>{label(picked.date)}</strong>
-            <span>{peso(picked.gross)}</span>
-            <small>
-              {picked.orders} {picked.orders === 1 ? "order" : "orders"}
-            </small>
+            <strong>{longLabel(picked.date)}</strong>
+            <span>{amount(picked.value)}</span>
+            {!counting && (
+              <small>
+                {picked.orders} {picked.orders === 1 ? "order" : "orders"}
+              </small>
+            )}
           </div>
         )}
       </div>
+    </figure>
+  );
+}
+
+/**
+ * One whole as a ring: categorical parts take their slot colour (from
+ * shareParts), status parts a `tone` (success, progress, pending, danger).
+ * The middle shows the total, or the hovered part's share; the key beside
+ * it names every part with its share, so colour is never the only cue.
+ */
+export function Donut({ parts, label, total, totalLabel }) {
+  const [active, setActive] = useState(null);
+  const shown = parts.filter((part) => part.value > 0);
+  if (!shown.length) return null;
+  const size = 140;
+  const stroke = 20;
+  const radius = (size - stroke) / 2;
+  const around = 2 * Math.PI * radius;
+  // A 2px surface gap between segments when there is more than one.
+  const gap = shown.length > 1 ? 2 : 0;
+  const picked = shown.find((part) => part.key === active);
+  let start = 0;
+  return (
+    <figure className="report-donut" aria-label={label}>
+      <div className="report-donut-ring">
+        <svg
+          viewBox={`0 0 ${size} ${size}`}
+          role="img"
+          aria-label={shown
+            .map((p) => `${p.label} ${Math.round(p.share * 100)}%`)
+            .join(", ")}
+        >
+          <circle
+            className="report-donut-track"
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            strokeWidth={stroke}
+          />
+          {shown.map((part) => {
+            const length = part.share * around;
+            const segment = (
+              <circle
+                key={part.key}
+                className="report-donut-part"
+                data-slot={part.tone ? undefined : part.slot}
+                data-tone={part.tone}
+                data-dim={(active && active !== part.key) || undefined}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                strokeWidth={stroke}
+                strokeDasharray={`${Math.max(0.5, length - gap)} ${around}`}
+                strokeDashoffset={-start}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                onMouseEnter={() => setActive(part.key)}
+                onMouseLeave={() => setActive(null)}
+              >
+                <title>{`${part.label}: ${Math.round(part.share * 100)}%`}</title>
+              </circle>
+            );
+            start += length;
+            return segment;
+          })}
+        </svg>
+        <div className="report-donut-center" aria-hidden="true">
+          <strong>
+            {picked ? `${Math.round(picked.share * 100)}%` : total}
+          </strong>
+          <small>{picked ? picked.label : totalLabel}</small>
+        </div>
+      </div>
+      <figcaption className="report-donut-key">
+        {shown.map((part) => (
+          <span
+            key={part.key}
+            data-dim={(active && active !== part.key) || undefined}
+            onMouseEnter={() => setActive(part.key)}
+            onMouseLeave={() => setActive(null)}
+          >
+            <i
+              data-slot={part.tone ? undefined : part.slot}
+              data-tone={part.tone}
+              aria-hidden="true"
+            />
+            <span>{part.label}</span>
+            <b>{Math.round(part.share * 100)}%</b>
+          </span>
+        ))}
+      </figcaption>
     </figure>
   );
 }

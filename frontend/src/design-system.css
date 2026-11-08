@@ -70,7 +70,7 @@ textarea {
 textarea {
   box-sizing: border-box;
   resize: none;
-  max-height: min(240px, 40dvh);
+  max-height: min(300px, 50dvh);
   overflow-y: auto;
   align-self: start;
 }
@@ -164,8 +164,8 @@ textarea {
 }
 .image-picker-sources button[aria-pressed="true"] {
   color: #fff;
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-fill, var(--primary));
+  border-color: var(--primary-fill, var(--primary));
 }
 .image-picker > small {
   color: var(--muted);
@@ -237,7 +237,7 @@ a {
   left: 12px;
   transform: translateY(-180%);
   padding: 12px 20px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: white;
   border-radius: 10px;
 }
@@ -267,9 +267,9 @@ a {
   text-decoration: none;
 }
 .ui-button--primary {
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--primary-fill, var(--primary));
 }
 .ui-button--primary:hover:not(:disabled) {
   background: var(--primary-hover, #193f30);
@@ -541,7 +541,7 @@ a {
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: white;
   flex-shrink: 0;
 }
@@ -1603,7 +1603,6 @@ a {
 .reservation-notes textarea {
   width: 100%;
   line-height: 1.6;
-  max-height: min(180px, 30dvh);
   scrollbar-width: thin;
   scrollbar-color: #a5b5a6 transparent;
 }
@@ -1641,7 +1640,7 @@ a {
 .app-content .calendar-booking-actions button,
 .app-content .ops-export button {
   padding: 11px 15px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: white;
   border: 1px solid var(--primary);
 }
@@ -2025,8 +2024,8 @@ a {
   font-size: var(--text-caption);
 }
 .app-content .category-tabs button[aria-pressed="true"] {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--primary-fill, var(--primary));
+  border-color: var(--primary-fill, var(--primary));
   color: white;
 }
 .dish-grid {
@@ -2958,7 +2957,7 @@ textarea::placeholder {
   min-height: 40px;
   padding: 0 16px;
   border-radius: 999px;
-  background: var(--primary);
+  background: var(--primary-fill, var(--primary));
   color: var(--df-color-on-brand, #fff);
   font-size: 14px;
   font-weight: 700;

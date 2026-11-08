@@ -1,3 +1,4 @@
+import { useAdminDesktop } from "./components/adminDesk";
 import { useLiveSettings } from "./components/useLiveSettings";
 import { Feedback, Skeleton } from "./components/ui";
 import { useEffect, useRef, useState } from "react";
@@ -424,6 +425,7 @@ export function DeliveryDestination({ items, value, onChange, onQuote }) {
 export { RestaurantLocation } from "./components/RestaurantLocation";
 
 export function DeliverySettings() {
+  const desk = useAdminDesktop();
   const [loading, setLoading] = useState(true),
     [initialError, setInitialError] = useState(""),
     [attempt, setAttempt] = useState(0);
@@ -547,6 +549,14 @@ export function DeliverySettings() {
           </div>
         </header>
         <div className="delivery-schedule-days">
+          {desk && (
+            <div className="delivery-schedule-head" aria-hidden="true">
+              <span>Day</span>
+              <span>Opens</span>
+              <span>Closes</span>
+              <span>Closed</span>
+            </div>
+          )}
           {days.map((day) => {
             const hours = data[group]?.[key]?.[day] || {};
             return (
@@ -626,7 +636,10 @@ export function DeliverySettings() {
       <section className="welcome">
         <h1>Delivery settings</h1>
         {loading ? (
-          <Skeleton label="Loading delivery settings" />
+          <Skeleton
+            label="Loading delivery settings"
+            layout={{ body: "form", rows: 3 }}
+          />
         ) : (
           <Feedback onRetry={() => setAttempt((value) => value + 1)}>
             {initialError}
@@ -776,6 +789,36 @@ export function DeliverySettings() {
                   </label>
                 ))}
               </div>
+              {desk && (
+                <dl
+                  className="delivery-glance"
+                  aria-label="Delivery at a glance"
+                >
+                  <div>
+                    <dt>Coverage</dt>
+                    <dd>{Number(data.policy.radius_km) || 0} km</dd>
+                  </div>
+                  <div>
+                    <dt>Minimum order</dt>
+                    <dd>₱{Number(data.policy.minimum_order) || 0}</dd>
+                  </div>
+                  <div>
+                    <dt>Delivery fee</dt>
+                    <dd>
+                      ₱{Number(data.policy.base_fee) || 0} + ₱
+                      {Number(data.policy.per_km_fee) || 0}/km
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>A 5 km order pays</dt>
+                    <dd>
+                      ₱
+                      {(Number(data.policy.base_fee) || 0) +
+                        5 * (Number(data.policy.per_km_fee) || 0)}
+                    </dd>
+                  </div>
+                </dl>
+              )}
             </section>
           </div>
           <section

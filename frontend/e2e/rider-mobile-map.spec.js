@@ -74,8 +74,70 @@ test("mobile deliveries keeps the map primary with icon panels underneath", asyn
   if (page.viewportSize().width > 850) {
     await expect(dock).toBeHidden();
     await expect(
+      page.locator(".rider-delivery-support .rider-current-outlet"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Enter fullscreen", exact: true }),
+    ).toHaveCount(1);
+    const queueItem = page
+      .locator(".rider-delivery-lower-grid .rider-queue-item")
+      .first();
+    const grip = await queueItem.locator(".rider-queue-handle").boundingBox();
+    const stopNumber = await queueItem
+      .locator(".rider-queue-number")
+      .boundingBox();
+    expect(grip.x + grip.width).toBeLessThan(stopNumber.x);
+    await expect(
       map.getByRole("button", { name: "Show my live location", exact: true }),
     ).toBeVisible();
+    const selectedTitle = page.locator(
+      ".rider-selected-workbench .rider-card-order-title",
+    );
+    await expect(selectedTitle).toBeVisible();
+    await expect(selectedTitle).toHaveText("Order DF-MOBILE-1");
+    expect((await selectedTitle.boundingBox()).width).toBeGreaterThan(100);
+    await page
+      .getByRole("button", { name: "Route order", exact: true })
+      .click();
+    const itinerary = page.getByRole("region", {
+      name: "Route details and stop order",
+    });
+    await expect(
+      itinerary.getByRole("button", { name: "Apply route order" }),
+    ).toHaveCount(0);
+    const firstStop = itinerary.getByRole("button", {
+      name: "Show DF-MOBILE-1 on map",
+    });
+    const secondStop = itinerary.getByRole("button", {
+      name: "Show DF-MOBILE-2 on map",
+    });
+    await secondStop.scrollIntoViewIfNeeded();
+    const source = await secondStop.boundingBox();
+    const target = await firstStop.boundingBox();
+    await page.mouse.move(
+      source.x + source.width / 2,
+      source.y + source.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      target.x + target.width / 2,
+      target.y + target.height / 2,
+      { steps: 12 },
+    );
+    await page.mouse.up();
+    await expect(itinerary.locator("ol > li").first()).toContainText(
+      "DF-MOBILE-2",
+    );
+    const apply = itinerary.getByRole("button", { name: "Apply route order" });
+    await expect(apply).toBeEnabled();
+    const lastStop = await itinerary.locator("ol > li").last().boundingBox();
+    expect((await apply.boundingBox()).y).toBeGreaterThan(
+      lastStop.y + lastStop.height,
+    );
+    await page.screenshot({
+      path: info.outputPath("desktop-route-order.png"),
+      animations: "disabled",
+    });
     return;
   }
   await expect(dock).toBeVisible();

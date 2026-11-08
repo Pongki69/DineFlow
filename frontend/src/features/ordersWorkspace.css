@@ -315,67 +315,12 @@
   min-width: 0;
   margin: 0;
   padding: 10px 13px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: #246b55;
-  color: #fff;
+  /* Colours, shape and focus come from the universal buttons (buttons.css). */
   font-size: 13px;
-  font-weight: 500;
   text-align: center;
   line-height: 1.5;
   white-space: normal;
   overflow-wrap: anywhere;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    box-shadow 140ms ease;
-}
-.orders-workspace
-  .orders-list
-  .order-card
-  .order-action-button:hover:not(:disabled) {
-  background: #19533f;
-  color: #fff;
-  border-color: #19533f;
-  box-shadow: 0 2px 6px #163d2526;
-}
-.orders-workspace
-  .orders-list
-  .order-card
-  :is(.order-action-button--cash, .order-action-button--cancel) {
-  border-color: var(--border, #cbd6cd);
-  background: var(--surface, #fff);
-  color: var(--ink, #24352b);
-}
-.orders-workspace
-  .orders-list
-  .order-card
-  .order-action-button--cash:hover:not(:disabled) {
-  background: var(--primary-soft, #eaf4ee);
-  color: var(--ink, #24352b);
-  border-color: var(--control-border, #7f9387);
-}
-.admin-shell
-  .orders-workspace
-  .orders-list
-  .order-card
-  .order-action-button--cancel {
-  color: var(--admin-danger-text);
-  background: var(--admin-danger-soft);
-  border-color: var(--admin-danger-border);
-}
-.orders-workspace
-  .orders-list
-  .order-card
-  .order-action-button--cancel:hover:not(:disabled) {
-  color: var(--admin-danger-text, #a12f2a);
-  background: var(--admin-danger-soft, #fff0ed);
-  border-color: var(--admin-danger-text, #a12f2a);
-}
-.orders-workspace .orders-list .order-card .order-action-button:focus-visible {
-  outline: 3px solid var(--control-border, #7f9387);
-  outline-offset: 3px;
 }
 @media (hover: hover) {
   .orders-workspace--staff .orders-list .order-card:hover {

@@ -1,0 +1,85 @@
+/* Row menu (components/RowMenu.jsx). */
+/* Row menu: a vertical "⋮" button and its list of options. -------------- */
+.dineflow-app .row-menu {
+  position: relative;
+  flex: none;
+}
+.dineflow-app .row-menu-trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  /* Just the icon; a soft highlight shows on hover and while open. */
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.dineflow-app .row-menu-trigger:hover,
+.dineflow-app .row-menu-trigger[aria-expanded="true"] {
+  background: var(--neutral-soft);
+  color: var(--ink);
+}
+.dineflow-app .row-menu-trigger:focus-visible,
+.dineflow-app .row-menu-list > button:focus-visible {
+  outline: 2px solid var(--df-color-focus, #1e4d3a);
+  outline-offset: 2px;
+}
+.dineflow-app .row-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  gap: 2px;
+  min-width: 210px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--df-shadow-high, 0 12px 32px rgb(16 34 24 / 16%));
+}
+.dineflow-app .row-menu-list > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dineflow-app .row-menu-list > button > svg {
+  flex: none;
+  color: var(--muted);
+}
+.dineflow-app .row-menu-list > button:hover,
+.dineflow-app .row-menu-list > button:focus {
+  background: var(--neutral-soft);
+}
+/* The destructive option sits last, under a divider, in red. */
+.dineflow-app .row-menu-list > button[data-tone="danger"] {
+  color: var(--df-status-danger-text);
+}
+.dineflow-app .row-menu-list > button[data-tone="danger"] > svg {
+  color: inherit;
+}
+.dineflow-app .row-menu-list > button[data-tone="danger"]:hover,
+.dineflow-app .row-menu-list > button[data-tone="danger"]:focus {
+  background: var(--df-status-danger-bg);
+}
+.dineflow-app .row-menu-list > button[data-tone="danger"]:not(:first-child) {
+  margin-top: 5px;
+  box-shadow: 0 -4px 0 -3px var(--border);
+}

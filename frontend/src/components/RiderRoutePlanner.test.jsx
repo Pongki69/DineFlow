@@ -257,6 +257,44 @@ it("offers route retry after an unavailable request and preserves local reorderi
   expect(JSON.parse(api.mock.calls[2][1].body).delivery_ids).toEqual([2, 1]);
 });
 
+it.each([false, true])(
+  "drags a whole stop card while enforcing paired order (%s)",
+  async (paired) => {
+    const onOrderChange = vi.fn();
+    render(
+      <RiderRoutePlanner
+        deliveries={
+          paired
+            ? deliveries
+            : deliveries.map((d) => ({ ...d, batch_key: null }))
+        }
+        onOrderChange={onOrderChange}
+      />,
+    );
+    const source = await screen.findByRole("button", {
+      name: "Show DF-2 on map",
+    });
+    const destination = screen.getByRole("button", {
+      name: "Show DF-1 on map",
+    });
+    const originalHitTest = document.elementFromPoint;
+    document.elementFromPoint = () => destination;
+    const pointer = (target, type, clientY) =>
+      fireEvent(target, new MouseEvent(type, { bubbles: true, clientY }));
+    expect(source.closest("li").dataset.routeDraggable).toBe("true");
+    pointer(source, "pointerdown", 200);
+    pointer(destination, "pointermove", 100);
+    expect(destination.closest("li").dataset.routeDropTarget).toBe(
+      paired ? undefined : "before",
+    );
+    pointer(destination, "pointerup", 100);
+    document.elementFromPoint = originalHitTest;
+    expect(source.closest("li").dataset.routeDragging).toBeUndefined();
+    if (paired) expect(onOrderChange).not.toHaveBeenCalled();
+    else expect(onOrderChange).toHaveBeenCalledWith([2, 1]);
+  },
+);
+
 it("keeps editable drop-offs in fullscreen, enables wheel zoom, and exits with Escape", async () => {
   render(
     <RiderRoutePlanner

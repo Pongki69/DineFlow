@@ -17,6 +17,22 @@
   --report-series-other: #6d7570;
 }
 
+/* Status bars: done, in progress, waiting and a problem. Validated as one
+   set (light: CVD ΔE 9.1, normal 22.9; dark: CVD 6.7, normal 16.9), every
+   bar carrying its written status; closed bars use the muted ink. */
+:root {
+  --report-status-success: #1baf7a;
+  --report-status-progress: #2a78d6;
+  --report-status-pending: #eda100;
+  --report-status-danger: #c9324a;
+}
+:is(.app-shell, .admin-shell)[data-theme="dark"] {
+  --report-status-success: #199e70;
+  --report-status-progress: #3987e5;
+  --report-status-pending: #b98a00;
+  --report-status-danger: #e8606b;
+}
+
 /* Share bar: 14px, fully rounded, 2px surface gaps between parts. */
 .report-share {
   display: grid;
@@ -166,4 +182,139 @@
   font-size: 11.5px;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
+}
+
+/* Donut: a ring of parts with the total in the middle and a key beside. */
+.report-donut {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  margin: 0;
+  padding: 16px 20px;
+}
+.report-donut-ring {
+  position: relative;
+  flex: none;
+  width: 140px;
+  height: 140px;
+}
+.report-donut-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.report-donut-track {
+  fill: none;
+  stroke: var(--neutral-soft, #eef1ec);
+}
+.report-donut-part {
+  fill: none;
+  cursor: default;
+  transition: opacity 0.15s ease;
+}
+.report-donut-part[data-dim],
+.report-donut-key > span[data-dim] {
+  opacity: 0.35;
+}
+.report-donut-part[data-slot="0"] {
+  stroke: var(--report-series-1);
+}
+.report-donut-part[data-slot="1"] {
+  stroke: var(--report-series-2);
+}
+.report-donut-part[data-slot="2"] {
+  stroke: var(--report-series-3);
+}
+.report-donut-part[data-slot="3"] {
+  stroke: var(--report-series-4);
+}
+.report-donut-part[data-slot="other"] {
+  stroke: var(--report-series-other);
+}
+.report-donut-part[data-tone="success"] {
+  stroke: var(--report-status-success);
+}
+.report-donut-part[data-tone="progress"] {
+  stroke: var(--report-status-progress);
+}
+.report-donut-part[data-tone="pending"] {
+  stroke: var(--report-status-pending);
+}
+.report-donut-part[data-tone="danger"] {
+  stroke: var(--report-status-danger);
+}
+.report-donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+.report-donut-center strong {
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.report-donut-center small {
+  max-width: 90px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.report-donut-key {
+  display: grid;
+  flex: 1 1 160px;
+  gap: 8px;
+  margin: 0;
+}
+.report-donut-key > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  transition: opacity 0.15s ease;
+}
+.report-donut-key > span > span {
+  flex: 1;
+}
+.report-donut-key b {
+  font-variant-numeric: tabular-nums;
+}
+.report-donut-key i {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.report-donut-key i[data-slot="0"] {
+  background: var(--report-series-1);
+}
+.report-donut-key i[data-slot="1"] {
+  background: var(--report-series-2);
+}
+.report-donut-key i[data-slot="2"] {
+  background: var(--report-series-3);
+}
+.report-donut-key i[data-slot="3"] {
+  background: var(--report-series-4);
+}
+.report-donut-key i[data-slot="other"] {
+  background: var(--report-series-other);
+}
+.report-donut-key i[data-tone="success"] {
+  background: var(--report-status-success);
+}
+.report-donut-key i[data-tone="progress"] {
+  background: var(--report-status-progress);
+}
+.report-donut-key i[data-tone="pending"] {
+  background: var(--report-status-pending);
+}
+.report-donut-key i[data-tone="danger"] {
+  background: var(--report-status-danger);
 }

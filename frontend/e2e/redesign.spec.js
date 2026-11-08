@@ -175,9 +175,12 @@ test("catalog editing uses accessible fields and structured options", async ({
     variants: [{ name: "Large", price_adjustment: "40", is_active: true }],
   });
   await expect(editor).not.toBeVisible();
-  await expect(page.getByRole("status")).toContainText(
-    "Your new dish is on the menu.",
-  );
+  // The dish count is a live status too, so look for the saved message itself.
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Your new dish is on the menu." }),
+  ).toBeVisible();
 });
 
 test("staff workspace remains readable and accessible across core operational screens", async ({

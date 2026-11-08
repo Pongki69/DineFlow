@@ -30,7 +30,7 @@
   flex-shrink: 0;
   min-height: 48px;
   padding: 12px 20px;
-  background: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
   color: #fff;
   border-radius: 12px;
   text-decoration: none;
@@ -140,7 +140,7 @@
   place-items: center;
   width: 46px;
   height: 46px;
-  background: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
   color: #fff;
   border: 3px solid #fff;
   border-radius: 50% 50% 50% 6px;

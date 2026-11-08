@@ -483,14 +483,16 @@ function StandardAppShell({ user, onSignOut, children }) {
           ref={content}
           tabIndex={-1}
         >
-          {riderIdentity && location.pathname === "/settings" && (
-            <RiderMobileProfileActions
-              user={user}
-              theme={theme}
-              toggleTheme={toggleTheme}
-              onSignOut={onSignOut}
-            />
-          )}
+          {riderIdentity &&
+            compactScreen &&
+            location.pathname === "/settings" && (
+              <RiderMobileProfileActions
+                user={user}
+                theme={theme}
+                toggleTheme={toggleTheme}
+                onSignOut={onSignOut}
+              />
+            )}
           {staffApp && compactScreen && location.pathname === "/settings" && (
             <RiderMobileProfileActions
               user={user}

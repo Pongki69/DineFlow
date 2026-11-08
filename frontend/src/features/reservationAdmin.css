@@ -133,29 +133,14 @@
   max-width: 310px;
 }
 .reservation-list-status {
-  display: inline-block;
-  border: 1px solid var(--border);
-  padding: 6px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  text-transform: capitalize;
-  background: var(--primary-soft);
-  color: var(--ink);
-}
-.reservation-list-status.status-cancelled {
-  color: var(--danger);
-  background: var(--danger-soft);
-}
-.my-reservations-workspace .my-reservation-actions button {
-  padding: 9px 12px;
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--control-border);
-  border-radius: 7px;
+  padding: 4px 10px;
   font-size: 12px;
 }
-.my-reservation-actions button:hover {
-  background: var(--primary-soft);
+/* Compact booking actions; colours and shape come from buttons.css. */
+.dineflow-app .my-reservations-workspace .my-reservation-actions .ui-button {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 13px;
 }
 .dineflow-app .reservation-calendar .calendar-controls {
   display: flex;
@@ -235,16 +220,6 @@
 .reservation-calendar .calendar-booking:last-child {
   border-bottom: 0;
 }
-.dineflow-app .reservation-calendar .calendar-booking-actions button {
-  color: var(--df-color-on-brand);
-  background: var(--primary);
-  border-color: var(--primary);
-}
-.dineflow-app .reservation-calendar .calendar-booking-actions button.secondary {
-  color: var(--ink);
-  background: var(--surface);
-  border-color: var(--control-border);
-}
 @media (max-width: 650px) {
   .audit-list article {
     grid-template-columns: 32px minmax(0, 1fr);
@@ -273,4 +248,377 @@
     margin-left: 0;
     width: 100%;
   }
+}
+
+/* Phones: status and both actions share one row. */
+@media (max-width: 850px) {
+  .dineflow-app .my-reservations-workspace .my-reservation-actions .ui-button {
+    padding: 0 12px;
+  }
+  .dineflow-app .my-reservation-actions .df-status.reservation-status {
+    gap: 3px;
+    padding: 2px 8px;
+  }
+  .dineflow-app .my-reservation-actions .df-status.reservation-status > svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+/* Reservations calendar (tablet and desktop): one toolbar card. ----------- */
+.dineflow-app .reservation-calendar .cal-toolbar {
+  display: grid;
+  gap: 14px;
+  margin: 24px 0 18px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.dineflow-app .reservation-calendar .cal-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+.dineflow-app .reservation-calendar .cal-period > h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+.dineflow-app .reservation-calendar .cal-period > p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.dineflow-app .reservation-calendar .cal-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Previous · Today · Next as one joined control. */
+.dineflow-app .reservation-calendar .cal-nav {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--df-button-border, var(--border));
+  border-radius: 8px;
+  background: var(--surface);
+}
+.dineflow-app .reservation-calendar .cal-nav > button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  height: 38px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dineflow-app .reservation-calendar .cal-nav > button + button {
+  border-left: 1px solid var(--df-button-border, var(--border));
+}
+.dineflow-app .reservation-calendar .cal-nav > button:hover {
+  background: var(--neutral-soft);
+}
+
+/* Day · Week · Month as a segmented switch. */
+.dineflow-app .reservation-calendar .cal-views {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--neutral-soft);
+}
+.dineflow-app .reservation-calendar .cal-views > button {
+  min-height: 32px;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dineflow-app .reservation-calendar .cal-views > button[aria-pressed="true"] {
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px rgb(23 33 30 / 10%),
+    0 0 0 1px var(--border);
+  color: var(--ink);
+}
+
+/* Status chips with counts. */
+.dineflow-app .reservation-calendar .cal-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.dineflow-app .reservation-calendar .cal-status-chips > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dineflow-app
+  .reservation-calendar
+  .cal-status-chips
+  > button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.dineflow-app .reservation-calendar .cal-status-chips .admin-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--neutral-soft);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Day cards let the row menu spill out; the header keeps the rounding. */
+.dineflow-app .reservation-calendar .calendar-day {
+  overflow: visible;
+}
+.dineflow-app .reservation-calendar .calendar-day > h2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 12px 12px 0 0;
+}
+.dineflow-app .reservation-calendar .calendar-day > h2 > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* One booking: time tile, guest and details, next step and the menu. */
+.dineflow-app .reservation-calendar .cal-booking {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+.dineflow-app .reservation-calendar .cal-booking-time {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  width: 64px;
+  min-height: 56px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.dineflow-app .reservation-calendar .cal-booking-time > strong {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.dineflow-app .reservation-calendar .cal-booking-time > small {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+.dineflow-app
+  .reservation-calendar
+  .cal-booking[data-status="pending"]
+  .cal-booking-time {
+  background: var(--df-status-pending-bg);
+  color: var(--df-status-pending-text);
+}
+.dineflow-app
+  .reservation-calendar
+  .cal-booking:is([data-status="checked_in"], [data-status="seated"])
+  .cal-booking-time {
+  background: var(--df-status-progress-bg);
+  color: var(--df-status-progress-text);
+}
+.dineflow-app
+  .reservation-calendar
+  .cal-booking:is([data-status="cancelled"], [data-status="no_show"])
+  .cal-booking-time {
+  background: var(--df-status-danger-bg);
+  color: var(--df-status-danger-text);
+}
+.dineflow-app
+  .reservation-calendar
+  .cal-booking[data-status="completed"]
+  .cal-booking-time {
+  background: var(--neutral-soft);
+  color: var(--muted);
+}
+.dineflow-app .reservation-calendar .cal-booking-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  color: var(--muted);
+}
+.dineflow-app .reservation-calendar .cal-booking-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.dineflow-app .reservation-calendar .cal-booking .calendar-booking-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* The next step and the row menu share one height. */
+.dineflow-app
+  #main-content
+  .cal-booking
+  .calendar-booking-actions
+  > .ui-button {
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+/* Calendar days: when they are, what they hold, and who is due next. ---- */
+.dineflow-app .reservation-calendar .cal-today {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+}
+.dineflow-app .reservation-calendar .cal-today[data-when="today"] {
+  background: var(--primary-fill, var(--primary));
+  color: var(--df-color-on-brand, #fff);
+}
+.dineflow-app .reservation-calendar .cal-today[data-when="past"] {
+  background: var(--neutral-soft);
+  color: var(--muted);
+}
+/* Past days step back so today and the days ahead lead. */
+.dineflow-app
+  .reservation-calendar
+  .calendar-day[data-when="past"]
+  .cal-day-title {
+  color: var(--muted);
+}
+.dineflow-app .reservation-calendar .calendar-day[data-when="today"] {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+
+.dineflow-app .reservation-calendar .cal-day-summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px 16px;
+}
+.dineflow-app .reservation-calendar .cal-day-tally {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.dineflow-app .reservation-calendar .cal-day-tally > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.dineflow-app .reservation-calendar .cal-day-tally i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--df-status-neutral-text);
+}
+.dineflow-app .reservation-calendar .cal-day-tally [data-tone="pending"] i {
+  background: var(--df-status-pending-text);
+}
+.dineflow-app .reservation-calendar .cal-day-tally [data-tone="success"] i {
+  background: var(--df-status-success-text);
+}
+.dineflow-app .reservation-calendar .cal-day-tally [data-tone="progress"] i {
+  background: var(--df-status-progress-text);
+}
+.dineflow-app .reservation-calendar .cal-day-tally [data-tone="danger"] i {
+  background: var(--df-status-danger-text);
+}
+
+/* Rows answer the pointer, like every list in the workspace. */
+.dineflow-app .reservation-calendar .cal-booking:hover {
+  background: color-mix(in srgb, var(--neutral-soft) 70%, transparent);
+}
+.dineflow-app
+  .reservation-calendar
+  .calendar-day
+  > .reservation-calendar-list
+  > .cal-booking:last-child {
+  border-radius: 0 0 12px 12px;
+}
+
+/* "In 45 min" for today's next guests; amber once they are late. */
+.dineflow-app .reservation-calendar .cal-booking-when {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+.dineflow-app .reservation-calendar .cal-booking-when[data-late] {
+  background: var(--df-status-pending-bg);
+  color: var(--df-status-pending-text);
+}
+
+/* Calendar toolbar: ‹ Today ›, the view switch and the date share one look,
+   the soft green track of the view switch. */
+.dineflow-app .reservation-calendar .cal-nav {
+  border-color: var(--border);
+  border-radius: 10px;
+  background: var(--neutral-soft);
+}
+.dineflow-app .reservation-calendar .cal-nav > button + button {
+  border-left-color: var(--border);
+}
+.dineflow-app .reservation-calendar .cal-nav > button:hover {
+  background: var(--surface);
+}
+.dineflow-app .reservation-calendar .cal-controls .date-picker-trigger {
+  border-color: var(--border);
+  border-radius: 10px;
+  background: var(--neutral-soft);
+}
+.dineflow-app .reservation-calendar .cal-controls .date-picker-trigger:hover {
+  background: var(--surface);
 }

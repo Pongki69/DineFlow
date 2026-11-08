@@ -22,7 +22,7 @@ class Order extends Model
             'delivery_fee' => 'decimal:2', 'tax' => 'decimal:2', 'total' => 'decimal:2', 'special_discount_amount' => 'decimal:2',
             'delivery_latitude' => 'decimal:7', 'delivery_longitude' => 'decimal:7', 'delivery_distance_km' => 'decimal:2',
             'confirmed_at' => 'datetime', 'completed_at' => 'datetime', 'cancelled_at' => 'datetime',
-            'prep_ready_at' => 'datetime',
+            'prep_ready_at' => 'datetime', 'kitchen_pinned_at' => 'datetime',
         ];
     }
 

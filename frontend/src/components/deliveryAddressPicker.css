@@ -30,9 +30,9 @@
   background: white;
 }
 .delivery-address-steps li[aria-current="step"] > span {
-  background: var(--primary, #245440);
+  background: var(--primary-fill, var(--primary, #245440));
   color: white;
-  border-color: var(--primary, #245440);
+  border-color: var(--primary-fill, var(--primary, #245440));
 }
 .delivery-address-section {
   display: grid;
